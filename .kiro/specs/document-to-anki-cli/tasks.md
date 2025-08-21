@@ -51,7 +51,7 @@
   - Add retry logic with exponential backoff for API failures
   - _Requirements: 1.4, 1.5, 5.2, 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 7. Implement flashcard generation logic
+- [x] 7. Implement flashcard generation logic
   - Create FlashcardGenerator class to manage flashcard creation and editing
   - Implement generate_flashcards() method that uses LLMClient to create flashcards from text
   - Add logic to parse LLM responses into Flashcard objects

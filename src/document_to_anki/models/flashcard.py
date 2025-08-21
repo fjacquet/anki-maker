@@ -1,24 +1,25 @@
 """Flashcard and ProcessingResult data models."""
 
 import uuid
-from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-@dataclass
-class Flashcard:
+class Flashcard(BaseModel):
     """Represents a single flashcard with question, answer, and metadata."""
 
     id: str
     question: str
     answer: str
-    card_type: str  # "qa" for question-answer, "cloze" for cloze deletion
-    source_file: str | None = None
-    created_at: datetime = field(default_factory=datetime.now)
+    card_type: Literal["qa", "cloze"]  # "qa" for question-answer, "cloze" for cloze deletion
+    source_file: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
 
     @classmethod
     def create(
-        cls, question: str, answer: str, card_type: str, source_file: str | None = None
+        cls, question: str, answer: str, card_type: str, source_file: Optional[str] = None
     ) -> "Flashcard":
         """Create a new flashcard with auto-generated ID."""
         return cls(
@@ -28,6 +29,30 @@ class Flashcard:
             card_type=card_type,
             source_file=source_file,
         )
+
+    @field_validator("question", "answer")
+    @classmethod
+    def validate_content_not_empty(cls, v: str) -> str:
+        """Validate that question and answer are not empty."""
+        if not v or not v.strip():
+            raise ValueError("Question and answer cannot be empty")
+        return v.strip()
+
+    @field_validator("question", "answer")
+    @classmethod
+    def validate_content_length(cls, v: str) -> str:
+        """Validate that content is not too long for Anki."""
+        if len(v) > 65000:
+            raise ValueError("Content cannot exceed 65,000 characters (Anki limit)")
+        return v
+
+    @model_validator(mode="after")
+    def validate_cloze_format(self) -> "Flashcard":
+        """Validate cloze deletion format for cloze cards."""
+        if self.card_type == "cloze":
+            if "{{c1::" not in self.question and "{{c1::" not in self.answer:
+                raise ValueError("Cloze cards must contain cloze deletion format {{c1::...}}")
+        return self
 
     def to_csv_row(self) -> list[str]:
         """Convert flashcard to Anki-compatible CSV format.
@@ -43,38 +68,21 @@ class Flashcard:
         Returns:
             bool: True if flashcard is valid, False otherwise
         """
-        # Check required fields are not empty
-        if not self.question or not self.question.strip():
+        try:
+            # Pydantic validation happens automatically, so if we get here, it's valid
+            return True
+        except Exception:
             return False
 
-        if not self.answer or not self.answer.strip():
-            return False
 
-        # Check card_type is valid
-        if self.card_type not in ["qa", "cloze"]:
-            return False
-
-        # Check question and answer are not too long (Anki limit is ~65k chars)
-        if len(self.question) > 65000 or len(self.answer) > 65000:
-            return False
-
-        # For cloze cards, ensure proper cloze deletion format
-        if self.card_type == "cloze":
-            if "{{c1::" not in self.question and "{{c1::" not in self.answer:
-                return False
-
-        return True
-
-
-@dataclass
-class ProcessingResult:
+class ProcessingResult(BaseModel):
     """Represents the result of document processing operation."""
 
     flashcards: list[Flashcard]
     source_files: list[str]
     processing_time: float
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
     @property
     def success(self) -> bool:

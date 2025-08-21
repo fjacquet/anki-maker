@@ -3,7 +3,7 @@
 import tempfile
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
+
 
 import pytest
 
@@ -74,7 +74,7 @@ class TestFileHandler:
             with pytest.raises(FileHandlingError, match="File is empty"):
                 self.file_handler.validate_file_type(empty_file)
 
-    def test_validate_file_type_large_file(self):
+    def test_validate_file_type_large_file(self, mocker):
         """Test validation raises error for files that are too large."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -83,13 +83,12 @@ class TestFileHandler:
 
             # Mock the stat result to simulate a large file
             import stat
-            from unittest.mock import MagicMock
 
-            mock_stat_result = MagicMock()
+            mock_stat_result = mocker.MagicMock()
             mock_stat_result.st_size = FileHandler.MAX_FILE_SIZE + 1
             mock_stat_result.st_mode = stat.S_IFREG | 0o644  # Regular file mode
 
-            with patch("pathlib.Path.stat", return_value=mock_stat_result):
+            with mocker.patch("pathlib.Path.stat", return_value=mock_stat_result):
                 with pytest.raises(FileHandlingError, match="File too large"):
                     self.file_handler.validate_file_type(large_file)
 
