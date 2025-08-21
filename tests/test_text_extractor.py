@@ -2,7 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
 
@@ -95,15 +94,16 @@ class TestTextExtractor:
         # Clean up
         Path(tmp.name).unlink()
 
-    @patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader")
-    def test_extract_text_from_pdf_success(self, mock_pdf_reader):
+    def test_extract_text_from_pdf_success(self, mocker):
         """Test successful PDF text extraction."""
-        # Mock PDF reader
-        mock_reader_instance = Mock()
+        # Mock PDF reader using pytest-mock
+        mock_reader_instance = mocker.MagicMock()
         mock_reader_instance.is_encrypted = False
-        mock_reader_instance.pages = [Mock(), Mock()]
+        mock_reader_instance.pages = [mocker.MagicMock(), mocker.MagicMock()]
         mock_reader_instance.pages[0].extract_text.return_value = "Page 1 content"
         mock_reader_instance.pages[1].extract_text.return_value = "Page 2 content"
+        
+        mock_pdf_reader = mocker.patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader")
         mock_pdf_reader.return_value = mock_reader_instance
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
@@ -113,11 +113,12 @@ class TestTextExtractor:
         # Clean up
         Path(tmp.name).unlink()
 
-    @patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader")
-    def test_extract_text_from_pdf_encrypted(self, mock_pdf_reader):
+    def test_extract_text_from_pdf_encrypted(self, mocker):
         """Test PDF extraction from encrypted file."""
-        mock_reader_instance = Mock()
+        mock_reader_instance = mocker.MagicMock()
         mock_reader_instance.is_encrypted = True
+        
+        mock_pdf_reader = mocker.patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader")
         mock_pdf_reader.return_value = mock_reader_instance
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
@@ -127,17 +128,18 @@ class TestTextExtractor:
         # Clean up
         Path(tmp.name).unlink()
 
-    @patch("src.document_to_anki.utils.text_extractor.Document")
-    def test_extract_text_from_docx_success(self, mock_document):
+    def test_extract_text_from_docx_success(self, mocker):
         """Test successful DOCX text extraction."""
-        # Mock document
-        mock_doc = Mock()
-        mock_paragraph1 = Mock()
+        # Mock document using pytest-mock
+        mock_doc = mocker.MagicMock()
+        mock_paragraph1 = mocker.MagicMock()
         mock_paragraph1.text = "First paragraph"
-        mock_paragraph2 = Mock()
+        mock_paragraph2 = mocker.MagicMock()
         mock_paragraph2.text = "Second paragraph"
         mock_doc.paragraphs = [mock_paragraph1, mock_paragraph2]
         mock_doc.tables = []
+        
+        mock_document = mocker.patch("src.document_to_anki.utils.text_extractor.Document")
         mock_document.return_value = mock_doc
 
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:

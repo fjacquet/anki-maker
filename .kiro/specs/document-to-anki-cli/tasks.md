@@ -9,10 +9,11 @@
   - _Requirements: 2.1, 2.2_
 
 - [x] 2. Implement core data models
-  - Create Flashcard dataclass with id, question, answer, card_type, source_file, and created_at fields
+  - Create Flashcard Pydantic v2 model with id, question, answer, card_type, source_file, and created_at fields
+  - Implement field validators for content validation using @field_validator and @model_validator
   - Implement to_csv_row() method for Anki-compatible CSV export format
   - Implement validate() method for flashcard content validation
-  - Create ProcessingResult dataclass for handling processing outcomes
+  - Create ProcessingResult Pydantic v2 model for handling processing outcomes
   - _Requirements: 1.6, 3.1, 3.2, 3.3, 3.4_
 
 ## Document Processing Core
@@ -61,7 +62,7 @@
 
 ## Flashcard Management
 
-- [ ] 8. Implement flashcard preview and editing functionality
+- [x] 8. Implement flashcard preview and editing functionality
   - Implement preview_flashcards() method with rich formatting for CLI display
   - Implement edit_flashcard() method to modify question and answer content
   - Implement delete_flashcard() method to remove unwanted flashcards
@@ -69,7 +70,7 @@
   - Add validation for all editing operations
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 9. Implement CSV export functionality
+- [x] 9. Implement CSV export functionality
   - Implement export_to_csv() method using pandas for efficient data handling
   - Create Anki-compatible CSV format with proper field mapping
   - Add support for both question-answer and cloze deletion card formats
@@ -123,11 +124,11 @@
 
 ## Testing and Quality Assurance
 
-- [ ] 15. Implement unit tests for core components
+- [x] 15. Implement unit tests for core components
   - Create test_models.py with comprehensive Flashcard and ProcessingResult tests
   - Create test_document_processor.py with mocked file operations
   - Create test_flashcard_generator.py with mocked LLM responses
-  - Create test_llm_client.py with mocked API calls using pytest-mock
+  - Create test_llm_client.py with mocked API calls using pytest-mock (avoiding unittest.mock)
   - Achieve minimum 80% code coverage for all core components
   - _Requirements: 6.1, 6.2_
 

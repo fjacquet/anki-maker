@@ -75,9 +75,9 @@ This feature involves creating a modern Python application that converts digital
 #### Acceptance Criteria
 
 1. WHEN developing features THEN the system SHALL maintain test coverage above 80%
-2. WHEN running tests THEN the system SHALL use pytest with appropriate fixtures and mocking
+2. WHEN running tests THEN the system SHALL use pytest with pytest-mock for mocking (avoiding unittest.mock)
 3. WHEN checking code quality THEN the system SHALL pass ruff linting without errors
-4. WHEN building the package THEN the system SHALL include proper type hints throughout the codebase
+4. WHEN building the package THEN the system SHALL include proper type hints throughout the codebase and use Pydantic v2 for data validation
 5. WHEN releasing THEN the system SHALL include comprehensive documentation and usage examples
 ### Requirement 7
 

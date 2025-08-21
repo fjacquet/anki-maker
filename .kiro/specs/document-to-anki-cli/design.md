@@ -111,34 +111,69 @@ class LLMClient:
 ### Flashcard Model
 
 ```python
-@dataclass
-class Flashcard:
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Literal, Optional
+
+class Flashcard(BaseModel):
+    """Represents a single flashcard with question, answer, and metadata."""
+    
     id: str
     question: str
     answer: str
-    card_type: str  # "qa" or "cloze"
+    card_type: Literal["qa", "cloze"]  # "qa" for question-answer, "cloze" for cloze deletion
     source_file: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.now)
+    
+    @field_validator("question", "answer")
+    @classmethod
+    def validate_content_not_empty(cls, v: str) -> str:
+        """Validate that question and answer are not empty."""
+        if not v or not v.strip():
+            raise ValueError("Question and answer cannot be empty")
+        return v.strip()
+    
+    @model_validator(mode="after")
+    def validate_cloze_format(self) -> "Flashcard":
+        """Validate cloze deletion format for cloze cards."""
+        if self.card_type == "cloze":
+            if "{{c1::" not in self.question and "{{c1::" not in self.answer:
+                raise ValueError("Cloze cards must contain cloze deletion format {{c1::...}}")
+        return self
     
     def to_csv_row(self) -> List[str]:
         """Convert flashcard to Anki-compatible CSV format"""
-        pass
+        return [self.question.strip(), self.answer.strip(), self.card_type, self.source_file or ""]
     
     def validate(self) -> bool:
         """Validate flashcard content"""
-        pass
+        try:
+            # Pydantic validation happens automatically, so if we get here, it's valid
+            return True
+        except Exception:
+            return False
 ```
 
 ### Processing Result Model
 
 ```python
-@dataclass
-class ProcessingResult:
+class ProcessingResult(BaseModel):
+    """Represents the result of document processing operation."""
+    
     flashcards: List[Flashcard]
     source_files: List[str]
     processing_time: float
-    errors: List[str]
-    warnings: List[str]
+    errors: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    
+    @property
+    def success(self) -> bool:
+        """Check if processing was successful (no errors)."""
+        return len(self.errors) == 0
+    
+    @property
+    def flashcard_count(self) -> int:
+        """Get the total number of flashcards generated."""
+        return len(self.flashcards)
 ```
 
 ## Error Handling
@@ -212,7 +247,7 @@ tests/
 
 ### Testing Approach
 
-1. **Unit Tests**: Test individual components in isolation using pytest-mock
+1. **Unit Tests**: Test individual components in isolation using pytest-mock (avoiding unittest.mock)
 2. **Integration Tests**: Test component interactions and API endpoints
 3. **End-to-End Tests**: Test complete workflows from document upload to CSV export
 4. **Performance Tests**: Validate processing speed and memory usage with large documents
@@ -221,7 +256,7 @@ tests/
 
 - Minimum 80% code coverage
 - 100% coverage for critical paths (LLM integration, file processing)
-- Mock external dependencies (LLM API, file system operations)
+- Mock external dependencies using pytest-mock's mocker fixture (LLM API, file system operations)
 - Test error conditions and edge cases
 
 ### Quality Assurance
@@ -237,6 +272,7 @@ tests/
 
 - **Python 3.12+**: Modern Python features and performance improvements
 - **uv**: Fast package management and dependency resolution
+- **Pydantic v2**: Modern data validation and serialization with type safety
 - **litellm**: Unified LLM API interface for Gemini integration
 - **pandas**: Efficient data manipulation for CSV processing
 - **numpy**: Numerical operations for text processing

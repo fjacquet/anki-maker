@@ -131,7 +131,7 @@ class TestFlashcardGenerator:
         """Test flashcard preview functionality."""
         generator._flashcards = sample_flashcards
         
-        preview = generator.preview_flashcards()
+        preview = generator.get_flashcard_preview_text()
         
         assert "Flashcard Preview (2 cards)" in preview
         assert "What is Python?" in preview
@@ -140,12 +140,12 @@ class TestFlashcardGenerator:
 
     def test_preview_flashcards_empty(self, generator):
         """Test preview with no flashcards."""
-        preview = generator.preview_flashcards()
+        preview = generator.get_flashcard_preview_text()
         assert preview == "No flashcards to preview."
 
     def test_preview_flashcards_custom_list(self, generator, sample_flashcards):
         """Test preview with custom flashcard list."""
-        preview = generator.preview_flashcards(sample_flashcards[:1])
+        preview = generator.get_flashcard_preview_text(sample_flashcards[:1])
         
         assert "Flashcard Preview (1 cards)" in preview
         assert "What is Python?" in preview
@@ -155,9 +155,10 @@ class TestFlashcardGenerator:
         generator._flashcards = sample_flashcards
         flashcard_id = sample_flashcards[0].id
         
-        success = generator.edit_flashcard(flashcard_id, "New question", "New answer")
+        success, message = generator.edit_flashcard(flashcard_id, "New question", "New answer")
         
         assert success
+        assert "updated successfully" in message
         assert generator._flashcards[0].question == "New question"
         assert generator._flashcards[0].answer == "New answer"
 
@@ -165,9 +166,10 @@ class TestFlashcardGenerator:
         """Test editing non-existent flashcard."""
         generator._flashcards = sample_flashcards
         
-        success = generator.edit_flashcard("nonexistent-id", "New question", "New answer")
+        success, message = generator.edit_flashcard("nonexistent-id", "New question", "New answer")
         
         assert not success
+        assert "not found" in message
 
     def test_edit_flashcard_validation_failure(self, generator, sample_flashcards):
         """Test editing flashcard with invalid data."""
@@ -176,9 +178,10 @@ class TestFlashcardGenerator:
         original_question = sample_flashcards[0].question
         
         # Try to set empty question (should fail validation)
-        success = generator.edit_flashcard(flashcard_id, "", "New answer")
+        success, message = generator.edit_flashcard(flashcard_id, "", "New answer")
         
         assert not success
+        assert "cannot be empty" in message
         assert generator._flashcards[0].question == original_question  # Should revert
 
     def test_delete_flashcard_success(self, generator, sample_flashcards):
@@ -187,9 +190,10 @@ class TestFlashcardGenerator:
         flashcard_id = sample_flashcards[0].id
         original_count = len(generator._flashcards)
         
-        success = generator.delete_flashcard(flashcard_id)
+        success, message = generator.delete_flashcard(flashcard_id)
         
         assert success
+        assert "Deleted flashcard" in message
         assert len(generator._flashcards) == original_count - 1
         assert flashcard_id not in [card.id for card in generator._flashcards]
 
@@ -198,16 +202,18 @@ class TestFlashcardGenerator:
         generator._flashcards = sample_flashcards
         original_count = len(generator._flashcards)
         
-        success = generator.delete_flashcard("nonexistent-id")
+        success, message = generator.delete_flashcard("nonexistent-id")
         
         assert not success
+        assert "not found" in message
         assert len(generator._flashcards) == original_count
 
     def test_add_flashcard_success(self, generator):
         """Test successful flashcard addition."""
-        flashcard = generator.add_flashcard("Test question", "Test answer", "qa", "test.txt")
+        flashcard, message = generator.add_flashcard("Test question", "Test answer", "qa", "test.txt")
         
         assert flashcard is not None
+        assert "Added new flashcard" in message
         assert len(generator._flashcards) == 1
         assert generator._flashcards[0].question == "Test question"
         assert generator._flashcards[0].answer == "Test answer"
@@ -216,9 +222,10 @@ class TestFlashcardGenerator:
 
     def test_add_flashcard_validation_failure(self, generator):
         """Test adding invalid flashcard."""
-        flashcard = generator.add_flashcard("", "Test answer", "qa")  # Empty question
+        flashcard, message = generator.add_flashcard("", "Test answer", "qa")  # Empty question
         
         assert flashcard is None
+        assert "cannot be empty" in message
         assert len(generator._flashcards) == 0
 
     def test_export_to_csv_success(self, generator, sample_flashcards):
@@ -227,10 +234,18 @@ class TestFlashcardGenerator:
         
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "test_export.csv"
-            success = generator.export_to_csv(output_path)
+            success, summary = generator.export_to_csv(output_path)
             
             assert success
             assert output_path.exists()
+            
+            # Check summary data
+            assert summary["total_flashcards"] == len(sample_flashcards)
+            assert summary["exported_flashcards"] > 0
+            assert summary["skipped_invalid"] == 0
+            assert summary["qa_cards"] + summary["cloze_cards"] == summary["exported_flashcards"]
+            assert summary["file_size_bytes"] > 0
+            assert len(summary["errors"]) == 0
             
             # Check file content
             content = output_path.read_text(encoding='utf-8')
@@ -241,16 +256,56 @@ class TestFlashcardGenerator:
         """Test CSV export with no flashcards."""
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "test_export.csv"
-            success = generator.export_to_csv(output_path)
+            success, summary = generator.export_to_csv(output_path)
             
             assert not success
             assert not output_path.exists()
+            assert summary["total_flashcards"] == 0
+            assert summary["exported_flashcards"] == 0
+            assert len(summary["errors"]) > 0
 
     def test_export_to_csv_custom_list(self, generator, sample_flashcards):
         """Test CSV export with custom flashcard list."""
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "test_export.csv"
-            success = generator.export_to_csv(output_path, sample_flashcards[:1])
+            success, summary = generator.export_to_csv(output_path, sample_flashcards[:1])
+            
+            assert success
+            assert output_path.exists()
+            assert summary["total_flashcards"] == 1
+            assert summary["exported_flashcards"] == 1
+
+
+
+    def test_export_to_csv_summary_statistics(self, generator):
+        """Test CSV export summary statistics for different card types."""
+        # Create flashcards of different types
+        qa_card1 = Flashcard.create("Question 1?", "Answer 1", "qa", "file1.txt")
+        qa_card2 = Flashcard.create("Question 2?", "Answer 2", "qa", "file2.txt")
+        cloze_card = Flashcard.create("{{c1::Python}} is a language", "Python is a language", "cloze", "file1.txt")
+        
+        generator._flashcards = [qa_card1, qa_card2, cloze_card]
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "test_export.csv"
+            success, summary = generator.export_to_csv(output_path)
+            
+            assert success
+            assert summary["total_flashcards"] == 3
+            assert summary["exported_flashcards"] == 3
+            assert summary["qa_cards"] == 2
+            assert summary["cloze_cards"] == 1
+            assert set(summary["source_files"]) == {"file1.txt", "file2.txt"}
+            assert summary["file_size_bytes"] > 0
+            assert len(summary["errors"]) == 0
+
+    def test_export_to_csv_simple_backward_compatibility(self, generator, sample_flashcards):
+        """Test backward compatibility method for simple boolean return."""
+        generator._flashcards = sample_flashcards
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "test_export.csv"
+            success = generator.export_to_csv_simple(output_path)
             
             assert success
             assert output_path.exists()
