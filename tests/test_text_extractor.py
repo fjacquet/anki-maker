@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.document_to_anki.utils import TextExtractor, TextExtractionError
+from src.document_to_anki.utils import TextExtractionError, TextExtractor
 
 
 class TestTextExtractor:

@@ -1,0 +1,25 @@
+Version de la mise à jour de la Veeam Data Platform;23H2 Update
+Trois principes fondamentaux de l'architecture Zero Trust;Assume Breach, Explicitly Verify, Enforce Least Privileged Access
+Fonctionnalité IA pour la détection précoce des menaces;Moteur de détection de malwares intégré
+Intégration pour la chasse proactive aux menaces;Intégration avec ServiceNow et autres outils SIEM
+API pour le signalement de menaces externes;Veeam Incident API
+Technologie utilisée pour éviter la réinfection lors de la restauration;Analyse de contenu YARA
+Outil pour une restauration de précision à un point dans le temps;I/O Anomaly Visualizer
+Principe pour empêcher les actions malveillantes des administrateurs;Protection par le principe du "double contrôle" (Four-eyes)
+Outil pour vérifier la sécurité et la conformité;Security & Compliance Analyzer
+Tableau de bord centralisé pour l'évaluation des menaces;Veeam Threat Center
+Slogan de Veeam sur la page de titre;Radically Resilient
+Méthode d'analyse pour la détection de malwares;Analyse d'entropie en ligne et analyse des extensions de fichiers
+Principal avantage de la restauration orchestrée;Automatise la restauration propre en utilisant des points de restauration sans malware.
+Technologie qui rend possible l'I/O Anomaly Visualizer;Veeam CDP (Continuous Data Protection)
+Composants principaux de la Veeam Data Platform;Backup & Recovery, Monitoring & Analytics, Recovery Orchestration
+Objectif principal de l'architecture Zero-Trust chez Veeam;Empêcher la suppression ou le chiffrement accidentel ou malveillant des sauvegardes.
+Sur quoi s'appuie le Security & Compliance Analyzer ?;Sur le durcissement de l'infrastructure et les meilleures pratiques de protection des données.
+Quel score est mesuré dans le Veeam Threat Center ?;Le score de sécurité de votre environnement.
+Environnements supportés par la Veeam Data Platform;Cloud, Virtuel, Physique, SaaS et Applications
+Thème principal de la section 'Détecter + Identifier';Être vigilant
+Thème principal de la section 'Répondre + Récupérer';Prendre position
+Thème principal de la section 'Protéger + Assurer la conformité';Rester en activité
+Quel type de sauvegardes est une fonctionnalité de sécurité clé ?;Sauvegardes immuables (Immutable backups)
+Comment Veeam aide-t-il à obtenir un "second avis" sur les menaces ?;Via l'API Veeam Incident, qui permet à d'autres outils de sécurité de marquer des sauvegardes.
+Quel est le principal avantage de l'I/O Anomaly Visualizer ?;Il assure la perte de données la plus faible possible.

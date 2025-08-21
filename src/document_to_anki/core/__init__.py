@@ -1,0 +1,1 @@
+"""Core functionality for document processing and flashcard generation."""
