@@ -43,7 +43,7 @@
 
 ## LLM Integration
 
-- [ ] 6. Implement LLM client for Gemini integration
+- [x] 6. Implement LLM client for Gemini integration
   - Create LLMClient class using litellm for Gemini Pro model integration
   - Implement generate_flashcards_from_text() with carefully crafted prompts
   - Create prompts that generate both question-answer and cloze deletion cards
