@@ -98,7 +98,7 @@
 
 ## Web Interface
 
-- [ ] 12. Implement FastAPI web application
+- [x] 12. Implement FastAPI web application
   - Create FastAPI app.py with file upload endpoints
   - Implement drag-and-drop file upload functionality using multipart forms
   - Add progress tracking endpoints for long-running operations
@@ -106,7 +106,7 @@
   - Add CSV export endpoint with proper file download handling
   - _Requirements: 7.1, 7.2, 7.4, 7.5_
 
-- [ ] 13. Implement web frontend
+- [x] 13. Implement web frontend
   - Create HTML templates using Jinja2 with responsive design
   - Implement drag-and-drop file upload interface with visual feedback
   - Create flashcard preview and editing interface with AJAX functionality
@@ -132,15 +132,13 @@
   - Achieve minimum 80% code coverage for all core components
   - _Requirements: 6.1, 6.2_
 
-- [ ] 16. Implement integration tests
+- [x] 16. Implement integration tests
   - Create test_cli_integration.py for end-to-end CLI workflow testing
   - Create test_web_integration.py for FastAPI endpoint testing
   - Create test_end_to_end.py for complete document-to-CSV workflow
   - Add test fixtures with sample documents and expected outputs
   - Test error conditions and edge cases
-  - _Requirements: 6.1, 6.2_
-
-- [x] 17. Implement code quality and security checks
+  - _Requirements: 6.1, 6.2_- [x] 17. Implement code quality and security checks
   - Configure ruff linting to pass without errors
   - Add type hints throughout the codebase for mypy compatibility
   - Run bandit security scanning and address any issues

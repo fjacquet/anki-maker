@@ -1,0 +1,27 @@
+[
+  {
+    "question": "What is Python?",
+    "answer": "A high-level, interpreted programming language known for its simplicity and readability",
+    "card_type": "qa"
+  },
+  {
+    "question": "Who created Python?",
+    "answer": "Guido van Rossum",
+    "card_type": "qa"
+  },
+  {
+    "question": "Python was first released in {{c1::1991}}",
+    "answer": "1991",
+    "card_type": "cloze"
+  },
+  {
+    "question": "What is Machine Learning?",
+    "answer": "A subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed",
+    "card_type": "qa"
+  },
+  {
+    "question": "Name three types of Machine Learning",
+    "answer": "Supervised Learning, Unsupervised Learning, Reinforcement Learning",
+    "card_type": "qa"
+  }
+]

@@ -1,0 +1,322 @@
+/* Enhanced styles for the Document to Anki web application */
+
+/* Custom animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+    40%, 43% { transform: translate3d(0, -8px, 0); }
+    70% { transform: translate3d(0, -4px, 0); }
+    90% { transform: translate3d(0, -2px, 0); }
+}
+
+/* Enhanced animations for better UX */
+.flashcard {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.flashcard:nth-child(2n) {
+    animation-delay: 0.1s;
+}
+
+.flashcard:nth-child(3n) {
+    animation-delay: 0.2s;
+}
+
+.flashcard:nth-child(4n) {
+    animation-delay: 0.3s;
+}
+
+.upload-area:hover .upload-icon {
+    animation: bounce 1s ease-in-out;
+}
+
+.btn:hover {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* Enhanced accessibility styles */
+.btn:focus-visible,
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.form-select:focus-visible,
+.upload-area:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px rgba(102, 126, 234, 0.2);
+}
+
+/* Skip link for screen readers */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #667eea;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1001;
+}
+
+.skip-link:focus {
+    top: 6px;
+}
+
+/* Form help text */
+.form-help {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #718096;
+    font-style: italic;
+}
+
+/* Loading states */
+.btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Toast notifications */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast.success {
+    border-left: 4px solid #48bb78;
+}
+
+.toast.error {
+    border-left: 4px solid #f56565;
+}
+
+.toast.warning {
+    border-left: 4px solid #ed8936;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn {
+        border: 2px solid currentColor;
+    }
+    
+    .flashcard {
+        border: 2px solid #333;
+    }
+    
+    .upload-area {
+        border-width: 4px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: #ecf0f1;
+    }
+    
+    .main-content {
+        background: #34495e;
+        color: #ecf0f1;
+    }
+    
+    .flashcard {
+        background: #2c3e50;
+        border-color: #4a5f7a;
+        color: #ecf0f1;
+    }
+    
+    .upload-area {
+        border-color: #4a5f7a;
+        background-color: #2c3e50;
+    }
+    
+    .upload-area:hover,
+    .upload-area.dragover {
+        background-color: #34495e;
+    }
+    
+    .form-input,
+    .form-textarea,
+    .form-select {
+        background: #2c3e50;
+        border-color: #4a5f7a;
+        color: #ecf0f1;
+    }
+    
+    .modal-content {
+        background: #34495e;
+        color: #ecf0f1;
+    }
+}
+
+/* Print styles */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+    
+    .btn,
+    .modal,
+    .upload-section,
+    .progress-section,
+    .flashcard-controls {
+        display: none !important;
+    }
+    
+    .header {
+        color: black !important;
+        margin-bottom: 20px;
+    }
+    
+    .main-content {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+    
+    .flashcard {
+        break-inside: avoid;
+        border: 2px solid #000;
+        margin-bottom: 15px;
+        padding: 15px;
+        background: white !important;
+    }
+    
+    .flashcard-actions-mini,
+    .flashcard-type {
+        display: none;
+    }
+    
+    .flashcard-question,
+    .flashcard-answer {
+        background: white !important;
+        border: none !important;
+        margin-bottom: 10px;
+    }
+    
+    .flashcard-question strong,
+    .flashcard-answer strong {
+        font-weight: bold;
+        text-decoration: underline;
+    }
+    
+    .flashcard-source {
+        font-size: 10pt;
+        border: none !important;
+        background: white !important;
+        font-style: italic;
+    }
+    
+    /* Add page breaks */
+    .flashcard:nth-child(10n) {
+        page-break-after: always;
+    }
+}
+
+/* Additional utility classes */
+.no-flashcards {
+    text-align: center;
+    color: #718096;
+    font-style: italic;
+    padding: 40px 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 2px dashed #cbd5e0;
+}
+
+/* Enhanced focus indicators for better accessibility */
+.flashcard:focus-within {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Improved contrast for better readability */
+.flashcard-question strong,
+.flashcard-answer strong {
+    color: #1a202c;
+    font-weight: 700;
+}
+
+/* Better spacing for mobile */
+@media (max-width: 480px) {
+    .upload-area {
+        padding: 30px 15px;
+    }
+    
+    .upload-icon {
+        font-size: 2.5rem;
+    }
+    
+    .upload-text {
+        font-size: 1.1rem;
+    }
+    
+    .flashcard {
+        padding: 15px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+}
