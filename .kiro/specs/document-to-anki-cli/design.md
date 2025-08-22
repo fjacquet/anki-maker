@@ -48,6 +48,53 @@ document-to-anki-cli/
 
 ## Components and Interfaces
 
+### Configuration Management
+
+The application supports configurable LLM models through environment variables, providing flexibility in model selection and cost optimization.
+
+#### Model Configuration Strategy
+
+```python
+class ModelConfig:
+    """Handles LLM model configuration and validation."""
+    
+    SUPPORTED_MODELS = {
+        "gemini/gemini-pro": "GEMINI_API_KEY",
+        "openai/gpt-4": "OPENAI_API_KEY", 
+        "openai/gpt-3.5-turbo": "OPENAI_API_KEY",
+        "openai/gpt-4.1": "OPENAI_API_KEY",
+        "openai/gpt-4.1-mini": "OPENAI_API_KEY",
+        "openai/gpt-4.1-nano": "OPENAI_API_KEY",
+        "openai/gpt-5": "OPENAI_API_KEY",
+        "openai/gpt-5-mini": "OPENAI_API_KEY",
+        "openai/gpt-5-nano": "OPENAI_API_KEY",
+        "openai/gpt-4o": "OPENAI_API_KEY"
+    }
+    
+    DEFAULT_MODEL = "gemini/gemini-pro"
+    
+    @classmethod
+    def get_model_from_env(cls) -> str:
+        """Get model from MODEL environment variable or return default."""
+        return os.getenv("MODEL", cls.DEFAULT_MODEL)
+    
+    @classmethod
+    def validate_model_config(cls, model: str) -> bool:
+        """Validate that model is supported and API key is available."""
+        if model not in cls.SUPPORTED_MODELS:
+            return False
+        
+        required_key = cls.SUPPORTED_MODELS[model]
+        return os.getenv(required_key) is not None
+    
+    @classmethod
+    def get_supported_models(cls) -> List[str]:
+        """Return list of supported model identifiers."""
+        return list(cls.SUPPORTED_MODELS.keys())
+```
+
+**Design Rationale**: This approach provides clear separation between configuration logic and business logic, making it easy to add new models and maintain API key requirements. The environment variable approach follows twelve-factor app principles for configuration management.
+
 ### Core Components
 
 #### DocumentProcessor
@@ -75,13 +122,15 @@ class FlashcardGenerator:
 ```
 
 #### LLMClient
-Handles communication with Gemini LLM through litellm.
+Handles communication with configurable LLM models through litellm, supporting multiple providers.
 
 ```python
 class LLMClient:
-    def __init__(self, model: str = "gemini-pro")
+    def __init__(self, model: str = None)
     def generate_flashcards_from_text(self, text: str) -> List[Dict[str, str]]
     def chunk_text_for_processing(self, text: str, max_tokens: int) -> List[str]
+    def validate_model_and_api_key(self, model: str) -> bool
+    def get_supported_models(self) -> List[str]
 ```
 
 ### Web Interface Components
@@ -91,6 +140,8 @@ class LLMClient:
 - Progress tracking for long-running operations
 - Flashcard preview and editing interface
 - CSV export functionality
+- Model configuration status endpoint
+- Environment variable validation for API keys
 
 #### Frontend (HTML/CSS/JavaScript)
 - Responsive design using modern CSS Grid/Flexbox
@@ -101,10 +152,12 @@ class LLMClient:
 ### CLI Interface
 
 #### Click-based CLI
-- Command-line argument parsing
+- Command-line argument parsing with model configuration options
+- Environment variable support for MODEL selection
 - Rich-enhanced output with progress bars
 - Batch processing capabilities
 - Verbose logging options
+- Model validation and helpful error messages for configuration issues
 
 ## Data Models
 
@@ -192,7 +245,12 @@ class ProcessingResult(BaseModel):
    - Invalid API responses
    - Token limit exceeded
 
-3. **Data Validation Errors**
+3. **Configuration Errors**
+   - Invalid model specification
+   - Missing API keys for selected model
+   - Unsupported model providers
+
+4. **Data Validation Errors**
    - Invalid flashcard content
    - Missing required fields
    - Export format issues
@@ -212,6 +270,10 @@ class LLMError(DocumentToAnkiError):
     """Errors related to LLM communication"""
     pass
 
+class ConfigurationError(DocumentToAnkiError):
+    """Errors related to model configuration and API keys"""
+    pass
+
 class ValidationError(DocumentToAnkiError):
     """Errors related to data validation"""
     pass
@@ -221,8 +283,9 @@ class ValidationError(DocumentToAnkiError):
 
 - Retry mechanisms for transient LLM API errors
 - Graceful degradation when processing individual files fails
-- Clear error messages with suggested solutions
-- Comprehensive logging for debugging
+- Clear error messages with suggested solutions for configuration issues
+- Automatic fallback to default model when invalid model is specified
+- Comprehensive logging for debugging including model configuration details
 
 ## Testing Strategy
 
@@ -273,7 +336,7 @@ tests/
 - **Python 3.12+**: Modern Python features and performance improvements
 - **uv**: Fast package management and dependency resolution
 - **Pydantic v2**: Modern data validation and serialization with type safety
-- **litellm**: Unified LLM API interface for Gemini integration
+- **litellm**: Unified LLM API interface supporting multiple providers (Gemini, OpenAI, etc.)
 - **pandas**: Efficient data manipulation for CSV processing
 - **numpy**: Numerical operations for text processing
 
@@ -316,9 +379,13 @@ tests/
 
 ### LLM Integration Optimization
 
-- Batch processing of text chunks
+- Configurable model selection via environment variables for cost and performance optimization
+- Support for multiple LLM providers (Gemini, OpenAI, etc.) with provider-specific optimizations
+- Automatic API key validation based on selected model to fail fast on configuration errors
+- Model-specific token limit handling (different limits for different providers)
+- Batch processing of text chunks optimized per model capabilities
 - Retry logic with exponential backoff
-- Rate limiting to respect API constraints
+- Rate limiting to respect API constraints per provider
 - Response caching for identical content
 
 ### Web Interface Performance
@@ -341,7 +408,8 @@ tests/
 
 - Input validation and sanitization
 - Rate limiting for API endpoints
-- Secure handling of API keys
+- Secure handling of multiple API keys (GEMINI_API_KEY, OPENAI_API_KEY)
+- Environment variable validation for model configuration
 - CORS configuration for web interface
 
 ### Data Privacy

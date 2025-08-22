@@ -114,3 +114,15 @@ This feature involves creating a modern Python application that converts digital
 3. WHEN creating questions THEN the system SHALL generate clear, concise questions with accurate and relevant answers
 4. WHEN producing variety THEN the system SHALL create a mix of question-answer and cloze deletion flashcards
 5. WHEN processing content THEN the system SHALL instruct the model to focus on the most important information
+
+### Requirement 10
+
+**User Story:** As a user, I want to configure which LLM model to use via environment variables, so that I can choose the most suitable model for my needs and budget.
+
+#### Acceptance Criteria
+
+1. WHEN starting the application THEN the system SHALL read the MODEL environment variable to determine which LLM model to use
+2. WHEN the MODEL variable is set THEN the system SHALL use the specified model (e.g., "gemini/gemini-pro", "openai/gpt-4", "openai/gpt-3.5-turbo", "openai/gpt-4.1", "openai/gpt-4.1-mini", "openai/gpt-4.1-nano", "openai/gpt-5", "openai/gpt-5-mini", "openai/gpt-5-nano", "openai/gpt-4o")
+3. WHEN the MODEL variable is not set THEN the system SHALL default to "gemini/gemini-pro" as the fallback model
+4. WHEN an invalid model is specified THEN the system SHALL display a clear error message listing supported models
+5. WHEN the model is changed THEN the system SHALL validate that the corresponding API key is available (GEMINI_API_KEY for Gemini models, OPENAI_API_KEY for OpenAI models)

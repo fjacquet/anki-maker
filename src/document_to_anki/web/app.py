@@ -1,8 +1,55 @@
 """
 FastAPI web application for document-to-anki conversion.
 
-This module provides a web interface for uploading documents, generating flashcards,
-and managing the flashcard creation process through a REST API.
+This module provides a comprehensive web interface for uploading documents, 
+generating flashcards, and managing the flashcard creation process through a REST API.
+
+Features:
+- Drag-and-drop file upload with real-time validation
+- Session-based flashcard management
+- Progress tracking for long-running operations
+- Interactive flashcard editing interface
+- CSV export with detailed statistics
+- Comprehensive error handling and user feedback
+- Security headers and CORS configuration
+- Automatic session cleanup and resource management
+
+API Endpoints:
+    GET /: Main application page
+    POST /api/upload: Upload files and start processing
+    GET /api/status/{session_id}: Get processing status
+    GET /api/flashcards/{session_id}: Get all flashcards
+    PUT /api/flashcards/{session_id}/{flashcard_id}: Edit flashcard
+    DELETE /api/flashcards/{session_id}/{flashcard_id}: Delete flashcard
+    POST /api/flashcards/{session_id}: Add new flashcard
+    POST /api/export/{session_id}: Export flashcards to CSV
+    DELETE /api/sessions/{session_id}: Clean up session
+    GET /api/health: Health check endpoint
+
+Classes:
+    SecurityHeadersMiddleware: Adds security headers to responses
+    FlashcardResponse: Pydantic model for flashcard API responses
+    ProcessingStatusResponse: Pydantic model for processing status
+    FlashcardEditRequest: Pydantic model for flashcard edit requests
+    FlashcardCreateRequest: Pydantic model for flashcard creation
+    ExportRequest: Pydantic model for CSV export requests
+
+Functions:
+    lifespan: Manage application startup and shutdown
+    create_session: Create new session with unique ID
+    get_session: Retrieve session data with access time update
+    cleanup_session: Clean up session data and temporary files
+    cleanup_expired_sessions: Background task for session cleanup
+    flashcard_to_response: Convert Flashcard model to API response
+    get_files_from_request: Extract files from multipart request
+    process_files_background: Background task for file processing
+
+Usage:
+    # Start the web server
+    uvicorn document_to_anki.web.app:app --host 0.0.0.0 --port 8000
+    
+    # Or use the CLI command
+    document-to-anki-web
 """
 
 import asyncio
@@ -30,9 +77,29 @@ from ..models.flashcard import Flashcard
 
 # Security middleware for adding security headers
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Middleware to add security headers to all responses."""
+    """
+    Middleware to add security headers to all responses.
+    
+    This middleware adds essential security headers to protect against
+    common web vulnerabilities:
+    - X-Content-Type-Options: Prevents MIME type sniffing
+    - X-Frame-Options: Prevents clickjacking attacks
+    - X-XSS-Protection: Enables XSS filtering
+    - Referrer-Policy: Controls referrer information
+    - Content-Security-Policy: Prevents XSS and injection attacks
+    """
     
     async def dispatch(self, request: Request, call_next) -> Response:
+        """
+        Process request and add security headers to response.
+        
+        Args:
+            request: The incoming HTTP request
+            call_next: The next middleware or route handler
+            
+        Returns:
+            Response with added security headers
+        """
         response = await call_next(request)
         
         # Add security headers
@@ -58,6 +125,19 @@ cleanup_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Manage application lifespan events.
+    
+    Handles startup and shutdown tasks:
+    - Startup: Initialize background cleanup task for expired sessions
+    - Shutdown: Cancel cleanup task and clean up all active sessions
+    
+    Args:
+        app: The FastAPI application instance
+        
+    Yields:
+        None during application runtime
+    """
     """Manage application lifespan events."""
     global cleanup_task
     
@@ -174,7 +254,16 @@ class ExportRequest(BaseModel):
 
 # Utility functions
 def create_session() -> str:
-    """Create a new session ID and initialize session data."""
+    """
+    Create a new session ID and initialize session data.
+    
+    Creates a unique session identifier and initializes the session
+    with default values for tracking processing status, flashcards,
+    errors, warnings, and temporary files.
+    
+    Returns:
+        str: Unique session identifier (UUID4)
+    """
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         "status": "initialized",
@@ -192,7 +281,21 @@ def create_session() -> str:
 
 
 def get_session(session_id: str) -> dict[str, any]:
-    """Get session data by ID and update last accessed time."""
+    """
+    Get session data by ID and update last accessed time.
+    
+    Retrieves session data for the given session ID and updates
+    the last accessed timestamp for session timeout management.
+    
+    Args:
+        session_id: The session identifier to retrieve
+        
+    Returns:
+        dict: Session data containing status, flashcards, errors, etc.
+        
+    Raises:
+        HTTPException: If session ID is not found (404)
+    """
     if session_id not in sessions:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -205,7 +308,16 @@ def get_session(session_id: str) -> dict[str, any]:
 
 
 def cleanup_session(session_id: str) -> None:
-    """Clean up session data and temporary files."""
+    """
+    Clean up session data and temporary files.
+    
+    Removes session data from memory and deletes any temporary files
+    associated with the session. This is called automatically for
+    expired sessions and can be called manually via API.
+    
+    Args:
+        session_id: The session identifier to clean up
+    """
     if session_id in sessions:
         session_data = sessions[session_id]
         
@@ -222,7 +334,15 @@ def cleanup_session(session_id: str) -> None:
 
 
 async def cleanup_expired_sessions() -> None:
-    """Background task to clean up expired sessions."""
+    """
+    Background task to clean up expired sessions.
+    
+    Runs continuously in the background, checking for sessions that
+    haven't been accessed within the timeout period (1 hour) and
+    cleaning them up to prevent memory leaks and disk space issues.
+    
+    The task runs every 10 minutes and logs cleanup activities.
+    """
     while True:
         try:
             current_time = time.time()
@@ -249,7 +369,18 @@ async def cleanup_expired_sessions() -> None:
 
 
 def flashcard_to_response(flashcard: Flashcard) -> FlashcardResponse:
-    """Convert Flashcard model to response format."""
+    """
+    Convert Flashcard model to API response format.
+    
+    Transforms internal Flashcard model to the standardized API response
+    format with proper serialization of datetime fields.
+    
+    Args:
+        flashcard: The Flashcard model instance to convert
+        
+    Returns:
+        FlashcardResponse: Serialized flashcard data for API response
+    """
     return FlashcardResponse(
         id=flashcard.id,
         question=flashcard.question,

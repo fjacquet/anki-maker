@@ -1,0 +1,81 @@
+# Docker Compose configuration for Document to Anki CLI
+version: '3.8'
+
+services:
+  # Main application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - WEB_DEBUG=${WEB_DEBUG:-false}
+    volumes:
+      - ./exports:/app/exports
+      - ./logs:/app/logs
+      - ./.cache:/app/.cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development version with hot reload
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LOG_LEVEL=DEBUG
+      - WEB_DEBUG=true
+      - DEV_MODE=true
+    volumes:
+      - .:/app
+      - ./exports:/app/exports
+      - ./logs:/app/logs
+      - ./.cache:/app/.cache
+    command: ["uvicorn", "document_to_anki.web.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - cache
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: document-to-anki-network

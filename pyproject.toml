@@ -1,67 +1,90 @@
 [project]
-name = "anki-maker"
+name = "document-to-anki-cli"
 version = "0.1.0"
-description = "Add your description here"
+description = "Convert documents to Anki flashcards using AI - supports PDF, DOCX, TXT, MD files with both CLI and web interfaces"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
+authors = [
+    {name = "Document to Anki CLI", email = "support@example.com"}
+]
+license = {text = "MIT"}
+keywords = ["anki", "flashcards", "ai", "gemini", "study", "education", "cli", "web"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: Text Processing",
+    "Topic :: Utilities",
+]
 dependencies = [
-    "pandas>=2.3.2",
-    "litellm>=1.73.6",
-    "ollama>=0.3.0",
-    "pytest>=8.4.1",
-    "streamlit>=1.46.1",
-    "loguru>=0.7.2",
-    "google-api-python-client",
-    "google-auth-httplib2",
-    "google-auth-oauthlib",
-    "python-dotenv>=1.1.1",
-    "pytest-mock>=3.14.1",
-    "imapclient>=3.0.1",
+    # Core dependencies
     "click>=8.2.1",
     "fastapi>=0.115.14",
-    "watchdog>=6.0.0",
-    "psutil>=7.0.0",
-    "rich>=14.1.0",
     "uvicorn>=0.35.0",
-    "pypdf>=5.0.0",
-    "python-docx>=1.1.0",
-    "jinja2>=3.1.0",
-    "python-multipart>=0.0.6",
-    "numpy>=1.24.0",
-    "docx>=0.2.4",
     "pydantic>=2.9.0",
-    "mypy>=1.17.1",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.1.1",
+    
+    # Document processing
+    "PyPDF2>=3.0.0",
+    "python-docx>=1.1.0",
+    
+    # Web interface
+    "Jinja2>=3.1.0",
+    "python-multipart>=0.0.6",
+    
+    # AI/LLM integration
+    "litellm>=1.73.6",
+    
+    # Data processing
+    "pandas>=2.3.2",
+    "numpy>=1.24.0",
+    
+    # CLI enhancements
+    "rich>=14.1.0",
+    "loguru>=0.7.2",
 ]
 
 [project.scripts]
 document-to-anki = "document_to_anki.cli.main:main"
 document-to-anki-web = "document_to_anki.web.app:run_server"
 
+[project.entry-points."console_scripts"]
+anki-maker = "document_to_anki.cli.main:main"
+anki-maker-web = "document_to_anki.web.app:run_server"
+
+[project.urls]
+Homepage = "https://github.com/example/document-to-anki-cli"
+Documentation = "https://github.com/example/document-to-anki-cli#readme"
+Repository = "https://github.com/example/document-to-anki-cli"
+Issues = "https://github.com/example/document-to-anki-cli/issues"
+
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-asyncio",
-    "pytest-mock",
-    "pytest-cov",
-    "pytest-html",
-    "pytest-xdist",
-    "pytest-benchmark",
-    "pytest-postgresql",
-    "psycopg[binary]",
-    "ruff",
-    "yamllint",
-    "pydantic",
-    "faker",
-    "factory-boy",
-    "pytest-factoryboy",
-    "responses",
-    "freezegun",
-    "memory-profiler",
-    "psutil",
-    "bandit",
-    "safety",
-    "pendulum",
-    "yamlfix",
+    # Testing
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.14.1",
+    "pytest-cov>=4.0.0",
+    "pytest-html>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    
+    # Code quality
+    "ruff>=0.1.0",
+    "mypy>=1.17.1",
+    "bandit>=1.8.6",
+    "safety>=3.2.4",
+    
+    # Development utilities
+    "pre-commit>=3.0.0",
+    "watchdog>=6.0.0",
+    "psutil>=7.0.0",
 ]
 
 
@@ -125,14 +148,46 @@ indent-style = "space"
 # Like Black, respect magic trailing commas.
 skip-magic-trailing-comma = false
 
-[dependency-groups]
-dev = [
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "PyPDF2.*",
+    "docx.*",
+    "litellm.*",
+    "pandas.*",
+    "numpy.*",
+]
+ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv"]
+skips = ["B101", "B601"]
+
+[tool.uv]
+dev-dependencies = [
     "bandit>=1.8.6",
     "pip-audit>=2.9.0",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
     "safety>=3.2.4",
 ]
+
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -142,12 +197,21 @@ python_functions = ["test_*"]
 addopts = [
     "--cov=src/document_to_anki",
     "--cov-report=term-missing",
-    "--cov-fail-under=75",
+    "--cov-report=html:htmlcov",
+    "--cov-fail-under=80",
     "--strict-markers",
     "--strict-config",
-    "-ra"
+    "-ra",
+    "--tb=short"
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "web: marks tests for web interface",
+    "cli: marks tests for CLI interface",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
 ]

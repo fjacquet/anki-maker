@@ -3,6 +3,39 @@ CLI main entry point for document-to-anki conversion.
 
 This module provides the command-line interface using Click framework,
 integrating with the core document processing and flashcard generation components.
+
+The CLI supports:
+- Single file, folder, and ZIP archive processing
+- Interactive flashcard preview and editing
+- Batch processing mode for automation
+- Rich progress indicators and error handling
+- Comprehensive logging and diagnostics
+
+Usage Examples:
+    # Basic conversion
+    document-to-anki input.pdf
+    
+    # Batch processing
+    document-to-anki batch-convert *.pdf --output-dir ./flashcards/
+    
+    # Automated mode (no interaction)
+    document-to-anki input.pdf --no-preview --batch
+
+Classes:
+    CLIContext: Context object to hold CLI state and components
+    
+Functions:
+    main: Main CLI entry point with version and help
+    convert: Convert documents to flashcards with interactive management
+    batch_convert: Process multiple documents in batch mode
+    setup_logging: Configure loguru logging based on verbosity
+    
+Private Functions:
+    _handle_edit_flashcard: Interactive flashcard editing
+    _handle_delete_flashcard: Interactive flashcard deletion
+    _handle_add_flashcard: Interactive flashcard creation
+    _show_statistics: Display flashcard statistics
+    _process_single_input: Process single input for batch mode
 """
 
 import sys
@@ -21,7 +54,17 @@ from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenera
 
 # Configure loguru logger
 def setup_logging(verbose: bool = False) -> None:
-    """Configure loguru logging based on verbosity level."""
+    """
+    Configure loguru logging based on verbosity level.
+    
+    Args:
+        verbose: If True, enables DEBUG level logging with detailed format.
+                If False, shows only INFO level and above with simple format.
+    
+    Note:
+        This function removes the default loguru handler and adds a new one
+        with appropriate formatting and level based on the verbose flag.
+    """
     logger.remove()  # Remove default handler
 
     if verbose:
@@ -37,9 +80,29 @@ def setup_logging(verbose: bool = False) -> None:
 
 
 class CLIContext:
-    """Context object to hold CLI state and components."""
+    """
+    Context object to hold CLI state and components.
+    
+    This class encapsulates the CLI application state including:
+    - Verbose logging flag
+    - Rich console for formatted output
+    - Document processor for file handling
+    - Flashcard generator for AI-powered flashcard creation
+    
+    Attributes:
+        verbose (bool): Whether verbose logging is enabled
+        console (Console): Rich console for formatted output
+        document_processor (DocumentProcessor): Handles document processing
+        flashcard_generator (FlashcardGenerator): Manages flashcard operations
+    """
 
     def __init__(self, verbose: bool = False):
+        """
+        Initialize the CLI context with required components.
+        
+        Args:
+            verbose: Enable verbose logging and detailed output
+        """
         self.verbose = verbose
         self.console = Console()
         self.document_processor = DocumentProcessor()
