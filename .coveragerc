@@ -1,0 +1,20 @@
+[run]
+source = src
+omit = 
+    src/document_to_anki/cli/*
+    src/document_to_anki/web/*
+    */tests/*
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod

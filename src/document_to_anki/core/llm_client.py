@@ -52,7 +52,7 @@ class LLMClient:
         # Configure litellm
         litellm.set_verbose = False
 
-    def chunk_text_for_processing(self, text: str, max_tokens: int = None) -> list[str]:
+    def chunk_text_for_processing(self, text: str, max_tokens: int | None = None) -> list[str]:
         """
         Split large text into manageable chunks for LLM processing.
 
@@ -123,7 +123,8 @@ class LLMClient:
         Returns:
             The formatted prompt string
         """
-        prompt = f"""You are an expert educator creating high-quality Anki flashcards for effective learning and retention.
+        prompt = f"""You are an expert educator creating high-quality Anki flashcards for effective \
+learning and retention.
 
 INSTRUCTIONS:
 1. Analyze the following text and identify the most important concepts, facts, and relationships
@@ -191,9 +192,10 @@ Generate flashcards as a JSON array:"""
 
                 if response and response.choices and len(response.choices) > 0:
                     content = response.choices[0].message.content
-                    if content:
+                    if content and isinstance(content, str):
                         logger.debug("API call successful")
-                        return content.strip()
+                        result: str = content.strip()
+                        return result
 
                 raise Exception("Empty response from LLM")
 

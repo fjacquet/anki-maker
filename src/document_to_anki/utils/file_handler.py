@@ -26,7 +26,7 @@ class FileHandler:
     # Maximum number of files to process from a ZIP or folder
     MAX_FILES_COUNT = 100
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the FileHandler."""
         self.processed_files: list[Path] = []
 
@@ -109,7 +109,7 @@ class FileHandler:
                     raise FileHandlingError(f"Invalid characters in path: {part}")
 
         except (OSError, ValueError) as e:
-            raise FileHandlingError(f"Path security validation failed: {e}")
+            raise FileHandlingError(f"Path security validation failed: {e}") from e
 
     def process_zip_archive(self, zip_path: Path) -> list[Path]:
         """
@@ -180,9 +180,9 @@ class FileHandler:
                         continue
 
         except zipfile.BadZipFile as e:
-            raise FileHandlingError(f"Invalid or corrupted ZIP file: {e}")
+            raise FileHandlingError(f"Invalid or corrupted ZIP file: {e}") from e
         except OSError as e:
-            raise FileHandlingError(f"Failed to process ZIP file: {e}")
+            raise FileHandlingError(f"Failed to process ZIP file: {e}") from e
 
         if not valid_files:
             raise FileHandlingError("No valid files found in ZIP archive")
@@ -246,7 +246,7 @@ class FileHandler:
                     continue
 
         except OSError as e:
-            raise FileHandlingError(f"Failed to process folder: {e}")
+            raise FileHandlingError(f"Failed to process folder: {e}") from e
 
         if not valid_files:
             raise FileHandlingError("No valid files found in folder")

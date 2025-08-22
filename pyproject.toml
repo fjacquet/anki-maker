@@ -30,6 +30,7 @@ dependencies = [
     "numpy>=1.24.0",
     "docx>=0.2.4",
     "pydantic>=2.9.0",
+    "mypy>=1.17.1",
 ]
 
 [project.scripts]
@@ -126,5 +127,27 @@ skip-magic-trailing-comma = false
 
 [dependency-groups]
 dev = [
+    "bandit>=1.8.6",
+    "pip-audit>=2.9.0",
     "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "safety>=3.2.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=src/document_to_anki",
+    "--cov-report=term-missing",
+    "--cov-fail-under=75",
+    "--strict-markers",
+    "--strict-config",
+    "-ra"
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
 ]

@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -14,19 +14,23 @@ class Flashcard(BaseModel):
     question: str
     answer: str
     card_type: Literal["qa", "cloze"]  # "qa" for question-answer, "cloze" for cloze deletion
-    source_file: Optional[str] = None
+    source_file: str | None = None
     created_at: datetime = Field(default_factory=datetime.now)
 
     @classmethod
     def create(
-        cls, question: str, answer: str, card_type: str, source_file: Optional[str] = None
+        cls, question: str, answer: str, card_type: str, source_file: str | None = None
     ) -> "Flashcard":
         """Create a new flashcard with auto-generated ID."""
+        # Validate card_type
+        if card_type not in ["qa", "cloze"]:
+            raise ValueError(f"Invalid card_type: {card_type}. Must be 'qa' or 'cloze'")
+
         return cls(
             id=str(uuid.uuid4()),
             question=question,
             answer=answer,
-            card_type=card_type,
+            card_type=card_type,  # type: ignore[arg-type]
             source_file=source_file,
         )
 
@@ -62,7 +66,7 @@ class Flashcard(BaseModel):
         """
         return [self.question.strip(), self.answer.strip(), self.card_type, self.source_file or ""]
 
-    def validate(self) -> bool:
+    def validate_content(self) -> bool:
         """Validate flashcard content.
 
         Returns:
@@ -97,7 +101,7 @@ class ProcessingResult(BaseModel):
     @property
     def valid_flashcard_count(self) -> int:
         """Get the number of valid flashcards."""
-        return sum(1 for card in self.flashcards if card.validate())
+        return sum(1 for card in self.flashcards if card.validate_content())
 
     def add_error(self, error: str) -> None:
         """Add an error message to the result."""

@@ -80,7 +80,7 @@
 
 ## CLI Interface
 
-- [ ] 10. Implement CLI main entry point
+- [x] 10. Implement CLI main entry point
   - Create CLI main.py using Click framework for command-line interface
   - Implement file/folder/zip upload arguments and options
   - Add verbose logging option using loguru
@@ -88,7 +88,7 @@
   - Add batch processing capabilities for multiple files
   - _Requirements: 2.6, 4.1, 4.4, 7.3_
 
-- [ ] 11. Implement CLI workflow integration
+- [x] 11. Implement CLI workflow integration
   - Integrate DocumentProcessor, FlashcardGenerator, and export functionality
   - Implement interactive flashcard review and editing in CLI
   - Add rich-formatted output for flashcard preview
@@ -140,7 +140,7 @@
   - Test error conditions and edge cases
   - _Requirements: 6.1, 6.2_
 
-- [ ] 17. Implement code quality and security checks
+- [x] 17. Implement code quality and security checks
   - Configure ruff linting to pass without errors
   - Add type hints throughout the codebase for mypy compatibility
   - Run bandit security scanning and address any issues

@@ -4,7 +4,6 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-
 import pytest
 
 from src.document_to_anki.utils.file_handler import FileHandler, FileHandlingError
@@ -35,7 +34,7 @@ class TestFileHandler:
                 test_file = temp_path / f"test{ext}"
                 test_file.write_text("test content")
 
-                assert self.file_handler.validate_file_type(test_file) == True
+                assert self.file_handler.validate_file_type(test_file)
 
     def test_validate_file_type_unsupported_extensions(self):
         """Test validation rejects unsupported file types."""
@@ -47,7 +46,7 @@ class TestFileHandler:
                 test_file = temp_path / f"test{ext}"
                 test_file.write_text("test content")
 
-                assert self.file_handler.validate_file_type(test_file) == False
+                assert not self.file_handler.validate_file_type(test_file)
 
     def test_validate_file_type_nonexistent_file(self):
         """Test validation raises error for nonexistent files."""

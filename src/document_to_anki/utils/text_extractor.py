@@ -18,7 +18,7 @@ class TextExtractor:
 
     SUPPORTED_FORMATS = {".pdf", ".docx", ".txt", ".md"}
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the TextExtractor."""
         self.logger = logger
 
@@ -138,7 +138,7 @@ class TextExtractor:
             TextExtractionError: If DOCX extraction fails
         """
         try:
-            doc = Document(file_path)
+            doc = Document(str(file_path))
             text_content = []
 
             # Extract text from paragraphs

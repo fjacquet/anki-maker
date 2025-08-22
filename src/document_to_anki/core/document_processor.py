@@ -61,7 +61,7 @@ class DocumentProcessingError(Exception):
 class DocumentProcessor:
     """Main orchestrator for document handling and text extraction."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the DocumentProcessor with required components."""
         self.file_handler = FileHandler()
         self.text_extractor = TextExtractor()

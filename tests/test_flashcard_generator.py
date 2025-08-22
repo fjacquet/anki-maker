@@ -45,7 +45,9 @@ class TestFlashcardGenerator:
         """Sample Flashcard objects."""
         return [
             Flashcard.create("What is Python?", "A programming language", "qa", "test.txt"),
-            Flashcard.create("Python is a {{c1::programming language}}", "programming language", "cloze", "test.txt")
+            Flashcard.create(
+                "Python is a {{c1::programming language}}", "programming language", "cloze", "test.txt"
+            )
         ]
 
     def test_init_with_llm_client(self, mock_llm_client):
@@ -282,7 +284,9 @@ class TestFlashcardGenerator:
         # Create flashcards of different types
         qa_card1 = Flashcard.create("Question 1?", "Answer 1", "qa", "file1.txt")
         qa_card2 = Flashcard.create("Question 2?", "Answer 2", "qa", "file2.txt")
-        cloze_card = Flashcard.create("{{c1::Python}} is a language", "Python is a language", "cloze", "file1.txt")
+        cloze_card = Flashcard.create(
+            "{{c1::Python}} is a language", "Python is a language", "cloze", "file1.txt"
+        )
         
         generator._flashcards = [qa_card1, qa_card2, cloze_card]
         
@@ -357,7 +361,7 @@ class TestFlashcardGenerator:
         # Create a mock invalid flashcard
         invalid_card = mocker.Mock(spec=Flashcard)
         invalid_card.id = "test-invalid-id"
-        invalid_card.validate.return_value = False
+        invalid_card.validate_content.return_value = False
         
         generator._flashcards = [valid_card, invalid_card]
         
@@ -439,4 +443,34 @@ class TestFlashcardGenerator:
         mock_llm_client.generate_flashcards_from_text_sync.side_effect = Exception("Critical error")
         
         with pytest.raises(FlashcardGenerationError):
-            generator._generate_flashcards_from_single_text("test text", "test.txt", 1)
+            generator._generate_flashcards_from_single_text("test text", "test.txt", 1)  
+
+    def test_get_flashcard_statistics(self, generator):
+        """Test getting flashcard statistics."""
+        # Create flashcards with different types and validity
+        valid_qa = Flashcard.create("Valid question?", "Valid answer", "qa", "file1.txt")
+        valid_cloze = Flashcard.create("{{c1::Python}} is a language", "Python is a language", "cloze", "file2.txt")
+        
+        generator._flashcards = [valid_qa, valid_cloze]
+        
+        stats = generator.get_statistics()
+        
+        assert stats["total_count"] == 2
+        assert stats["qa_count"] == 1
+        assert stats["cloze_count"] == 1
+        assert stats["valid_count"] == 2
+        assert stats["invalid_count"] == 0
+        assert len(stats["source_files"]) == 2
+        assert "file1.txt" in stats["source_files"]
+        assert "file2.txt" in stats["source_files"]
+
+    def test_get_flashcard_statistics_empty(self, generator):
+        """Test getting statistics with no flashcards."""
+        stats = generator.get_statistics()
+        
+        assert stats["total_count"] == 0
+        assert stats["qa_count"] == 0
+        assert stats["cloze_count"] == 0
+        assert stats["valid_count"] == 0
+        assert stats["invalid_count"] == 0
+        assert len(stats["source_files"]) == 0
