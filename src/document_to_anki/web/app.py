@@ -7,28 +7,106 @@ and managing the flashcard creation process through a REST API.
 
 import asyncio
 import tempfile
+import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import Response
 
-from ..core.document_processor import DocumentProcessor, DocumentProcessingError
-from ..core.flashcard_generator import FlashcardGenerator, FlashcardGenerationError
+from ..core.document_processor import DocumentProcessingError, DocumentProcessor
+from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
 from ..models.flashcard import Flashcard
+
+
+# Security middleware for adding security headers
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to add security headers to all responses."""
+    
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "connect-src 'self'"
+        )
+        
+        return response
+
+
+# Background task for session cleanup
+cleanup_task = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events."""
+    global cleanup_task
+    
+    # Startup
+    logger.info("Starting Document to Anki web application")
+    cleanup_task = asyncio.create_task(cleanup_expired_sessions())
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down Document to Anki web application")
+    
+    # Cancel cleanup task
+    if cleanup_task:
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
+    
+    # Clean up all sessions
+    session_ids = list(sessions.keys())
+    for session_id in session_ids:
+        cleanup_session(session_id)
+    logger.info(f"Cleaned up {len(session_ids)} sessions on shutdown")
+
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Document to Anki Converter",
     description="Convert documents to Anki flashcards using AI",
     version="1.0.0",
+    lifespan=lifespan,
 )
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Add your frontend URLs
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+
 
 # Global instances
 document_processor = DocumentProcessor()
@@ -36,7 +114,7 @@ flashcard_generator = FlashcardGenerator()
 
 # Session storage for managing flashcard editing workflows
 # In production, this should be replaced with proper session management (Redis, database, etc.)
-sessions: Dict[str, Dict[str, Any]] = {}
+sessions: dict[str, dict[str, any]] = {}
 
 # Templates and static files
 templates = Jinja2Templates(directory="src/document_to_anki/web/templates")
@@ -57,7 +135,7 @@ class FlashcardResponse(BaseModel):
     question: str
     answer: str
     card_type: str
-    source_file: Optional[str] = None
+    source_file: str | None = None
     created_at: str
 
 
@@ -69,7 +147,7 @@ class ProcessingStatusResponse(BaseModel):
     progress: int = Field(ge=0, le=100)
     message: str
     flashcard_count: int = 0
-    errors: List[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
 
 
 class FlashcardEditRequest(BaseModel):
@@ -85,13 +163,13 @@ class FlashcardCreateRequest(BaseModel):
     question: str
     answer: str
     card_type: str
-    source_file: Optional[str] = None
+    source_file: str | None = None
 
 
 class ExportRequest(BaseModel):
     """Request model for CSV export."""
     
-    filename: Optional[str] = "flashcards.csv"
+    filename: str | None = "flashcards.csv"
 
 
 # Utility functions
@@ -104,19 +182,25 @@ def create_session() -> str:
         "message": "Session created",
         "flashcards": [],
         "errors": [],
+        "warnings": [],
         "temp_files": [],
+        "created_at": time.time(),
+        "last_accessed": time.time(),
     }
     logger.info(f"Created new session: {session_id}")
     return session_id
 
 
-def get_session(session_id: str) -> Dict[str, Any]:
-    """Get session data by ID."""
+def get_session(session_id: str) -> dict[str, any]:
+    """Get session data by ID and update last accessed time."""
     if session_id not in sessions:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found"
         )
+    
+    # Update last accessed time
+    sessions[session_id]["last_accessed"] = time.time()
     return sessions[session_id]
 
 
@@ -137,6 +221,33 @@ def cleanup_session(session_id: str) -> None:
         logger.info(f"Cleaned up session: {session_id}")
 
 
+async def cleanup_expired_sessions() -> None:
+    """Background task to clean up expired sessions."""
+    while True:
+        try:
+            current_time = time.time()
+            session_timeout = 3600  # 1 hour timeout
+            
+            expired_sessions = []
+            for session_id, session_data in sessions.items():
+                last_accessed = session_data.get("last_accessed", current_time)
+                if current_time - last_accessed > session_timeout:
+                    expired_sessions.append(session_id)
+            
+            for session_id in expired_sessions:
+                logger.info(f"Cleaning up expired session: {session_id}")
+                cleanup_session(session_id)
+            
+            if expired_sessions:
+                logger.info(f"Cleaned up {len(expired_sessions)} expired sessions")
+            
+        except Exception as e:
+            logger.error(f"Error during session cleanup: {e}")
+        
+        # Sleep for 10 minutes before next cleanup
+        await asyncio.sleep(600)
+
+
 def flashcard_to_response(flashcard: Flashcard) -> FlashcardResponse:
     """Convert Flashcard model to response format."""
     return FlashcardResponse(
@@ -154,13 +265,26 @@ def flashcard_to_response(flashcard: Flashcard) -> FlashcardResponse:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Serve the main application page."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
+
+async def get_files_from_request(request: Request) -> list[UploadFile]:
+    """Extract files from the request, handling empty file uploads."""
+    form = await request.form()
+    files = form.getlist("files")
+    
+    # Filter out empty files and convert to UploadFile objects
+    upload_files = []
+    for file in files:
+        if hasattr(file, 'filename') and file.filename:
+            upload_files.append(file)
+    
+    return upload_files
 
 @app.post("/api/upload", response_model=ProcessingStatusResponse)
 async def upload_files(
-    files: List[UploadFile] = File(...),
-    session_id: Optional[str] = Form(None)
+    request: Request,
+    session_id: str | None = Form(None)
 ) -> ProcessingStatusResponse:
     """
     Upload files and start processing them into flashcards.
@@ -175,6 +299,9 @@ async def upload_files(
     session_data = get_session(session_id)
     
     try:
+        # Extract files from request
+        files = await get_files_from_request(request)
+        
         # Validate files
         if not files:
             raise HTTPException(
@@ -243,10 +370,10 @@ async def upload_files(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Upload processing failed: {str(e)}"
-        )
+        ) from e
 
 
-async def process_files_background(session_id: str, temp_files: List[str]) -> None:
+async def process_files_background(session_id: str, temp_files: list[str]) -> None:
     """
     Background task to process uploaded files and generate flashcards.
     
@@ -307,13 +434,17 @@ async def process_files_background(session_id: str, temp_files: List[str]) -> No
         # Store flashcards in session
         session_data["flashcards"] = processing_result.flashcards
         session_data["errors"].extend(processing_result.errors)
+        session_data["warnings"] = processing_result.warnings
         
         # Complete processing
         session_data["status"] = "completed"
         session_data["progress"] = 100
         session_data["message"] = f"Successfully generated {len(processing_result.flashcards)} flashcards"
         
-        logger.info(f"Background processing completed for session {session_id}: {len(processing_result.flashcards)} flashcards generated")
+        logger.info(
+            f"Background processing completed for session {session_id}: "
+            f"{len(processing_result.flashcards)} flashcards generated"
+        )
         
     except Exception as e:
         logger.error(f"Background processing failed for session {session_id}: {e}")
@@ -346,8 +477,8 @@ async def get_processing_status(session_id: str) -> ProcessingStatusResponse:
     )
 
 
-@app.get("/api/flashcards/{session_id}", response_model=List[FlashcardResponse])
-async def get_flashcards(session_id: str) -> List[FlashcardResponse]:
+@app.get("/api/flashcards/{session_id}", response_model=list[FlashcardResponse])
+async def get_flashcards(session_id: str) -> list[FlashcardResponse]:
     """
     Get all flashcards for a session.
     
@@ -411,7 +542,7 @@ async def edit_flashcard(
                 detail=error_message
             )
         
-        # Update the flashcard
+        # Update the flashcard directly (since it's in the session)
         target_flashcard.question = edit_request.question.strip()
         target_flashcard.answer = edit_request.answer.strip()
         
@@ -431,7 +562,7 @@ async def edit_flashcard(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to edit flashcard: {str(e)}"
-        )
+        ) from e
 
 
 @app.delete("/api/flashcards/{session_id}/{flashcard_id}")
@@ -476,7 +607,7 @@ async def delete_flashcard(session_id: str, flashcard_id: str) -> JSONResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete flashcard: {str(e)}"
-        )
+        ) from e
 
 
 @app.post("/api/flashcards/{session_id}")
@@ -529,7 +660,7 @@ async def add_flashcard(
             content={
                 "success": True,
                 "message": f"Added new flashcard: {new_flashcard.question[:50]}...",
-                "flashcard": flashcard_to_response(new_flashcard).dict()
+                "flashcard": flashcard_to_response(new_flashcard).model_dump()
             }
         )
         
@@ -540,7 +671,7 @@ async def add_flashcard(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to add flashcard: {str(e)}"
-        )
+        ) from e
 
 
 @app.post("/api/export/{session_id}")
@@ -577,9 +708,10 @@ async def export_flashcards(
         success, summary = flashcard_generator.export_to_csv(temp_path, flashcards)
         
         if not success:
+            error_details = "; ".join(summary.get("errors", ["Unknown export error"]))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Export failed: {'; '.join(summary.get('errors', []))}"
+                detail=f"Export failed: {error_details}"
             )
         
         # Prepare filename
@@ -590,11 +722,18 @@ async def export_flashcards(
         logger.info(f"Exported {len(flashcards)} flashcards from session {session_id}")
         
         # Return file for download
+        async def cleanup_temp_file():
+            """Clean up temporary file after download."""
+            try:
+                temp_path.unlink(missing_ok=True)
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp file {temp_path}: {e}")
+        
         return FileResponse(
             path=str(temp_path),
             filename=filename,
             media_type='text/csv',
-            background=lambda: temp_path.unlink(missing_ok=True)  # Clean up after download
+            background=cleanup_temp_file
         )
         
     except HTTPException:
@@ -604,7 +743,7 @@ async def export_flashcards(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Export failed: {str(e)}"
-        )
+        ) from e
 
 
 @app.delete("/api/sessions/{session_id}")
@@ -619,6 +758,13 @@ async def cleanup_session_endpoint(session_id: str) -> JSONResponse:
         Success confirmation
     """
     try:
+        # Check if session exists first
+        if session_id not in sessions:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session {session_id} not found"
+            )
+        
         cleanup_session(session_id)
         return JSONResponse(
             content={
@@ -633,7 +779,7 @@ async def cleanup_session_endpoint(session_id: str) -> JSONResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to cleanup session: {str(e)}"
-        )
+        ) from e
 
 
 @app.get("/api/health")
@@ -643,28 +789,233 @@ async def health_check() -> JSONResponse:
         content={
             "status": "healthy",
             "message": "Document to Anki API is running",
-            "active_sessions": len(sessions)
+            "active_sessions": len(sessions),
+            "supported_formats": list(document_processor.get_supported_formats())
+        }
+    )
+
+
+@app.get("/api/sessions/{session_id}/statistics")
+async def get_session_statistics(session_id: str) -> JSONResponse:
+    """Get statistics for a session's flashcards."""
+    session_data = get_session(session_id)
+    
+    flashcards = session_data.get("flashcards", [])
+    
+    if not flashcards:
+        return JSONResponse(
+            content={
+                "total_count": 0,
+                "valid_count": 0,
+                "invalid_count": 0,
+                "qa_count": 0,
+                "cloze_count": 0,
+                "source_files": []
+            }
+        )
+    
+    # Calculate statistics
+    valid_count = sum(1 for card in flashcards if card.validate_content())
+    qa_count = sum(1 for card in flashcards if card.card_type == "qa")
+    cloze_count = sum(1 for card in flashcards if card.card_type == "cloze")
+    source_files = list(set(card.source_file for card in flashcards if card.source_file))
+    
+    return JSONResponse(
+        content={
+            "total_count": len(flashcards),
+            "valid_count": valid_count,
+            "invalid_count": len(flashcards) - valid_count,
+            "qa_count": qa_count,
+            "cloze_count": cloze_count,
+            "source_files": source_files
+        }
+    )
+
+
+@app.post("/api/sessions/{session_id}/validate")
+async def validate_session_flashcards(session_id: str) -> JSONResponse:
+    """Validate all flashcards in a session and return validation results."""
+    session_data = get_session(session_id)
+    
+    flashcards = session_data.get("flashcards", [])
+    
+    if not flashcards:
+        return JSONResponse(
+            content={
+                "valid_flashcards": [],
+                "invalid_flashcards": [],
+                "validation_summary": {
+                    "total": 0,
+                    "valid": 0,
+                    "invalid": 0
+                }
+            }
+        )
+    
+    valid_flashcards = []
+    invalid_flashcards = []
+    
+    for card in flashcards:
+        if card.validate_content():
+            valid_flashcards.append(flashcard_to_response(card).model_dump())
+        else:
+            invalid_flashcards.append({
+                "id": card.id,
+                "question": card.question[:100] + "..." if len(card.question) > 100 else card.question,
+                "error": "Validation failed"
+            })
+    
+    return JSONResponse(
+        content={
+            "valid_flashcards": valid_flashcards,
+            "invalid_flashcards": invalid_flashcards,
+            "validation_summary": {
+                "total": len(flashcards),
+                "valid": len(valid_flashcards),
+                "invalid": len(invalid_flashcards)
+            }
         }
     )
 
 
 # Error handlers
 @app.exception_handler(404)
-async def not_found_handler(request: Request, exc: HTTPException):
-    """Handle 404 errors."""
-    return JSONResponse(
-        status_code=404,
-        content={"detail": "Resource not found"}
+async def not_found_handler(request: Request, exc: HTTPException) -> JSONResponse | HTMLResponse:
+    """Handle 404 errors with user-friendly pages."""
+    # Check if request is for API endpoint
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=404,
+            content={
+                "detail": "API endpoint not found",
+                "path": request.url.path,
+                "method": request.method
+            }
+        )
+    
+    # Return HTML error page for web requests
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "error_code": 404,
+            "error_title": "Page Not Found",
+            "error_message": "The page you're looking for doesn't exist.",
+            "show_home_link": True
+        },
+        status_code=404
     )
 
 
 @app.exception_handler(500)
-async def internal_error_handler(request: Request, exc: Exception):
-    """Handle internal server errors."""
-    logger.error(f"Internal server error: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
+async def internal_error_handler(request: Request, exc: Exception) -> JSONResponse | HTMLResponse:
+    """Handle internal server errors with user-friendly pages."""
+    logger.error(f"Internal server error on {request.url.path}: {exc}")
+    
+    # Check if request is for API endpoint
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "message": "An unexpected error occurred. Please try again later."
+            }
+        )
+    
+    # Return HTML error page for web requests
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "error_code": 500,
+            "error_title": "Server Error",
+            "error_message": "An unexpected error occurred. Please try again later.",
+            "show_home_link": True
+        },
+        status_code=500
+    )
+
+
+@app.exception_handler(413)
+async def file_too_large_handler(request: Request, exc: HTTPException) -> JSONResponse | HTMLResponse:
+    """Handle file too large errors."""
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=413,
+            content={
+                "detail": "File too large",
+                "message": "The uploaded file exceeds the maximum size limit of 50MB."
+            }
+        )
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "error_code": 413,
+            "error_title": "File Too Large",
+            "error_message": "The uploaded file exceeds the maximum size limit of 50MB.",
+            "show_home_link": True
+        },
+        status_code=413
+    )
+
+
+@app.exception_handler(DocumentProcessingError)
+async def document_processing_error_handler(
+    request: Request, exc: DocumentProcessingError
+) -> JSONResponse | HTMLResponse:
+    """Handle document processing errors."""
+    logger.warning(f"Document processing error: {exc}")
+    
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": "Document processing failed",
+                "message": str(exc)
+            }
+        )
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "error_code": 400,
+            "error_title": "Document Processing Error",
+            "error_message": str(exc),
+            "show_home_link": True
+        },
+        status_code=400
+    )
+
+
+@app.exception_handler(FlashcardGenerationError)
+async def flashcard_generation_error_handler(
+    request: Request, exc: FlashcardGenerationError
+) -> JSONResponse | HTMLResponse:
+    """Handle flashcard generation errors."""
+    logger.warning(f"Flashcard generation error: {exc}")
+    
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": "Flashcard generation failed",
+                "message": str(exc)
+            }
+        )
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "error_code": 400,
+            "error_title": "Flashcard Generation Error",
+            "error_message": str(exc),
+            "show_home_link": True
+        },
+        status_code=400
     )
 
 
