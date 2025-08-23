@@ -807,10 +807,11 @@ except DocumentProcessingError as e:
 
 ## Testing and Validation
 
-### Integration Test
+### Integration Tests
 
-The project includes a comprehensive integration test to validate model configuration:
+The project includes comprehensive integration tests to validate configuration and startup:
 
+#### Model Configuration Test
 ```bash
 # Run the integration test
 python test_integration_check.py
@@ -841,6 +842,33 @@ Testing FlashcardGenerator ModelConfig integration...
 All FlashcardGenerator ModelConfig integration tests passed! ✓
 
 🎉 All integration tests passed!
+```
+
+#### Web App Startup Validation Test
+```bash
+# Run the startup validation test
+python test_startup_validation.py
+```
+
+This test validates:
+- Web application startup with valid configuration
+- Proper error handling for invalid models during startup
+- Proper error handling for missing API keys during startup
+- FastAPI lifespan event configuration validation
+- Configuration error propagation in web interface
+
+**Example output:**
+```
+Test 1: Valid configuration
+✅ Valid configuration startup succeeded
+
+Test 2: Invalid model
+✅ Invalid model correctly failed: Unsupported model 'invalid/model'. Supported models: gemini/gemini-2.5-flash, gemini/gemini-2.5-pro, openai/gpt-4o, ...
+
+Test 3: Missing API key
+✅ Missing API key correctly failed: Missing API key for model 'gemini/gemini-2.5-flash'. Please set the GEMINI_API_KEY environment variable.
+
+🎉 All startup validation tests passed!
 ```
 
 ## Examples

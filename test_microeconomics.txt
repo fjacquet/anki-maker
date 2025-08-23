@@ -1,0 +1,31 @@
+Microeconomics Study Material
+
+Chapter 1: Introduction to Microeconomics
+
+Microeconomics is the branch of economics that studies the behavior of individual consumers and firms in making decisions regarding the allocation of scarce resources and the interactions among these individual consumers and firms.
+
+Key Concepts:
+- Scarcity: The fundamental economic problem of having unlimited wants but limited resources
+- Opportunity Cost: The value of the next best alternative that must be given up when making a choice
+- Supply and Demand: The relationship between the quantity of a commodity that producers wish to sell and the quantity that consumers wish to buy
+
+Market Structures:
+1. Perfect Competition: Many buyers and sellers, homogeneous products, perfect information
+2. Monopoly: Single seller, unique product, barriers to entry
+3. Oligopoly: Few sellers, differentiated or homogeneous products, strategic interdependence
+4. Monopolistic Competition: Many sellers, differentiated products, easy entry and exit
+
+Price Elasticity of Demand:
+The price elasticity of demand measures how responsive the quantity demanded is to changes in price. It is calculated as the percentage change in quantity demanded divided by the percentage change in price.
+
+Consumer Theory:
+Consumer theory explains how individuals make choices to maximize their utility subject to budget constraints. The key concepts include:
+- Utility: The satisfaction or happiness derived from consuming goods and services
+- Budget Constraint: The limit on consumption imposed by income and prices
+- Marginal Utility: The additional satisfaction gained from consuming one more unit of a good
+
+Producer Theory:
+Producer theory examines how firms make production decisions to maximize profits. Important concepts include:
+- Production Function: The relationship between inputs and outputs
+- Marginal Product: The additional output produced by one more unit of input
+- Cost Functions: The relationship between output and the cost of production

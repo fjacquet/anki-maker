@@ -469,7 +469,27 @@ This test validates:
 - Error handling for missing API keys
 - ModelConfig method functionality
 
-### Validation Script
+### Validation Scripts
+
+The project includes multiple validation scripts to test your configuration:
+
+#### Integration Test for Model Configuration
+```bash
+# Run comprehensive model configuration test
+python test_integration_check.py
+```
+
+This validates FlashcardGenerator integration with ModelConfig and tests all supported models and API key combinations.
+
+#### Web App Startup Validation Test
+```bash
+# Run web application startup validation
+python test_startup_validation.py
+```
+
+This validates that the web application properly handles configuration validation during startup.
+
+#### Custom Validation Script
 
 Create a script to validate your configuration:
 

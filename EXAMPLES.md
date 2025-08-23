@@ -694,7 +694,7 @@ def validate_configuration():
         return False
 
 def test_api_connection():
-    """Test connection to the Gemini API."""
+    """Test connection to the API."""
     
     try:
         from document_to_anki.core.llm_client import LLMClient
@@ -728,7 +728,9 @@ if __name__ == "__main__":
     
     print("\n🎉 Setup complete!")
     print("You can now use: document-to-anki your-file.pdf")
-    print("Or run comprehensive tests with: python test_integration_check.py")
+    print("Or run comprehensive tests with:")
+    print("  python test_integration_check.py")
+    print("  python test_startup_validation.py")
 ```
 
 ## Integration Examples

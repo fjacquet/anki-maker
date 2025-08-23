@@ -410,6 +410,9 @@ python -c "from document_to_anki.config import ModelConfig; ModelConfig.validate
 # Run comprehensive integration test
 python test_integration_check.py
 
+# Run web app startup validation test
+python test_startup_validation.py
+
 # Test API connectivity
 python -c "import litellm; print('litellm available')"
 

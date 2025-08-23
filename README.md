@@ -312,6 +312,9 @@ uv run pytest -m "slow"      # Run only slow tests
 
 # Run integration test for model configuration
 python test_integration_check.py
+
+# Run web app startup validation test
+python test_startup_validation.py
 ```
 
 ### Code Quality

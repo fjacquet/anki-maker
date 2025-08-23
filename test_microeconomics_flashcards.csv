@@ -1,0 +1,41 @@
+Question,Answer,Card Type,Source File
+What is microeconomics?,Microeconomics is the branch of economics that studies the behavior of individual consumers and firms in making decisions regarding the allocation of scarce resources and the interactions among these individual consumers and firms.,qa,test_microeconomics.txt
+Microeconomics is the branch of economics that studies the behavior of individual consumers and firms in making decisions regarding the allocation of {{c1::scarce resources}}.,scarce resources,cloze,test_microeconomics.txt
+What is the fundamental economic problem described by scarcity?,The fundamental economic problem of having unlimited wants but limited resources.,qa,test_microeconomics.txt
+The fundamental economic problem of having unlimited wants but limited resources is known as {{c1::scarcity}}.,scarcity,cloze,test_microeconomics.txt
+Define opportunity cost.,Opportunity cost is the value of the next best alternative that must be given up when making a choice.,qa,test_microeconomics.txt
+The value of the next best alternative that must be given up when making a choice is called {{c1::opportunity cost}}.,opportunity cost,cloze,test_microeconomics.txt
+What does the concept of supply and demand describe?,The relationship between the quantity of a commodity that producers wish to sell and the quantity that consumers wish to buy.,qa,test_microeconomics.txt
+The relationship between the quantity producers wish to sell and consumers wish to buy is described by {{c1::supply and demand}}.,supply and demand,cloze,test_microeconomics.txt
+List the four main market structures.,"1. Perfect Competition
+2. Monopoly
+3. Oligopoly
+4. Monopolistic Competition",qa,test_microeconomics.txt
+"A market structure characterized by many buyers and sellers, homogeneous products, and perfect information is called {{c1::Perfect Competition}}.",Perfect Competition,cloze,test_microeconomics.txt
+What are the key characteristics of Perfect Competition?,"Many buyers and sellers, homogeneous products, perfect information.",qa,test_microeconomics.txt
+"A market structure with a single seller, a unique product, and barriers to entry is known as a {{c1::Monopoly}}.",Monopoly,cloze,test_microeconomics.txt
+What are the key characteristics of a Monopoly?,"Single seller, unique product, barriers to entry.",qa,test_microeconomics.txt
+"The market structure characterized by few sellers, differentiated or homogeneous products, and strategic interdependence is {{c1::Oligopoly}}.",Oligopoly,cloze,test_microeconomics.txt
+What are the key characteristics of an Oligopoly?,"Few sellers, differentiated or homogeneous products, strategic interdependence.",qa,test_microeconomics.txt
+"A market structure with many sellers, differentiated products, and easy entry and exit is called {{c1::Monopolistic Competition}}.",Monopolistic Competition,cloze,test_microeconomics.txt
+What are the key characteristics of Monopolistic Competition?,"Many sellers, differentiated products, easy entry and exit.",qa,test_microeconomics.txt
+What does the price elasticity of demand measure?,It measures how responsive the quantity demanded is to changes in price.,qa,test_microeconomics.txt
+The {{c1::price elasticity of demand}} measures how responsive the quantity demanded is to changes in price.,price elasticity of demand,cloze,test_microeconomics.txt
+How is the price elasticity of demand calculated?,Percentage change in quantity demanded divided by the percentage change in price.,qa,test_microeconomics.txt
+Price elasticity of demand is calculated as the percentage change in {{c1::quantity demanded}} divided by the percentage change in {{c2::price}}.,quantity demanded; price,cloze,test_microeconomics.txt
+What is the primary goal of individuals according to consumer theory?,To maximize their utility subject to budget constraints.,qa,test_microeconomics.txt
+Consumer theory explains how individuals make choices to maximize their {{c1::utility}} subject to {{c2::budget constraints}}.,utility; budget constraints,cloze,test_microeconomics.txt
+"In consumer theory, what does 'utility' refer to?",The satisfaction or happiness derived from consuming goods and services.,qa,test_microeconomics.txt
+The satisfaction or happiness derived from consuming goods and services is known as {{c1::utility}}.,utility,cloze,test_microeconomics.txt
+What is a budget constraint in consumer theory?,The limit on consumption imposed by income and prices.,qa,test_microeconomics.txt
+A {{c1::budget constraint}} is the limit on consumption imposed by income and prices.,budget constraint,cloze,test_microeconomics.txt
+Define marginal utility.,The additional satisfaction gained from consuming one more unit of a good.,qa,test_microeconomics.txt
+The additional satisfaction gained from consuming one more unit of a good is called {{c1::marginal utility}}.,marginal utility,cloze,test_microeconomics.txt
+What is the focus of producer theory?,It examines how firms make production decisions to maximize profits.,qa,test_microeconomics.txt
+Producer theory examines how firms make production decisions to maximize {{c1::profits}}.,profits,cloze,test_microeconomics.txt
+What does a production function describe?,The relationship between inputs and outputs.,qa,test_microeconomics.txt
+The relationship between inputs and outputs is described by the {{c1::production function}}.,production function,cloze,test_microeconomics.txt
+What is marginal product?,The additional output produced by one more unit of input.,qa,test_microeconomics.txt
+The additional output produced by one more unit of input is known as {{c1::marginal product}}.,marginal product,cloze,test_microeconomics.txt
+What do cost functions represent in producer theory?,The relationship between output and the cost of production.,qa,test_microeconomics.txt
+{{c1::Cost functions}} describe the relationship between output and the cost of production.,Cost functions,cloze,test_microeconomics.txt

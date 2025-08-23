@@ -73,7 +73,7 @@ All documentation changes have been validated to ensure:
 - ✅ Examples use current best practices
 - ✅ Configuration validation uses actual application code
 
-## New Integration Test
+## New Integration Tests
 
 ### test_integration_check.py
 - **Added comprehensive integration test** for ModelConfig functionality
@@ -82,6 +82,13 @@ All documentation changes have been validated to ensure:
 - **Provides clear diagnostic output** for configuration issues
 - **Includes in documentation** as a diagnostic tool for users
 
+### test_startup_validation.py
+- **Added web app startup validation test** for FastAPI lifespan configuration
+- **Validates proper error handling** during web application startup
+- **Tests configuration validation** in web interface context
+- **Verifies ConfigurationError propagation** in async startup context
+- **Provides startup diagnostic capabilities** for web deployment
+
 ### Integration Test Features
 - Tests default model configuration with valid API keys
 - Tests custom model selection (Gemini and OpenAI)
@@ -89,5 +96,8 @@ All documentation changes have been validated to ensure:
 - Validates error handling for missing API keys
 - Tests all ModelConfig methods and functionality
 - Provides comprehensive diagnostic output
+- **NEW**: Tests web application startup validation
+- **NEW**: Validates FastAPI lifespan event configuration handling
+- **NEW**: Tests async configuration error handling
 
-The documentation now accurately reflects the current codebase state and provides comprehensive guidance for users working with the enhanced model configuration system, including the new integration test for validation.
+The documentation now accurately reflects the current codebase state and provides comprehensive guidance for users working with the enhanced model configuration system, including both integration tests for validation and web app startup testing.
