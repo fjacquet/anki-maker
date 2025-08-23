@@ -266,7 +266,7 @@
   - Update any remaining script calls in CI to use Makefile targets instead
   - _Requirements: Script and Makefile consistency_
 
-- [-] 32. Test and validate CI-Makefile alignment
+- [x] 32. Test and validate CI-Makefile alignment
   - Create test branch with updated CI workflow
   - Run full CI pipeline to ensure all jobs work with Makefile targets
   - Compare CI results with local `make` command results for consistency
