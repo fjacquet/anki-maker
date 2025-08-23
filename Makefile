@@ -131,8 +131,20 @@ fix: ## Fix all auto-fixable issues
 
 # Development
 setup: ## Set up development environment
+	@echo "🚀 Setting up Document to Anki CLI development environment..."
 	uv sync
-	@echo "Development environment set up successfully!"
+	@echo "✅ Development environment set up successfully!"
+
+setup-full: setup create-samples env-example ## Full development setup with samples and environment
+	@echo "📁 Creating necessary directories..."
+	@mkdir -p exports .cache logs
+	@echo "🎯 Full development environment ready!"
+	@echo ""
+	@echo "Next steps:"
+	@echo "   1. Edit .env file with your API keys"
+	@echo "   2. Run tests: make test"
+	@echo "   3. Start development: make run-cli examples/sample_documents/sample.txt"
+	@echo "   4. Or start web server: make run-web"
 
 validate: check-env ## Validate configuration
 	@echo "Validating configuration..."
@@ -237,8 +249,39 @@ ci-quality: check-env ## Run quality checks in CI environment
 
 # Sample data
 create-samples: ## Create sample documents for testing
-	mkdir -p examples/sample_documents
-	@echo "Sample documents created in examples/sample_documents/"
+	@echo "📄 Creating sample documents for testing..."
+	@mkdir -p examples/sample_documents
+	@echo "# Sample Document for Testing" > examples/sample_documents/sample.txt
+	@echo "" >> examples/sample_documents/sample.txt
+	@echo "This is a sample document that can be used to test the Document to Anki CLI application." >> examples/sample_documents/sample.txt
+	@echo "" >> examples/sample_documents/sample.txt
+	@echo "## Key Concepts" >> examples/sample_documents/sample.txt
+	@echo "" >> examples/sample_documents/sample.txt
+	@echo "**Photosynthesis** is the process by which plants convert light energy into chemical energy." >> examples/sample_documents/sample.txt
+	@echo "This process occurs in the chloroplasts of plant cells and involves two main stages:" >> examples/sample_documents/sample.txt
+	@echo "" >> examples/sample_documents/sample.txt
+	@echo "1. **Light-dependent reactions**: These occur in the thylakoids and capture light energy to produce ATP and NADPH." >> examples/sample_documents/sample.txt
+	@echo "2. **Light-independent reactions** (Calvin cycle): These occur in the stroma and use ATP and NADPH to convert CO2 into glucose." >> examples/sample_documents/sample.txt
+	@echo "" >> examples/sample_documents/sample.txt
+	@echo "## Important Facts" >> examples/sample_documents/sample.txt
+	@echo "" >> examples/sample_documents/sample.txt
+	@echo "- Photosynthesis produces oxygen as a byproduct" >> examples/sample_documents/sample.txt
+	@echo "- The overall equation is: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2" >> examples/sample_documents/sample.txt
+	@echo "- Chlorophyll is the primary pigment responsible for capturing light energy" >> examples/sample_documents/sample.txt
+	@echo "- Plants are autotrophs because they can produce their own food through photosynthesis" >> examples/sample_documents/sample.txt
+	@echo "# Machine Learning Basics" > examples/sample_documents/sample.md
+	@echo "" >> examples/sample_documents/sample.md
+	@echo "## What is Machine Learning?" >> examples/sample_documents/sample.md
+	@echo "" >> examples/sample_documents/sample.md
+	@echo "**Machine Learning** is a subset of artificial intelligence (AI) that enables computers to learn and make decisions from data without being explicitly programmed for every task." >> examples/sample_documents/sample.md
+	@echo "" >> examples/sample_documents/sample.md
+	@echo "## Types of Machine Learning" >> examples/sample_documents/sample.md
+	@echo "" >> examples/sample_documents/sample.md
+	@echo "### Supervised Learning" >> examples/sample_documents/sample.md
+	@echo "- Uses labeled training data" >> examples/sample_documents/sample.md
+	@echo "- Examples: classification, regression" >> examples/sample_documents/sample.md
+	@echo "- Algorithms: linear regression, decision trees, neural networks" >> examples/sample_documents/sample.md
+	@echo "✅ Sample documents created in examples/sample_documents/"
 
 # Environment
 env-example: ## Copy environment example file
