@@ -260,13 +260,13 @@
   - Verify that integration test results are reported correctly
   - _Requirements: Integration testing consistency_
 
-- [ ] 31. Handle scripts directory alignment
+- [x] 31. Handle scripts directory alignment
   - Document the relationship between scripts and Makefile targets
   - Decide whether to integrate `scripts/quality_check.sh` into Makefile or remove it
   - Update any remaining script calls in CI to use Makefile targets instead
   - _Requirements: Script and Makefile consistency_
 
-- [ ] 32. Test and validate CI-Makefile alignment
+- [-] 32. Test and validate CI-Makefile alignment
   - Create test branch with updated CI workflow
   - Run full CI pipeline to ensure all jobs work with Makefile targets
   - Compare CI results with local `make` command results for consistency

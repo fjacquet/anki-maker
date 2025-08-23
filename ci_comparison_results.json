@@ -1,0 +1,130 @@
+{
+  "results": [
+    {
+      "target": "check-uv",
+      "local": {
+        "exit_code": 0,
+        "stdout_length": 0,
+        "stderr_length": 0,
+        "success": true
+      },
+      "ci": {
+        "exit_code": 0,
+        "stdout_length": 0,
+        "stderr_length": 0,
+        "success": true
+      },
+      "comparison": {
+        "exit_code_match": true,
+        "output_consistent": true,
+        "overall_match": true
+      }
+    },
+    {
+      "target": "check-env",
+      "local": {
+        "exit_code": 0,
+        "stdout_length": 63,
+        "stderr_length": 0,
+        "success": true
+      },
+      "ci": {
+        "exit_code": 0,
+        "stdout_length": 72,
+        "stderr_length": 0,
+        "success": true
+      },
+      "comparison": {
+        "exit_code_match": true,
+        "output_consistent": true,
+        "overall_match": true
+      }
+    },
+    {
+      "target": "ci-setup",
+      "local": {
+        "exit_code": 0,
+        "stdout_length": 150,
+        "stderr_length": 60,
+        "success": true
+      },
+      "ci": {
+        "exit_code": 0,
+        "stdout_length": 159,
+        "stderr_length": 60,
+        "success": true
+      },
+      "comparison": {
+        "exit_code_match": true,
+        "output_consistent": true,
+        "overall_match": true
+      }
+    },
+    {
+      "target": "ci-quality",
+      "local": {
+        "exit_code": 2,
+        "stdout_length": 5035,
+        "stderr_length": 31,
+        "success": false
+      },
+      "ci": {
+        "exit_code": 2,
+        "stdout_length": 5044,
+        "stderr_length": 31,
+        "success": false
+      },
+      "comparison": {
+        "exit_code_match": true,
+        "output_consistent": true,
+        "overall_match": true
+      }
+    },
+    {
+      "target": "ci-validate",
+      "local": {
+        "exit_code": 0,
+        "stdout_length": 1027,
+        "stderr_length": 0,
+        "success": true
+      },
+      "ci": {
+        "exit_code": 0,
+        "stdout_length": 1036,
+        "stderr_length": 0,
+        "success": true
+      },
+      "comparison": {
+        "exit_code_match": true,
+        "output_consistent": true,
+        "overall_match": true
+      }
+    },
+    {
+      "target": "ci-build",
+      "local": {
+        "exit_code": 0,
+        "stdout_length": 71,
+        "stderr_length": 20237,
+        "success": true
+      },
+      "ci": {
+        "exit_code": 0,
+        "stdout_length": 71,
+        "stderr_length": 20237,
+        "success": true
+      },
+      "comparison": {
+        "exit_code_match": true,
+        "output_consistent": true,
+        "overall_match": true
+      }
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "consistent": 6,
+    "success_rate": 100.0,
+    "overall_success": true
+  }
+}

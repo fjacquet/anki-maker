@@ -440,10 +440,10 @@ The CI/CD pipeline alignment ensures that GitHub Actions workflows use the same 
 - Has inconsistent command patterns across jobs
 
 **Scripts Directory:**
-- Contains standalone scripts that duplicate Makefile functionality
-- `quality_check.sh` - duplicates `make quality` logic but without `uv run` prefix
-- `setup_dev.sh` - duplicates `make setup` logic
-- `validate_config.py` - different from `make validate` logic
+- Contains specialized scripts that are properly integrated with Makefile targets
+- `security_validation.py` - comprehensive security validation called by `make security-validate`
+- `validate_config.py` - configuration validation called by `make validate`
+- All scripts are executed through Makefile targets with proper `uv run` prefix
 
 ### CI Workflow Jobs Alignment
 

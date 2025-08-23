@@ -192,5 +192,5 @@ rement 11
 
 1. WHEN scripts exist in the scripts/ directory THEN they SHALL either be integrated into Makefile targets or documented as standalone utilities
 2. WHEN the CI workflow needs validation THEN it SHALL use `make validate` instead of calling scripts directly
-3. WHEN quality checks are needed THEN the CI SHALL use `make quality` instead of the `scripts/quality_check.sh` script
+3. WHEN quality checks are needed THEN the CI SHALL use `make quality` which properly integrates all quality tools
 4. IF scripts are kept THEN they SHALL be documented and their relationship to Makefile targets SHALL be clear

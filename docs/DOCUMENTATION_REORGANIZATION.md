@@ -25,9 +25,9 @@
 - Condensed troubleshooting section in README.md and linked to full guide
 
 ### 4. Updated Development Scripts
-- Updated `scripts/setup_dev.sh` to reference new documentation paths
+- Removed `scripts/setup_dev.sh` and integrated functionality into Makefile targets
 - Updated `.kiro/hooks/docs-sync-hook.kiro.hook` to reference docs/ folder
-- Maintained all functionality while improving organization
+- Enhanced Makefile with `setup-full` target that includes sample creation
 
 ### 5. Enhanced Makefile Documentation
 - Updated Makefile comments to reflect formatting behavior changes
@@ -80,7 +80,7 @@ document-to-anki-cli/
 - Updated changelog to reflect documentation reorganization
 
 ### Script Updates
-- `scripts/setup_dev.sh`: Updated documentation references
+- `scripts/setup_dev.sh`: Removed and functionality integrated into Makefile
 - `.kiro/hooks/docs-sync-hook.kiro.hook`: Updated file paths
 
 ### Makefile Improvements

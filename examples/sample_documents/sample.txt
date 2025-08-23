@@ -1,0 +1,18 @@
+# Sample Document for Testing
+
+This is a sample document that can be used to test the Document to Anki CLI application.
+
+## Key Concepts
+
+**Photosynthesis** is the process by which plants convert light energy into chemical energy.
+This process occurs in the chloroplasts of plant cells and involves two main stages:
+
+1. **Light-dependent reactions**: These occur in the thylakoids and capture light energy to produce ATP and NADPH.
+2. **Light-independent reactions** (Calvin cycle): These occur in the stroma and use ATP and NADPH to convert CO2 into glucose.
+
+## Important Facts
+
+- Photosynthesis produces oxygen as a byproduct
+- The overall equation is: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2
+- Chlorophyll is the primary pigment responsible for capturing light energy
+- Plants are autotrophs because they can produce their own food through photosynthesis
