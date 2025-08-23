@@ -1,0 +1,109 @@
+{
+  "summary": {
+    "total_tests": 11,
+    "passed": 10,
+    "failed": 1,
+    "success_rate": 90.9090909090909
+  },
+  "results": [
+    {
+      "target": "check-uv",
+      "success": true,
+      "exit_code": 0,
+      "duration": 0.09313201904296875,
+      "error_msg": "",
+      "stdout_length": 0,
+      "stderr_length": 0
+    },
+    {
+      "target": "check-env",
+      "success": true,
+      "exit_code": 0,
+      "duration": 0.019461870193481445,
+      "error_msg": "",
+      "stdout_length": 72,
+      "stderr_length": 0
+    },
+    {
+      "target": "ci-setup",
+      "success": true,
+      "exit_code": 0,
+      "duration": 2.777637243270874,
+      "error_msg": "",
+      "stdout_length": 159,
+      "stderr_length": 61
+    },
+    {
+      "target": "ci-test",
+      "success": true,
+      "exit_code": 0,
+      "duration": 38.323697328567505,
+      "error_msg": "",
+      "stdout_length": 4384,
+      "stderr_length": 0
+    },
+    {
+      "target": "ci-quality",
+      "success": true,
+      "exit_code": 0,
+      "duration": 4.800945043563843,
+      "error_msg": "",
+      "stdout_length": 15592,
+      "stderr_length": 1157
+    },
+    {
+      "target": "ci-validate",
+      "success": true,
+      "exit_code": 0,
+      "duration": 2.1088078022003174,
+      "error_msg": "",
+      "stdout_length": 1036,
+      "stderr_length": 0
+    },
+    {
+      "target": "ci-build",
+      "success": true,
+      "exit_code": 0,
+      "duration": 1.2304151058197021,
+      "error_msg": "",
+      "stdout_length": 71,
+      "stderr_length": 20237
+    },
+    {
+      "target": "install-dev",
+      "success": true,
+      "exit_code": 0,
+      "duration": 0.048355817794799805,
+      "error_msg": "",
+      "stdout_length": 21,
+      "stderr_length": 60
+    },
+    {
+      "target": "test-cov",
+      "success": true,
+      "exit_code": 0,
+      "duration": 34.539572954177856,
+      "error_msg": "",
+      "stdout_length": 5528,
+      "stderr_length": 0
+    },
+    {
+      "target": "validate",
+      "success": true,
+      "exit_code": 0,
+      "duration": 2.322856903076172,
+      "error_msg": "",
+      "stdout_length": 1015,
+      "stderr_length": 0
+    },
+    {
+      "target": "non-existent-target",
+      "success": false,
+      "exit_code": 2,
+      "duration": 0.010573863983154297,
+      "error_msg": "",
+      "stdout_length": 0,
+      "stderr_length": 63
+    }
+  ]
+}
