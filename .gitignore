@@ -224,3 +224,4 @@ api_keys.*
 *.token
 tokens/
 tokens.*
+examples/Excel++.pdf
