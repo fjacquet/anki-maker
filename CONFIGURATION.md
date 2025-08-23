@@ -46,9 +46,10 @@ This guide covers all configuration options for Document to Anki CLI.
 **Options**: Any litellm-supported model  
 **Description**: The LLM model to use for flashcard generation  
 **Examples**: 
-- `MODEL=gemini/gemini-pro`
-- `MODEL=gemini/gemini-2.5-flash`
-- `MODEL=gemini/gemini-1.5-pro`
+- `MODEL=gemini/gemini-2.5-flash` (default)
+- `MODEL=gemini/gemini-2.5-pro`
+- `MODEL=openai/gpt-4o`
+- `MODEL=openai/gpt-3.5-turbo`
 
 #### LITELLM_TIMEOUT
 **Default**: `300`  
@@ -107,7 +108,7 @@ LOG_LEVEL=INFO
 LOGURU_LEVEL=INFO
 
 # Optional: LLM Configuration
-MODEL=gemini/gemini-pro
+MODEL=gemini/gemini-2.5-flash
 LITELLM_TIMEOUT=300
 GEMINI_TEMPERATURE=0.3
 GEMINI_MAX_TOKENS=20000
@@ -395,7 +396,78 @@ ESCAPE_HTML=true
 VALIDATE_CSV_OUTPUT=true
 ```
 
+## Model Configuration
+
+### Supported Models
+
+The application supports multiple LLM providers through configurable model selection:
+
+#### Gemini Models (Google)
+- `gemini/gemini-2.5-flash` (default) - Fast and efficient
+- `gemini/gemini-2.5-pro` - More capable, higher quality
+- **Required**: `GEMINI_API_KEY` environment variable
+
+#### OpenAI Models
+- `openai/gpt-4o` - Latest GPT-4 model
+- `openai/gpt-4` - Standard GPT-4
+- `openai/gpt-3.5-turbo` - Faster, lower cost
+- `openai/gpt-4.1`, `openai/gpt-4.1-mini`, `openai/gpt-4.1-nano` - Variants
+- `openai/gpt-5`, `openai/gpt-5-mini`, `openai/gpt-5-nano` - Future models
+- **Required**: `OPENAI_API_KEY` environment variable
+
+### Model Selection
+
+Set the `MODEL` environment variable to choose your preferred model:
+
+```bash
+# Use Gemini (default)
+MODEL=gemini/gemini-2.5-flash
+
+# Use OpenAI GPT-4
+MODEL=openai/gpt-4o
+
+# Use OpenAI GPT-3.5 (faster, cheaper)
+MODEL=openai/gpt-3.5-turbo
+```
+
+### API Key Requirements
+
+Each model provider requires its corresponding API key:
+
+```bash
+# For Gemini models
+GEMINI_API_KEY=your-gemini-api-key
+
+# For OpenAI models  
+OPENAI_API_KEY=your-openai-api-key
+
+# You can have both keys configured and switch models as needed
+```
+
+### Model Configuration Validation
+
+The application validates model configuration on startup:
+- Checks if the specified model is supported
+- Verifies the required API key is available
+- Provides clear error messages for configuration issues
+
 ## Configuration Validation
+
+### Integration Test
+
+The project includes a comprehensive integration test to validate that the FlashcardGenerator properly uses ModelConfig:
+
+```bash
+# Run the integration test
+python test_integration_check.py
+```
+
+This test validates:
+- Default model configuration with valid API keys
+- Custom model selection with appropriate API keys  
+- Error handling for invalid models
+- Error handling for missing API keys
+- ModelConfig method functionality
 
 ### Validation Script
 
@@ -411,27 +483,33 @@ from pathlib import Path
 
 def validate_required_config():
     """Validate required configuration."""
-    required_vars = ['GEMINI_API_KEY']
-    missing_vars = []
+    from document_to_anki.config import ModelConfig, ConfigurationError
     
-    for var in required_vars:
-        if not os.getenv(var):
-            missing_vars.append(var)
-    
-    if missing_vars:
-        print(f"❌ Missing required environment variables: {', '.join(missing_vars)}")
+    try:
+        # This validates both model support and API key availability
+        model = ModelConfig.validate_and_get_model()
+        print(f"✅ Model configuration valid: {model}")
+        return True
+    except ConfigurationError as e:
+        print(f"❌ Configuration error: {e}")
         return False
-    
-    print("✅ All required configuration variables are set")
-    return True
 
 def validate_optional_config():
     """Validate optional configuration."""
+    from document_to_anki.config import ModelConfig
+    
     config_checks = {
         'LOG_LEVEL': ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-        'MODEL': None,  # Any string is valid
         'WEB_PORT': lambda x: x.isdigit() and 1 <= int(x) <= 65535,
     }
+    
+    # Check MODEL separately using ModelConfig
+    model = os.getenv('MODEL', ModelConfig.DEFAULT_MODEL)
+    if model not in ModelConfig.get_supported_models():
+        print(f"⚠️ Unsupported model: {model}")
+        print(f"   Supported models: {', '.join(ModelConfig.get_supported_models())}")
+    else:
+        print(f"✅ Model is supported: {model}")
     
     for var, valid_values in config_checks.items():
         value = os.getenv(var)
@@ -446,15 +524,20 @@ def test_api_connection():
     """Test API connection."""
     try:
         from document_to_anki.core.llm_client import LLMClient
+        from document_to_anki.config import ModelConfig
+        
+        # Get the configured model
+        model = ModelConfig.validate_and_get_model()
+        print(f"Testing API connection with model: {model}")
         
         client = LLMClient()
-        result = client.generate_flashcards_from_text_sync("Test")
+        result = client.generate_flashcards_from_text_sync("Test content for API validation.")
         
         if result:
-            print("✅ API connection successful")
+            print(f"✅ API connection successful - generated {len(result)} test flashcards")
             return True
         else:
-            print("❌ API connection failed")
+            print("❌ API connection failed - no response")
             return False
             
     except Exception as e:
@@ -492,15 +575,21 @@ Create a template for new installations:
 # .env.template
 # Copy this file to .env and fill in your values
 
-# Required Configuration
+# Required: API Keys (at least one required based on model choice)
 GEMINI_API_KEY=your-gemini-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Optional: Model Selection (uncomment to customize)
+# MODEL=gemini/gemini-2.5-flash  # Default
+# MODEL=gemini/gemini-2.5-pro    # More capable Gemini
+# MODEL=openai/gpt-4o           # Latest OpenAI
+# MODEL=openai/gpt-3.5-turbo    # Faster OpenAI
 
 # Optional: Logging (uncomment to customize)
 # LOG_LEVEL=INFO
 # LOGURU_LEVEL=INFO
 
-# Optional: LLM Model (uncomment to customize)
-# MODEL=gemini/gemini-pro
+# Optional: LLM Configuration (uncomment to customize)
 # LITELLM_TIMEOUT=300
 
 # Optional: Web Interface (uncomment to customize)

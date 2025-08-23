@@ -24,6 +24,17 @@ class TestCLIIntegration:
         """Create a Click test runner."""
         return CliRunner()
 
+    @pytest.fixture(autouse=True)
+    def mock_model_config(self, mocker):
+        """Mock ModelConfig for all CLI tests."""
+        with patch('src.document_to_anki.cli.main.ModelConfig') as mock_config:
+            mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+            mock_config.get_model_from_env.return_value = "gemini/gemini-2.5-flash"
+            mock_config.validate_model_config.return_value = True
+            mock_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
+            mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash"]
+            yield mock_config
+
     @pytest.fixture
     def sample_txt_file(self, tmp_path):
         """Create a sample text file for testing."""

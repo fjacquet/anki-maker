@@ -16,6 +16,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from ..config import ConfigurationError
 from ..models.flashcard import Flashcard, ProcessingResult
 from .llm_client import LLMClient
 
@@ -37,13 +38,21 @@ class FlashcardGenerator:
 
     def __init__(self, llm_client: LLMClient | None = None):
         """
-        Initialize the FlashcardGenerator.
+        Initialize the FlashcardGenerator with ModelConfig-configured LLMClient.
 
         Args:
-            llm_client: Optional LLMClient instance. If None, creates a default one.
+            llm_client: Optional LLMClient instance. If None, creates one with ModelConfig.
+
+        Raises:
+            ConfigurationError: If model configuration is invalid.
         """
-        self.llm_client = llm_client or LLMClient()
-        self._flashcards: list[Flashcard] = []
+        try:
+            self.llm_client = llm_client or LLMClient()  # LLMClient will use ModelConfig
+            self._flashcards: list[Flashcard] = []
+            logger.info(f"FlashcardGenerator initialized with model: {self.llm_client.get_current_model()}")
+        except ConfigurationError as e:
+            logger.error(f"Failed to initialize FlashcardGenerator: {e}")
+            raise
 
     @property
     def flashcards(self) -> list[Flashcard]:

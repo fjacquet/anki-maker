@@ -46,6 +46,18 @@ Process uploaded content (single file, folder, or ZIP archive).
 ```python
 result = processor.process_upload("document.pdf")
 print(f"Extracted {result.total_characters} characters")
+
+# For PDFs with processing issues, check warnings
+if result.warnings:
+    print("Processing warnings:")
+    for warning in result.warnings:
+        print(f"  - {warning}")
+        
+# Example output for a partially corrupted PDF:
+# Extracted 15,432 characters
+# Processing warnings:
+#   - Skipping malformed page 3 in document.pdf: NullObject error
+#   - Skipping malformed page 8 in document.pdf: AttributeError
 ```
 
 ##### `validate_upload_path(upload_path)`
@@ -227,7 +239,7 @@ Handles communication with Gemini LLM through litellm.
 ```python
 from document_to_anki.core.llm_client import LLMClient
 
-client = LLMClient(model="gemini/gemini-pro", max_tokens=4000)
+client = LLMClient(model="gemini/gemini-2.5-flash", max_tokens=4000)
 ```
 
 **Methods:**
@@ -281,6 +293,55 @@ Split large text into manageable chunks.
 
 **Returns:**
 - `list[str]`: List of text chunks
+
+#### TextExtractor
+
+Handles text extraction from various document formats with enhanced PDF processing.
+
+```python
+from document_to_anki.utils.text_extractor import TextExtractor
+
+extractor = TextExtractor()
+```
+
+**Methods:**
+
+##### `extract_text(file_path)`
+
+Extract text from a file with enhanced error handling for PDFs.
+
+**Parameters:**
+- `file_path` (Path): Path to the file to extract text from
+
+**Returns:**
+- `str`: Extracted text content
+
+**Raises:**
+- `TextExtractionError`: If extraction fails completely
+
+**Enhanced PDF Features:**
+- **Malformed PDF Support**: Uses `strict=False` for lenient parsing
+- **Page-by-Page Processing**: Continues processing even if individual pages fail
+- **Error Recovery**: Automatically skips corrupted pages and processes remaining content
+- **Detailed Logging**: Reports successful vs. failed page processing
+
+**Example:**
+```python
+from pathlib import Path
+
+# Extract from a potentially problematic PDF
+try:
+    text = extractor.extract_text(Path("scanned-document.pdf"))
+    print(f"Extracted {len(text)} characters")
+    
+    # Check logs for processing details:
+    # INFO: Successfully extracted text from PDF: scanned-document.pdf (18/20 pages processed)
+    # This indicates 18 pages were successfully processed, 2 were skipped
+    
+except TextExtractionError as e:
+    print(f"Extraction failed: {e}")
+    # This only occurs if NO pages could be processed
+```
 
 ### Data Models
 
@@ -595,6 +656,34 @@ Check API health and status.
 }
 ```
 
+#### Get Model Configuration
+
+**GET** `/config/model`
+
+Get current model configuration status.
+
+**Response:**
+```json
+{
+  "current_model": "gemini/gemini-2.5-flash",
+  "is_valid": true,
+  "supported_models": [
+    "gemini/gemini-2.5-flash",
+    "gemini/gemini-2.5-pro", 
+    "openai/gpt-4o",
+    "openai/gpt-4",
+    "openai/gpt-3.5-turbo",
+    "openai/gpt-4.1",
+    "openai/gpt-4.1-mini",
+    "openai/gpt-4.1-nano",
+    "openai/gpt-5",
+    "openai/gpt-5-mini",
+    "openai/gpt-5-nano"
+  ],
+  "required_api_key": "GEMINI_API_KEY"
+}
+```
+
 ## CLI API
 
 ### Commands
@@ -715,6 +804,44 @@ except DocumentProcessingError as e:
 - `API_ERROR`: LLM API error
 - `VALIDATION_ERROR`: Data validation failed
 - `EXPORT_ERROR`: CSV export failed
+
+## Testing and Validation
+
+### Integration Test
+
+The project includes a comprehensive integration test to validate model configuration:
+
+```bash
+# Run the integration test
+python test_integration_check.py
+```
+
+This test validates:
+- FlashcardGenerator properly uses ModelConfig for model selection
+- Default model configuration with valid API keys
+- Custom model selection with appropriate API keys
+- Error handling for invalid models and missing API keys
+- ModelConfig method functionality
+
+**Example output:**
+```
+Testing ModelConfig methods...
+✓ Supported models: 11 models
+✓ Default model: gemini/gemini-2.5-flash
+✓ Model from env: openai/gpt-4
+✓ Required API key for Gemini: GEMINI_API_KEY
+✓ Required API key for OpenAI: OPENAI_API_KEY
+All ModelConfig method tests passed! ✓
+
+Testing FlashcardGenerator ModelConfig integration...
+✓ Default model test passed: gemini/gemini-2.5-flash
+✓ Custom model test passed: openai/gpt-4
+✓ Invalid model test passed: Unsupported model 'invalid/model'
+✓ Missing API key test passed: Missing API key for model 'gemini/gemini-2.5-flash'
+All FlashcardGenerator ModelConfig integration tests passed! ✓
+
+🎉 All integration tests passed!
+```
 
 ## Examples
 

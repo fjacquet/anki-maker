@@ -122,7 +122,8 @@ This feature involves creating a modern Python application that converts digital
 #### Acceptance Criteria
 
 1. WHEN starting the application THEN the system SHALL read the MODEL environment variable to determine which LLM model to use
-2. WHEN the MODEL variable is set THEN the system SHALL use the specified model (e.g., "gemini/gemini-pro", "openai/gpt-4", "openai/gpt-3.5-turbo", "openai/gpt-4.1", "openai/gpt-4.1-mini", "openai/gpt-4.1-nano", "openai/gpt-5", "openai/gpt-5-mini", "openai/gpt-5-nano", "openai/gpt-4o")
-3. WHEN the MODEL variable is not set THEN the system SHALL default to "gemini/gemini-pro" as the fallback model
+2. WHEN the MODEL variable is set THEN the system SHALL use the specified model (e.g., "gemini/gemini-2.5-flash","gemini/gemini-2.5-pro","openai/gpt-4", 
+    "openai/gpt-3.5-turbo", "openai/gpt-4.1", "openai/gpt-4.1-mini", "openai/gpt-4.1-nano", "openai/gpt-5", "openai/gpt-5-mini", "openai/gpt-5-nano", "openai/gpt-4o")
+3. WHEN the MODEL variable is not set THEN the system SHALL default to "gemini/gemini-2.5-flash" as the fallback model
 4. WHEN an invalid model is specified THEN the system SHALL display a clear error message listing supported models
 5. WHEN the model is changed THEN the system SHALL validate that the corresponding API key is available (GEMINI_API_KEY for Gemini models, OPENAI_API_KEY for OpenAI models)

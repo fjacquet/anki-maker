@@ -59,7 +59,8 @@ class ModelConfig:
     """Handles LLM model configuration and validation."""
     
     SUPPORTED_MODELS = {
-        "gemini/gemini-pro": "GEMINI_API_KEY",
+        "gemini/gemini-2.5-flash": "GEMINI_API_KEY",
+        "gemini/gemini-2.5-pro": "GEMINI_API_KEY",
         "openai/gpt-4": "OPENAI_API_KEY", 
         "openai/gpt-3.5-turbo": "OPENAI_API_KEY",
         "openai/gpt-4.1": "OPENAI_API_KEY",
@@ -71,7 +72,7 @@ class ModelConfig:
         "openai/gpt-4o": "OPENAI_API_KEY"
     }
     
-    DEFAULT_MODEL = "gemini/gemini-pro"
+    DEFAULT_MODEL = "gemini/gemini-2.5-flash"
     
     @classmethod
     def get_model_from_env(cls) -> str:

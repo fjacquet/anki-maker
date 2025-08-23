@@ -1,8 +1,8 @@
 """
 Document to Anki CLI - Convert documents to Anki flashcards using LLM.
 
-A comprehensive tool that transforms various document formats (PDF, DOCX, TXT, MD) 
-into high-quality Anki flashcards using Google's Gemini Pro AI model. The application 
+A comprehensive tool that transforms various document formats (PDF, DOCX, TXT, MD)
+into high-quality Anki flashcards using Google's Gemini Pro AI model. The application
 provides both CLI and web interfaces for flexible usage.
 
 Key Features:
@@ -26,14 +26,14 @@ Modules:
 Usage Examples:
     # CLI usage
     from document_to_anki.cli.main import main
-    
+
     # Python API usage
     from document_to_anki.core.document_processor import DocumentProcessor
     from document_to_anki.core.flashcard_generator import FlashcardGenerator
-    
+
     processor = DocumentProcessor()
     generator = FlashcardGenerator()
-    
+
     # Process document and generate flashcards
     result = processor.process_upload("document.pdf")
     flashcards = generator.generate_flashcards([result.text_content])
@@ -58,9 +58,9 @@ __email__ = "support@document-to-anki.com"
 __license__ = "MIT"
 
 # Public API exports
-from .config import ModelConfig, ConfigurationError
-from .core.document_processor import DocumentProcessor, DocumentProcessingError
-from .core.flashcard_generator import FlashcardGenerator, FlashcardGenerationError
+from .config import ConfigurationError, ModelConfig
+from .core.document_processor import DocumentProcessingError, DocumentProcessor
+from .core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
 from .core.llm_client import LLMClient
 from .models.flashcard import Flashcard, ProcessingResult
 
@@ -68,7 +68,7 @@ __all__ = [
     "ModelConfig",
     "ConfigurationError",
     "DocumentProcessor",
-    "DocumentProcessingError", 
+    "DocumentProcessingError",
     "FlashcardGenerator",
     "FlashcardGenerationError",
     "LLMClient",

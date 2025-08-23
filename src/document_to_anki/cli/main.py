@@ -14,22 +14,22 @@ The CLI supports:
 Usage Examples:
     # Basic conversion
     document-to-anki input.pdf
-    
+
     # Batch processing
     document-to-anki batch-convert *.pdf --output-dir ./flashcards/
-    
+
     # Automated mode (no interaction)
     document-to-anki input.pdf --no-preview --batch
 
 Classes:
     CLIContext: Context object to hold CLI state and components
-    
+
 Functions:
     main: Main CLI entry point with version and help
     convert: Convert documents to flashcards with interactive management
     batch_convert: Process multiple documents in batch mode
     setup_logging: Configure loguru logging based on verbosity
-    
+
 Private Functions:
     _handle_edit_flashcard: Interactive flashcard editing
     _handle_delete_flashcard: Interactive flashcard deletion
@@ -48,6 +48,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
+from ..config import ConfigurationError, ModelConfig
 from ..core.document_processor import DocumentProcessingError, DocumentProcessor
 from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
 
@@ -56,11 +57,11 @@ from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenera
 def setup_logging(verbose: bool = False) -> None:
     """
     Configure loguru logging based on verbosity level.
-    
+
     Args:
         verbose: If True, enables DEBUG level logging with detailed format.
                 If False, shows only INFO level and above with simple format.
-    
+
     Note:
         This function removes the default loguru handler and adds a new one
         with appropriate formatting and level based on the verbose flag.
@@ -82,13 +83,13 @@ def setup_logging(verbose: bool = False) -> None:
 class CLIContext:
     """
     Context object to hold CLI state and components.
-    
+
     This class encapsulates the CLI application state including:
     - Verbose logging flag
     - Rich console for formatted output
     - Document processor for file handling
     - Flashcard generator for AI-powered flashcard creation
-    
+
     Attributes:
         verbose (bool): Whether verbose logging is enabled
         console (Console): Rich console for formatted output
@@ -99,17 +100,44 @@ class CLIContext:
     def __init__(self, verbose: bool = False):
         """
         Initialize the CLI context with required components.
-        
+
         Args:
             verbose: Enable verbose logging and detailed output
+
+        Raises:
+            ConfigurationError: If model configuration is invalid.
         """
         self.verbose = verbose
         self.console = Console()
+
+        # Setup logging first
+        setup_logging(verbose)
+
+        # Validate model configuration early
+        try:
+            model = ModelConfig.validate_and_get_model()
+            logger.info(f"Using model: {model}")
+        except ConfigurationError as e:
+            self.console.print(f"[red]❌ Model Configuration Error:[/red] {e}")
+            self.console.print("\n[yellow]💡 How to fix this:[/yellow]")
+
+            current_model = ModelConfig.get_model_from_env()
+            if current_model not in ModelConfig.SUPPORTED_MODELS:
+                supported = ", ".join(ModelConfig.get_supported_models())
+                self.console.print(f"• Set MODEL environment variable to one of: {supported}")
+                self.console.print(f"• Current MODEL value: '{current_model}'")
+            else:
+                required_key = ModelConfig.get_required_api_key(current_model)
+                self.console.print(f"• Set the {required_key} environment variable")
+                self.console.print("• Get your API key from the appropriate provider")
+
+            self.console.print("\n[yellow]Example:[/yellow]")
+            self.console.print("export MODEL=gemini/gemini-pro")
+            self.console.print("export GEMINI_API_KEY=your_api_key_here")
+            raise
+
         self.document_processor = DocumentProcessor()
         self.flashcard_generator = FlashcardGenerator()
-
-        # Setup logging
-        setup_logging(verbose)
 
 
 @click.group(invoke_without_command=True)

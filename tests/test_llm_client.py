@@ -3,8 +3,10 @@ Tests for the LLM client module.
 """
 
 import pytest
+from unittest.mock import patch
 
 from src.document_to_anki.core.llm_client import FlashcardData, LLMClient
+from src.document_to_anki.config import ConfigurationError
 
 
 class TestLLMClient:
@@ -12,15 +14,79 @@ class TestLLMClient:
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.client = LLMClient()
+        # Mock ModelConfig to avoid environment dependencies
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+            mock_config.validate_model_config.return_value = True
+            self.client = LLMClient()
     
     def test_init(self):
         """Test LLMClient initialization."""
-        client = LLMClient(model="test-model", max_tokens=2000)
-        assert client.model == "test-model"
-        assert client.max_tokens == 2000
-        assert client.max_retries == 3
-        assert client.base_delay == 1.0
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_model_config.return_value = True
+            client = LLMClient(model="test-model", max_tokens=2000)
+            assert client.model == "test-model"
+            assert client.max_tokens == 2000
+            assert client.max_retries == 3
+            assert client.base_delay == 1.0
+
+    def test_init_with_model_config(self):
+        """Test LLMClient initialization using ModelConfig."""
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_and_get_model.return_value = "openai/gpt-4"
+            client = LLMClient()
+            assert client.model == "openai/gpt-4"
+
+    def test_init_invalid_model(self):
+        """Test LLMClient initialization with invalid model."""
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_model_config.return_value = False
+            mock_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
+            mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash"]
+            
+            with pytest.raises(ConfigurationError, match="Unsupported model"):
+                LLMClient(model="invalid/model")
+
+    def test_init_missing_api_key(self):
+        """Test LLMClient initialization with missing API key."""
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_model_config.return_value = False
+            mock_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
+            mock_config.get_required_api_key.return_value = "GEMINI_API_KEY"
+            
+            with pytest.raises(ConfigurationError, match="Missing API key"):
+                LLMClient(model="gemini/gemini-2.5-flash")
+
+    def test_validate_model_and_api_key(self):
+        """Test model and API key validation."""
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_model_config.return_value = True
+            mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+            client = LLMClient()
+            
+            mock_config.validate_model_config.return_value = True
+            assert client.validate_model_and_api_key("gemini/gemini-2.5-flash") is True
+            
+            mock_config.validate_model_config.return_value = False
+            assert client.validate_model_and_api_key("invalid/model") is False
+
+    def test_get_supported_models(self):
+        """Test getting supported models."""
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+            mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash", "openai/gpt-4"]
+            client = LLMClient()
+            
+            models = client.get_supported_models()
+            assert models == ["gemini/gemini-2.5-flash", "openai/gpt-4"]
+
+    def test_get_current_model(self):
+        """Test getting current model."""
+        with patch('src.document_to_anki.core.llm_client.ModelConfig') as mock_config:
+            mock_config.validate_and_get_model.return_value = "openai/gpt-4"
+            client = LLMClient()
+            
+            assert client.get_current_model() == "openai/gpt-4"
     
     def test_chunk_text_for_processing_short_text(self):
         """Test text chunking with short text."""

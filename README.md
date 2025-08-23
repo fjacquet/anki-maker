@@ -10,6 +10,7 @@ Document to Anki CLI is a comprehensive tool that transforms various document fo
 
 ### ✅ Fully Implemented
 - **Multi-Format Document Processing**: Support for PDF, DOCX, TXT, MD files, folders, and ZIP archives
+- **Enhanced PDF Processing**: Robust handling of malformed, corrupted, or partially damaged PDFs with graceful error recovery
 - **AI-Powered Flashcard Generation**: Gemini Pro model integration via litellm for intelligent content analysis
 - **Dual Interface Support**: Both command-line and web interfaces available
 - **Interactive Flashcard Management**: Preview, edit, delete, and add flashcards with rich formatting
@@ -66,21 +67,40 @@ GEMINI_API_KEY=your-gemini-api-key-here
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR
 LOGURU_LEVEL=INFO
 
+# Optional: Model Configuration
+MODEL=gemini/gemini-2.5-flash  # Default model (see supported models below)
+OPENAI_API_KEY=your-openai-api-key-here  # Required for OpenAI models
+
 # Optional: LLM Configuration
-MODEL=gemini/gemini-pro  # Default model
 LITELLM_TIMEOUT=300  # Request timeout in seconds
+
+# Supported Models:
+# Gemini models (require GEMINI_API_KEY):
+#   - gemini/gemini-2.5-flash (default, fastest)
+#   - gemini/gemini-2.5-pro (more capable)
+# OpenAI models (require OPENAI_API_KEY):
+#   - openai/gpt-4o (latest GPT-4)
+#   - openai/gpt-4 (standard GPT-4)
+#   - openai/gpt-3.5-turbo (faster, lower cost)
 
 # Optional: Web Interface Configuration
 WEB_HOST=127.0.0.1  # Web server host
 WEB_PORT=8000  # Web server port
 ```
 
-### Getting a Gemini API Key
+### Getting API Keys
 
+#### Gemini API Key (Default)
 1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Sign in with your Google account
 3. Create a new API key
-4. Copy the key to your `.env` file
+4. Copy the key to your `.env` file as `GEMINI_API_KEY`
+
+#### OpenAI API Key (Optional)
+1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Sign in to your OpenAI account
+3. Create a new API key
+4. Copy the key to your `.env` file as `OPENAI_API_KEY`
 
 ## Usage
 
@@ -197,7 +217,7 @@ from document_to_anki.core.llm_client import LLMClient
 from document_to_anki.models.flashcard import Flashcard
 
 # Custom LLM configuration
-llm_client = LLMClient(model="gemini/gemini-pro", timeout=300)
+llm_client = LLMClient(model="gemini/gemini-2.5-flash", timeout=300)
 
 # Generate flashcards directly from text
 text = "Your educational content here..."
@@ -222,11 +242,21 @@ valid_cards = [card for card in flashcards if card.validate_content()]
 
 | Format | Extension | Description |
 |--------|-----------|-------------|
-| PDF | `.pdf` | Portable Document Format files |
+| PDF | `.pdf` | Portable Document Format files (with enhanced malformed PDF support) |
 | Word Document | `.docx` | Microsoft Word documents |
 | Text File | `.txt` | Plain text files |
 | Markdown | `.md` | Markdown formatted files |
 | ZIP Archive | `.zip` | Archives containing supported formats |
+
+### PDF Processing Features
+
+The application includes advanced PDF processing capabilities:
+
+- **Malformed PDF Support**: Automatically handles corrupted or non-standard PDFs using lenient parsing
+- **Page-by-Page Processing**: Processes each page individually, allowing partial extraction from damaged files
+- **Error Recovery**: Skips problematic pages and continues processing the rest of the document
+- **Detailed Logging**: Shows which pages were successfully processed vs. skipped
+- **Multiple Extraction Methods**: Falls back to alternative extraction methods when primary methods fail
 
 ### File Size Limits
 
@@ -257,6 +287,7 @@ document-to-anki-cli/
 │       ├── file_handler.py       # File operations
 │       └── text_extractor.py     # Text extraction
 ├── tests/                         # Test suite
+├── test_integration_check.py      # Integration test for model configuration
 ├── pyproject.toml                # Project configuration
 └── README.md                     # This file
 ```
@@ -278,6 +309,9 @@ uv run pytest --cov=src/document_to_anki --cov-report=html
 # Run performance tests
 uv run pytest -m "not slow"  # Skip slow tests
 uv run pytest -m "slow"      # Run only slow tests
+
+# Run integration test for model configuration
+python test_integration_check.py
 ```
 
 ### Code Quality
@@ -473,6 +507,11 @@ This project is licensed under the MIT License. See the LICENSE file for details
 - ✅ Complete CLI interface with interactive flashcard management
 - ✅ Full-featured web interface with drag-and-drop uploads
 - ✅ Support for PDF, DOCX, TXT, MD files and ZIP archives
+- ✅ **Enhanced PDF Processing**: Robust handling of malformed and corrupted PDFs
+  - Graceful error recovery with page-by-page processing
+  - Automatic fallback to lenient parsing mode
+  - Detailed logging of successful vs. failed page processing
+  - Continues processing even when individual pages fail
 - ✅ Gemini Pro AI integration for intelligent flashcard generation
 - ✅ Rich progress tracking and error handling
 - ✅ Comprehensive test suite with >80% coverage

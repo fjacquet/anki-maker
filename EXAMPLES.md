@@ -25,7 +25,22 @@ document-to-anki lecture-notes.pdf --output my-flashcards.csv
 
 # Skip interactive preview (automated mode)
 document-to-anki lecture-notes.pdf --no-preview --batch
+
+# Process potentially problematic PDFs with detailed logging
+document-to-anki problematic-scan.pdf --verbose
 ```
+
+**Enhanced PDF Processing Example:**
+When processing a PDF with some corrupted pages, you might see output like:
+```
+INFO: Processing document: mixed-quality-scan.pdf
+WARNING: Skipping malformed page 3 in mixed-quality-scan.pdf: NullObject error
+WARNING: Skipping malformed page 7 in mixed-quality-scan.pdf: AttributeError
+INFO: Successfully extracted text from PDF: mixed-quality-scan.pdf (18/20 pages processed)
+INFO: Generated 45 flashcards from extracted content
+```
+
+This shows the application successfully processed 18 out of 20 pages, skipping 2 problematic pages while still generating useful flashcards from the available content.
 
 ### Process Different File Types
 
@@ -116,8 +131,28 @@ document-to-anki complex-document.pdf --verbose
 # This shows:
 # - File processing steps
 # - Text extraction progress
+# - Page-by-page PDF processing status
 # - AI generation details
-# - Error diagnostics
+# - Error diagnostics and recovery actions
+```
+
+### Handling Problematic PDFs
+
+```bash
+# Process a potentially corrupted PDF with maximum detail
+document-to-anki scanned-document.pdf --verbose
+
+# Example output for a mixed-quality PDF:
+# INFO: Processing document: scanned-document.pdf
+# INFO: Using strict=False for enhanced PDF compatibility
+# WARNING: Skipping malformed page 2 in scanned-document.pdf: NullObject
+# INFO: Successfully extracted text from page 3
+# INFO: Successfully extracted text from page 4
+# WARNING: Skipping malformed page 5 in scanned-document.pdf: AttributeError
+# INFO: Successfully extracted text from PDF: scanned-document.pdf (15/17 pages processed)
+# INFO: Generated 32 flashcards from 15 successfully processed pages
+
+# The application will still generate flashcards from the successfully processed pages
 ```
 
 ### Batch Processing Multiple Files
@@ -298,7 +333,7 @@ from document_to_anki.core.flashcard_generator import FlashcardGenerator
 
 # Custom LLM client with specific settings
 llm_client = LLMClient(
-    model="gemini/gemini-pro",
+    model="gemini/gemini-2.5-flash",  # or "openai/gpt-4o" for OpenAI
     max_tokens=6000  # Larger chunks for complex documents
 )
 
@@ -541,10 +576,19 @@ if __name__ == "__main__":
 
 ```bash
 # .env file example
+# API Keys (at least one required based on model choice)
 GEMINI_API_KEY=your-gemini-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Model Selection
+MODEL=gemini/gemini-2.5-flash  # Default - fast and efficient
+# MODEL=gemini/gemini-2.5-pro    # More capable Gemini model
+# MODEL=openai/gpt-4o           # Latest OpenAI model
+# MODEL=openai/gpt-3.5-turbo    # Faster, lower cost OpenAI
+
+# Logging
 LOG_LEVEL=INFO
 LITELLM_TIMEOUT=300
-MODEL=gemini/gemini-pro
 
 # Optional: Web server configuration
 WEB_HOST=0.0.0.0
@@ -575,25 +619,45 @@ def setup_environment():
     if not env_file.exists():
         print("Creating .env file...")
         
-        # Get API key from user
-        api_key = input("Enter your Gemini API key: ").strip()
+        # Get API keys from user
+        print("Choose your preferred AI model provider:")
+        print("1. Gemini (Google) - Default, fast and efficient")
+        print("2. OpenAI - GPT models")
+        print("3. Both - Configure both for flexibility")
         
-        if not api_key:
-            print("❌ API key is required!")
+        choice = input("Enter choice (1-3): ").strip()
+        
+        gemini_key = ""
+        openai_key = ""
+        model = "gemini/gemini-2.5-flash"
+        
+        if choice in ["1", "3"]:
+            gemini_key = input("Enter your Gemini API key: ").strip()
+        
+        if choice in ["2", "3"]:
+            openai_key = input("Enter your OpenAI API key: ").strip()
+            if choice == "2":
+                model = "openai/gpt-4o"
+        
+        if not gemini_key and not openai_key:
+            print("❌ At least one API key is required!")
             return False
         
         # Create .env file
         env_content = f"""# Document to Anki CLI Configuration
 
-# Required: Gemini API Configuration
-GEMINI_API_KEY={api_key}
+# API Keys (at least one required based on model choice)
+GEMINI_API_KEY={gemini_key}
+OPENAI_API_KEY={openai_key}
+
+# Model Selection
+MODEL={model}
 
 # Optional: Logging Configuration
 LOG_LEVEL=INFO
 LOGURU_LEVEL=INFO
 
 # Optional: LLM Configuration
-MODEL=gemini/gemini-pro
 LITELLM_TIMEOUT=300
 
 # Optional: Web Interface Configuration
@@ -617,15 +681,17 @@ def validate_configuration():
     from dotenv import load_dotenv
     load_dotenv()
     
-    # Check required variables
-    api_key = os.getenv("GEMINI_API_KEY")
-    
-    if not api_key:
-        print("❌ GEMINI_API_KEY not found in environment")
+    try:
+        from document_to_anki.config import ModelConfig
+        
+        # Validate model configuration (checks both model support and API key)
+        model = ModelConfig.validate_and_get_model()
+        print(f"✅ Configuration validation passed - using model: {model}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Configuration validation failed: {e}")
         return False
-    
-    print("✅ Configuration validation passed")
-    return True
 
 def test_api_connection():
     """Test connection to the Gemini API."""
@@ -662,6 +728,7 @@ if __name__ == "__main__":
     
     print("\n🎉 Setup complete!")
     print("You can now use: document-to-anki your-file.pdf")
+    print("Or run comprehensive tests with: python test_integration_check.py")
 ```
 
 ## Integration Examples
@@ -785,8 +852,10 @@ from pathlib import Path
 from document_to_anki.core.document_processor import DocumentProcessor
 from document_to_anki.core.flashcard_generator import FlashcardGenerator
 
-# Set up API key (use environment variable in production)
-os.environ['GEMINI_API_KEY'] = 'your-api-key-here'
+# Set up API keys (use environment variables in production)
+os.environ['GEMINI_API_KEY'] = 'your-gemini-api-key-here'
+# os.environ['OPENAI_API_KEY'] = 'your-openai-api-key-here'  # If using OpenAI models
+# os.environ['MODEL'] = 'gemini/gemini-2.5-flash'  # or 'openai/gpt-4o'
 
 # Initialize components
 doc_processor = DocumentProcessor()

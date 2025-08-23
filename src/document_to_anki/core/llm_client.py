@@ -1,8 +1,9 @@
 """
-LLM Client for Gemini integration using litellm.
+LLM Client for configurable model integration using litellm.
 
 This module provides the LLMClient class for generating flashcards from text content
-using Google's Gemini Pro model through the litellm interface.
+using configurable LLM models through the litellm interface. Supports multiple providers
+including Gemini, OpenAI, and others based on environment configuration.
 """
 
 import asyncio
@@ -11,6 +12,8 @@ import re
 from dataclasses import dataclass
 
 from loguru import logger
+
+from ..config import ConfigurationError, ModelConfig
 
 try:
     import litellm
@@ -30,27 +33,49 @@ class FlashcardData:
 
 class LLMClient:
     """
-    Client for interacting with Gemini LLM to generate flashcards from text content.
+    Client for interacting with configurable LLM models to generate flashcards from text content.
 
     This class handles text chunking, prompt engineering, API communication with retry logic,
-    and parsing of LLM responses into structured flashcard data.
+    and parsing of LLM responses into structured flashcard data. Supports multiple LLM providers
+    through environment-based configuration.
     """
 
-    def __init__(self, model: str = "gemini/gemini-2.5-flash", max_tokens: int = 4000):
+    def __init__(self, model: str | None = None, max_tokens: int = 4000):
         """
-        Initialize the LLM client.
+        Initialize the LLM client with configurable model selection.
 
         Args:
-            model: The LLM model to use (default: gemini/gemini-pro)
+            model: The LLM model to use. If None, uses ModelConfig to get from environment.
             max_tokens: Maximum tokens per request chunk (default: 4000)
+
+        Raises:
+            ConfigurationError: If model is invalid or API key is missing.
         """
-        self.model = model
+        # Use ModelConfig to validate and get the model
+        if model is None:
+            self.model = ModelConfig.validate_and_get_model()
+        else:
+            # Validate provided model
+            if not ModelConfig.validate_model_config(model):
+                if model not in ModelConfig.SUPPORTED_MODELS:
+                    supported = ", ".join(ModelConfig.get_supported_models())
+                    raise ConfigurationError(f"Unsupported model '{model}'. Supported models: {supported}")
+                else:
+                    required_key = ModelConfig.get_required_api_key(model)
+                    raise ConfigurationError(
+                        f"Missing API key for model '{model}'. "
+                        f"Please set the {required_key} environment variable."
+                    )
+            self.model = model
+
         self.max_tokens = max_tokens
         self.max_retries = 3
         self.base_delay = 1.0  # Base delay for exponential backoff
 
         # Configure litellm
         litellm.set_verbose = False
+
+        logger.info(f"Initialized LLMClient with model: {self.model}")
 
     def chunk_text_for_processing(self, text: str, max_tokens: int | None = None) -> list[str]:
         """
@@ -384,3 +409,33 @@ Generate flashcards as a JSON array:"""
             List of dictionaries containing flashcard data
         """
         return asyncio.run(self.generate_flashcards_from_text(text))
+
+    def validate_model_and_api_key(self, model: str) -> bool:
+        """
+        Validate that a model is supported and has the required API key.
+
+        Args:
+            model: The model identifier to validate
+
+        Returns:
+            True if model is valid and API key is available, False otherwise
+        """
+        return ModelConfig.validate_model_config(model)
+
+    def get_supported_models(self) -> list[str]:
+        """
+        Get list of supported model identifiers.
+
+        Returns:
+            List of supported model strings
+        """
+        return ModelConfig.get_supported_models()
+
+    def get_current_model(self) -> str:
+        """
+        Get the currently configured model.
+
+        Returns:
+            The current model identifier
+        """
+        return self.model

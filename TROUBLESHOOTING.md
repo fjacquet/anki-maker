@@ -52,29 +52,43 @@ ModuleNotFoundError: No module named 'litellm'
 
 ### Problem: API key not found
 ```
-Error: Failed to generate flashcards: API key not found
+Error: Missing API key for model 'gemini/gemini-2.5-flash'. Please set the GEMINI_API_KEY environment variable.
+Error: Missing API key for model 'openai/gpt-4o'. Please set the OPENAI_API_KEY environment variable.
 ```
 
 **Solutions:**
 1. Create a `.env` file in the project root
-2. Add your Gemini API key: `GEMINI_API_KEY=your-key-here`
-3. Alternatively, set environment variable: `export GEMINI_API_KEY=your-key`
-4. Verify the key is valid at [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Add the appropriate API key for your chosen model:
+   - For Gemini models: `GEMINI_API_KEY=your-gemini-key-here`
+   - For OpenAI models: `OPENAI_API_KEY=your-openai-key-here`
+3. Alternatively, set environment variable: 
+   - `export GEMINI_API_KEY=your-key`
+   - `export OPENAI_API_KEY=your-key`
+4. Verify the key is valid:
+   - Gemini: [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - OpenAI: [OpenAI Platform](https://platform.openai.com/api-keys)
 
 ### Problem: Invalid API key
 ```
 Error: 401 Unauthorized - Invalid API key
+Error: Unsupported model 'invalid/model'. Supported models: gemini/gemini-2.5-flash, openai/gpt-4o, ...
 ```
 
 **Solutions:**
 1. Check that your API key is correct (no extra spaces)
 2. Verify the key hasn't expired
-3. Ensure you have Gemini API access enabled
-4. Try generating a new API key
+3. Ensure you have API access enabled for your chosen provider:
+   - Gemini: Enable Gemini API in Google Cloud Console
+   - OpenAI: Verify account has API access
+4. Check that your model selection matches your API key:
+   - Use `MODEL=gemini/gemini-2.5-flash` with `GEMINI_API_KEY`
+   - Use `MODEL=openai/gpt-4o` with `OPENAI_API_KEY`
+5. Try generating a new API key
 
 ### Problem: Environment variables not loading
 ```
 Error: Configuration not found
+Error: Unsupported model 'None'. Supported models: ...
 ```
 
 **Solutions:**
@@ -82,6 +96,10 @@ Error: Configuration not found
 2. Check file permissions: `chmod 644 .env`
 3. Verify file format (no BOM, Unix line endings)
 4. Use absolute paths if relative paths don't work
+5. Test configuration validation:
+   ```bash
+   python -c "from document_to_anki.config import ModelConfig; print(ModelConfig.validate_and_get_model())"
+   ```
 
 ## File Processing Errors
 
@@ -111,24 +129,37 @@ Error: File too large: 52428800 bytes (max: 52428800 bytes)
 ```
 Error: Invalid or corrupted PDF file
 Error: PDF file is encrypted
+Error: No text content could be extracted from PDF
 ```
 
 **Solutions:**
-1. Try opening the file in its native application first
-2. For encrypted PDFs, remove password protection
-3. Re-save the file to fix corruption
-4. Try a different version of the file
+1. **For encrypted PDFs**: Remove password protection using PDF software
+2. **For corrupted PDFs**: The application now handles malformed PDFs more gracefully with:
+   - Automatic fallback to lenient parsing mode (`strict=False`)
+   - Page-by-page error recovery (skips problematic pages)
+   - Enhanced error reporting showing successful vs failed pages
+3. **For image-based PDFs**: Use OCR software to convert images to text first
+4. **For severely corrupted files**: Try re-saving or converting the file using different PDF software
+5. **Check processing logs**: Enable verbose mode (`--verbose`) to see detailed page-by-page processing status
 
 ### Problem: No text extracted
 ```
 Warning: No text content extracted from file
+Error: No text content could be extracted from PDF
+Warning: Skipping malformed page X in filename.pdf
 ```
 
 **Solutions:**
-1. Check if the file actually contains text (not just images)
-2. For PDFs with images, use OCR software first
-3. Verify the file isn't corrupted
-4. Try converting to a different format
+1. **For image-based PDFs**: The file contains scanned images rather than text
+   - Use OCR software (Adobe Acrobat, ABBYY FineReader) to convert images to text
+   - Try online OCR services for small files
+2. **For partially corrupted PDFs**: The application now processes pages individually
+   - Check verbose logs to see which pages were successfully processed
+   - Some pages may be extracted even if others fail
+3. **For completely corrupted files**: 
+   - Try opening and re-saving the file in different PDF software
+   - Convert to a different format (DOCX, TXT) if possible
+4. **Check file content**: Verify the file actually contains extractable text by opening it manually
 
 ### Problem: Permission denied
 ```
@@ -140,6 +171,23 @@ Error: Permission denied accessing file
 2. Change permissions: `chmod 644 filename`
 3. Ensure you own the file or have read access
 4. Try copying the file to a different location
+
+### Problem: Malformed or partially corrupted PDFs
+```
+Warning: Skipping malformed page X in filename.pdf
+Info: Successfully extracted text from PDF: filename.pdf (15/20 pages processed)
+```
+
+**What this means:**
+- The application detected and handled malformed pages in your PDF
+- Some pages were successfully processed while others were skipped
+- This is normal behavior for PDFs with mixed content or minor corruption
+
+**Solutions:**
+1. **Check the results**: Even with some failed pages, you may have extracted useful content
+2. **Enable verbose logging**: Use `--verbose` to see detailed page-by-page processing
+3. **For better results**: Try re-saving the PDF in different software to fix formatting issues
+4. **Alternative extraction**: For critical content, manually copy text from problematic pages
 
 ## API and Network Issues
 
@@ -353,6 +401,15 @@ When reporting issues, include:
 python --version
 uv show
 
+# Test model configuration
+python -c "from document_to_anki.config import ModelConfig; print('Current model:', ModelConfig.get_model_from_env()); print('Supported models:', ModelConfig.get_supported_models())"
+
+# Validate configuration
+python -c "from document_to_anki.config import ModelConfig; ModelConfig.validate_and_get_model()"
+
+# Run comprehensive integration test
+python test_integration_check.py
+
 # Test API connectivity
 python -c "import litellm; print('litellm available')"
 
@@ -381,6 +438,11 @@ If you can't resolve the issue:
 3. **Skip preview**: Use `--no-preview --batch` for automated workflows
 4. **Monitor resources**: Watch CPU, memory, and network usage
 5. **Process incrementally**: Handle large document sets in smaller batches
+6. **PDF processing optimization**: 
+   - The application now handles malformed PDFs more efficiently
+   - Pages are processed individually, so partial extraction is possible
+   - Use verbose mode to monitor page-by-page processing progress
+   - Corrupted pages are automatically skipped to continue processing
 
 ### Best Practices
 

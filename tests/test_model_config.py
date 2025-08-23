@@ -22,13 +22,14 @@ class TestModelConfig:
         with patch.dict(os.environ, {}, clear=True):
             model = ModelConfig.get_model_from_env()
             assert model == ModelConfig.DEFAULT_MODEL
-            assert model == "gemini/gemini-pro"
+            assert model == "gemini/gemini-2.5-flash"
     
     def test_get_supported_models(self):
         """Test getting list of supported models."""
         models = ModelConfig.get_supported_models()
         expected_models = [
-            "gemini/gemini-pro",
+            "gemini/gemini-2.5-flash",
+            "gemini/gemini-2.5-pro",
             "openai/gpt-4", 
             "openai/gpt-3.5-turbo",
             "openai/gpt-4.1",
@@ -40,18 +41,18 @@ class TestModelConfig:
             "openai/gpt-4o"
         ]
         assert set(models) == set(expected_models)
-        assert len(models) == 10
+        assert len(models) == 11
     
     def test_validate_model_config_valid_with_api_key(self):
         """Test validation with valid model and API key."""
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}):
-            result = ModelConfig.validate_model_config("gemini/gemini-pro")
+            result = ModelConfig.validate_model_config("gemini/gemini-2.5-flash")
             assert result is True
     
     def test_validate_model_config_valid_without_api_key(self):
         """Test validation with valid model but missing API key."""
         with patch.dict(os.environ, {}, clear=True):
-            result = ModelConfig.validate_model_config("gemini/gemini-pro")
+            result = ModelConfig.validate_model_config("gemini/gemini-2.5-flash")
             assert result is False
     
     def test_validate_model_config_invalid_model(self):
@@ -61,7 +62,7 @@ class TestModelConfig:
     
     def test_get_required_api_key_valid_model(self):
         """Test getting required API key for valid model."""
-        api_key = ModelConfig.get_required_api_key("gemini/gemini-pro")
+        api_key = ModelConfig.get_required_api_key("gemini/gemini-2.5-flash")
         assert api_key == "GEMINI_API_KEY"
         
         api_key = ModelConfig.get_required_api_key("openai/gpt-4")
@@ -75,11 +76,11 @@ class TestModelConfig:
     def test_validate_and_get_model_success(self):
         """Test successful model validation and retrieval."""
         with patch.dict(os.environ, {
-            "MODEL": "gemini/gemini-pro",
+            "MODEL": "gemini/gemini-2.5-flash",
             "GEMINI_API_KEY": "test-key"
         }):
             model = ModelConfig.validate_and_get_model()
-            assert model == "gemini/gemini-pro"
+            assert model == "gemini/gemini-2.5-flash"
     
     def test_validate_and_get_model_unsupported_model(self):
         """Test validation failure with unsupported model."""
@@ -89,17 +90,17 @@ class TestModelConfig:
             
             error_msg = str(exc_info.value)
             assert "Unsupported model 'invalid/model'" in error_msg
-            assert "gemini/gemini-pro" in error_msg
+            assert "gemini/gemini-2.5-flash" in error_msg
             assert "openai/gpt-4" in error_msg
     
     def test_validate_and_get_model_missing_api_key(self):
         """Test validation failure with missing API key."""
-        with patch.dict(os.environ, {"MODEL": "gemini/gemini-pro"}, clear=True):
+        with patch.dict(os.environ, {"MODEL": "gemini/gemini-2.5-flash"}, clear=True):
             with pytest.raises(ConfigurationError) as exc_info:
                 ModelConfig.validate_and_get_model()
             
             error_msg = str(exc_info.value)
-            assert "Missing API key for model 'gemini/gemini-pro'" in error_msg
+            assert "Missing API key for model 'gemini/gemini-2.5-flash'" in error_msg
             assert "GEMINI_API_KEY" in error_msg
     
     def test_validate_and_get_model_default_with_api_key(self):
@@ -110,7 +111,7 @@ class TestModelConfig:
                 del os.environ["MODEL"]
             
             model = ModelConfig.validate_and_get_model()
-            assert model == "gemini/gemini-pro"
+            assert model == "gemini/gemini-2.5-flash"
     
     def test_openai_model_validation(self):
         """Test validation for OpenAI models."""
@@ -133,4 +134,4 @@ class TestModelConfig:
     def test_default_model_constant(self):
         """Test that DEFAULT_MODEL is in supported models."""
         assert ModelConfig.DEFAULT_MODEL in ModelConfig.SUPPORTED_MODELS
-        assert ModelConfig.DEFAULT_MODEL == "gemini/gemini-pro"
+        assert ModelConfig.DEFAULT_MODEL == "gemini/gemini-2.5-flash"

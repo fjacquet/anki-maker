@@ -45,31 +45,35 @@
 ## Configuration Management
 
 - [x] 6. Implement model configuration system
-  - Create ModelConfig class to handle environment variable-based model selection
-  - Implement get_model_from_env() to read MODEL environment variable with fallback to "gemini/gemini-pro"
-  - Implement validate_model_config() to check supported models and required API keys
-  - Add get_supported_models() method to list available model options
-  - Create ConfigurationError exception class for model configuration issues
+  - Create ModelConfig class to handle environment variable-based model selection ✅
+  - Implement get_model_from_env() to read MODEL environment variable with fallback to "gemini/gemini-2.5-flash" ✅
+  - Implement validate_model_config() to check supported models and required API keys ✅
+  - Add get_supported_models() method to list available model options ✅
+  - Create ConfigurationError exception class for model configuration issues ✅
+  - **MISSING**: Integrate ModelConfig into LLMClient and FlashcardGenerator to actually use environment-based model selection
+  - **MISSING**: Update CLI and web interfaces to validate model configuration on startup
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
 ## LLM Integration
 
 - [x] 7. Implement LLM client for configurable model integration
-  - Create LLMClient class using litellm supporting multiple model providers
-  - Implement generate_flashcards_from_text() with carefully crafted prompts
-  - Create prompts that generate both question-answer and cloze deletion cards
-  - Implement chunk_text_for_processing() to handle large documents within token limits
-  - Add retry logic with exponential backoff for API failures
-  - Integrate ModelConfig for dynamic model selection and validation
+  - Create LLMClient class using litellm supporting multiple model providers ✅
+  - Implement generate_flashcards_from_text() with carefully crafted prompts ✅
+  - Create prompts that generate both question-answer and cloze deletion cards ✅
+  - Implement chunk_text_for_processing() to handle large documents within token limits ✅
+  - Add retry logic with exponential backoff for API failures ✅
+  - **MISSING**: Integrate ModelConfig for dynamic model selection and validation
+  - **MISSING**: Update LLMClient constructor to use ModelConfig.validate_and_get_model()
   - _Requirements: 1.4, 1.5, 5.2, 9.1, 9.2, 9.3, 9.4, 9.5, 10.1, 10.2, 10.3, 10.4, 10.5_
 
 - [x] 8. Implement flashcard generation logic
-  - Create FlashcardGenerator class to manage flashcard creation and editing
-  - Implement generate_flashcards() method that uses LLMClient to create flashcards from text
-  - Add logic to parse LLM responses into Flashcard objects
-  - Implement batch processing for multiple text chunks
-  - Add validation and error handling for malformed LLM responses
-  - _Requirements: 1.4, 1.5, 1.6, 5.3_
+  - Create FlashcardGenerator class to manage flashcard creation and editing ✅
+  - Implement generate_flashcards() method that uses LLMClient to create flashcards from text ✅
+  - Add logic to parse LLM responses into Flashcard objects ✅
+  - Implement batch processing for multiple text chunks ✅
+  - Add validation and error handling for malformed LLM responses ✅
+  - Update FlashcardGenerator to use ModelConfig-configured LLMClient ✅
+  - _Requirements: 1.4, 1.5, 1.6, 5.3, 10.1, 10.2, 10.3, 10.4, 10.5_
 
 ## Flashcard Management
 
@@ -92,12 +96,12 @@
 ## CLI Interface
 
 - [x] 11. Implement CLI main entry point
-  - Create CLI main.py using Click framework for command-line interface
-  - Implement file/folder/zip upload arguments and options
-  - Add verbose logging option using loguru
-  - Implement progress indicators using rich components
-  - Add batch processing capabilities for multiple files
-  - Integrate ModelConfig for model validation and error handling
+  - Create CLI main.py using Click framework for command-line interface ✅
+  - Implement file/folder/zip upload arguments and options ✅
+  - Add verbose logging option using loguru ✅
+  - Implement progress indicators using rich components ✅
+  - Add batch processing capabilities for multiple files ✅
+  - **MISSING**: Integrate ModelConfig for model validation and error handling on startup
   - _Requirements: 2.6, 4.1, 4.4, 7.3, 10.4, 10.5_
 
 - [x] 12. Implement CLI workflow integration
@@ -110,13 +114,14 @@
 
 ## Web Interface
 
-- [x] 13. Implement FastAPI web application
-  - Create FastAPI app.py with file upload endpoints
-  - Implement drag-and-drop file upload functionality using multipart forms
-  - Add progress tracking endpoints for long-running operations
-  - Implement flashcard preview and editing API endpoints
-  - Add CSV export endpoint with proper file download handling
-  - Add model configuration status endpoint for environment validation
+- [ ] 13. Implement FastAPI web application
+  - Create FastAPI app.py with file upload endpoints ✅
+  - Implement drag-and-drop file upload functionality using multipart forms ✅
+  - Add progress tracking endpoints for long-running operations ✅
+  - Implement flashcard preview and editing API endpoints ✅
+  - Add CSV export endpoint with proper file download handling ✅
+  - **MISSING**: Add model configuration status endpoint for environment validation
+  - **MISSING**: Integrate ModelConfig validation in web app startup
   - _Requirements: 7.1, 7.2, 7.4, 7.5, 10.4, 10.5_
 
 - [x] 14. Implement web frontend
@@ -152,18 +157,31 @@
   - Create test_end_to_end.py for complete document-to-CSV workflow
   - Add test fixtures with sample documents and expected outputs
   - Test error conditions and edge cases
+  - ✅ **ADDED**: Created `test_integration_check.py` for comprehensive ModelConfig integration validation
   - _Requirements: 6.1, 6.2_
+
+## Model Configuration Integration
+
+- [ ] 18. Integrate ModelConfig throughout the application
+  - Update LLMClient constructor to use ModelConfig.validate_and_get_model() instead of hardcoded model
+  - Update FlashcardGenerator to pass configured model to LLMClient
+  - Add model validation to CLI startup with clear error messages for invalid models or missing API keys
+  - Add model configuration status endpoint to web interface (/api/config/model)
+  - Add model validation to web app startup with proper error handling
+  - Update all tests to mock ModelConfig appropriately
+  - ✅ **COMPLETED**: Created comprehensive integration test (`test_integration_check.py`) to validate FlashcardGenerator ModelConfig integration
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
 ## Code Quality and Final Polish
 
-- [ ] 18. Fix code quality issues and ensure standards compliance
+- [ ] 19. Fix code quality issues and ensure standards compliance
   - Fix ruff linting errors (import sorting, deprecated typing imports, unused imports)
   - Resolve mypy type checking errors (pydantic-settings Field usage, type annotations)
   - Fix failing tests and ensure all 199 tests pass consistently
   - Ensure code coverage remains above 80% threshold
   - _Requirements: 6.3, 6.4, 6.5_
 
-- [ ] 19. Security and dependency validation
+- [ ] 20. Security and dependency validation
   - Run bandit security scanning and address any security issues
   - Run safety dependency vulnerability checking and update vulnerable packages
   - Validate all environment variable handling for security best practices
@@ -172,7 +190,7 @@
 
 ## Documentation and Deployment
 
-- [x] 20. Create comprehensive documentation
+- [x] 21. Create comprehensive documentation
   - Update README.md with installation, usage, and API documentation
   - Add docstrings to all public methods and classes
   - Create usage examples for both CLI and web interfaces
@@ -180,7 +198,7 @@
   - Add troubleshooting guide for common issues
   - _Requirements: 6.5_
 
-- [x] 21. Finalize project configuration
+- [x] 22. Finalize project configuration
   - Update pyproject.toml with proper entry points for CLI and web interfaces
   - Add missing dependencies (PyPDF2, python-docx, Jinja2, python-multipart)
   - Configure development scripts for testing, linting, and running the application

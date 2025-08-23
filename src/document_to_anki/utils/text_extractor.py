@@ -6,6 +6,13 @@ import pypdf
 from docx import Document
 from loguru import logger
 
+try:
+    import pdfplumber
+
+    HAS_PDFPLUMBER = True
+except ImportError:
+    HAS_PDFPLUMBER = False
+
 
 class TextExtractionError(Exception):
     """Exception raised when text extraction fails."""
@@ -81,7 +88,27 @@ class TextExtractor:
             text_content = []
 
             with open(file_path, "rb") as file:
-                pdf_reader = pypdf.PdfReader(file)
+                # Use strict=False to handle malformed PDFs more gracefully
+                try:
+                    pdf_reader = pypdf.PdfReader(file, strict=False)
+                except Exception as reader_error:
+                    # If PyPDF fails completely, try with different settings
+                    self.logger.warning(f"Initial PDF reader failed for {file_path}: {reader_error}")
+                    file.seek(0)  # Reset file pointer
+                    try:
+                        # Try with even more lenient settings
+                        pdf_reader = pypdf.PdfReader(file)
+                    except Exception as fallback_error:
+                        # If PyPDF fails completely, try pdfplumber as last resort
+                        if HAS_PDFPLUMBER:
+                            self.logger.warning(f"PyPDF failed for {file_path}, trying pdfplumber...")
+                            return self._extract_with_pdfplumber(file_path)
+                        else:
+                            raise TextExtractionError(
+                                f"Could not initialize PDF reader for {file_path}. "
+                                f"The PDF may be severely corrupted or use an unsupported format. "
+                                f"Original error: {reader_error}, Fallback error: {fallback_error}"
+                            ) from fallback_error
 
                 # Check if PDF is encrypted
                 if pdf_reader.is_encrypted:
@@ -92,12 +119,23 @@ class TextExtractor:
                     self.logger.warning(f"PDF file has no pages: {file_path}")
                     return ""
 
-                # Extract text from each page
+                # Extract text from each page with enhanced error handling
+                successful_pages = 0
                 for page_num, page in enumerate(pdf_reader.pages):
                     try:
+                        # Handle potential NullObject errors by checking page validity
+                        if page is None:
+                            self.logger.warning(f"Page {page_num + 1} is null in {file_path}")
+                            continue
+
                         page_text = page.extract_text()
-                        if page_text.strip():  # Only add non-empty pages
+                        if page_text and page_text.strip():  # Only add non-empty pages
                             text_content.append(page_text)
+                            successful_pages += 1
+                    except (AttributeError, TypeError) as e:
+                        # Handle NullObject and similar errors
+                        self.logger.warning(f"Skipping malformed page {page_num + 1} in {file_path}: {e}")
+                        continue
                     except Exception as e:
                         self.logger.warning(
                             f"Failed to extract text from page {page_num + 1} in {file_path}: {e}"
@@ -107,11 +145,18 @@ class TextExtractor:
                 extracted_text = "\n\n".join(text_content)
 
                 if not extracted_text.strip():
-                    self.logger.warning(f"No text content extracted from PDF: {file_path}")
-                    return ""
+                    if successful_pages == 0:
+                        raise TextExtractionError(
+                            f"No text content could be extracted from PDF: {file_path}. "
+                            f"The PDF may be image-based, corrupted, or use unsupported formatting."
+                        )
+                    else:
+                        self.logger.warning(f"No text content extracted from PDF: {file_path}")
+                        return ""
 
                 self.logger.info(
-                    f"Successfully extracted text from PDF: {file_path} ({len(pdf_reader.pages)} pages)"
+                    f"Successfully extracted text from PDF: {file_path} "
+                    f"({successful_pages}/{len(pdf_reader.pages)} pages processed)"
                 )
                 return extracted_text
 
@@ -123,6 +168,66 @@ class TextExtractor:
             raise TextExtractionError(f"Invalid or corrupted PDF file: {file_path} - {str(e)}") from e
         except Exception as e:
             raise TextExtractionError(f"Unexpected error extracting from PDF {file_path}: {str(e)}") from e
+
+    def _extract_with_pdfplumber(self, file_path: Path) -> str:
+        """
+        Extract text using pdfplumber as a fallback method.
+
+        Args:
+            file_path: Path to the PDF file
+
+        Returns:
+            Extracted text content as a string
+
+        Raises:
+            TextExtractionError: If pdfplumber extraction fails
+        """
+        if not HAS_PDFPLUMBER:
+            raise TextExtractionError("pdfplumber is not available")
+
+        try:
+            text_content = []
+
+            with pdfplumber.open(file_path) as pdf:
+                if len(pdf.pages) == 0:
+                    self.logger.warning(f"PDF file has no pages: {file_path}")
+                    return ""
+
+                successful_pages = 0
+                for page_num, page in enumerate(pdf.pages):
+                    try:
+                        page_text = page.extract_text()
+                        if page_text and page_text.strip():
+                            text_content.append(page_text)
+                            successful_pages += 1
+                    except Exception as e:
+                        self.logger.warning(
+                            f"pdfplumber failed to extract text from page {page_num + 1} in {file_path}: {e}"
+                        )
+                        continue
+
+                extracted_text = "\n\n".join(text_content)
+
+                if not extracted_text.strip():
+                    if successful_pages == 0:
+                        raise TextExtractionError(
+                            f"No text content could be extracted from PDF using pdfplumber: {file_path}. "
+                            f"The PDF may be image-based or use unsupported formatting."
+                        )
+                    else:
+                        self.logger.warning(
+                            f"No text content extracted from PDF using pdfplumber: {file_path}"
+                        )  # noqa: E501
+                        return ""
+
+                self.logger.info(
+                    f"Successfully extracted text from PDF using pdfplumber: {file_path} "
+                    f"({successful_pages}/{len(pdf.pages)} pages processed)"
+                )
+                return extracted_text
+
+        except Exception as e:
+            raise TextExtractionError(f"pdfplumber extraction failed for {file_path}: {str(e)}") from e
 
     def extract_text_from_docx(self, file_path: Path) -> str:
         """

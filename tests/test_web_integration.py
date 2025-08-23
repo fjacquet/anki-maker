@@ -21,6 +21,18 @@ from src.document_to_anki.web.app import app, cleanup_session, create_session, s
 class TestWebIntegration:
     """Integration tests for FastAPI web application."""
 
+    @pytest.fixture(autouse=True)
+    def mock_model_config(self, mocker):
+        """Mock ModelConfig for all web tests."""
+        with patch('src.document_to_anki.web.app.ModelConfig') as mock_config:
+            mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+            mock_config.get_model_from_env.return_value = "gemini/gemini-2.5-flash"
+            mock_config.validate_model_config.return_value = True
+            mock_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
+            mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash"]
+            mock_config.get_required_api_key.return_value = "GEMINI_API_KEY"
+            yield mock_config
+
     @pytest.fixture
     def client(self):
         """Create a test client for the FastAPI app."""
@@ -114,6 +126,51 @@ It enables computers to learn from data without explicit programming.
         data = response.json()
         assert data["status"] == "healthy"
         assert "active_sessions" in data
+
+    def test_model_configuration_valid(self, client, mock_model_config):
+        """Test model configuration endpoint with valid configuration."""
+        response = client.get("/api/config/model")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current_model"] == "gemini/gemini-2.5-flash"
+        assert data["is_valid"] is True
+        assert data["status"] == "valid"
+        assert "supported_models" in data
+        assert "gemini/gemini-2.5-flash" in data["supported_models"]
+
+    def test_model_configuration_invalid_model(self, client, mock_model_config):
+        """Test model configuration endpoint with invalid model."""
+        mock_model_config.get_model_from_env.return_value = "invalid/model"
+        mock_model_config.validate_model_config.return_value = False
+        mock_model_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
+        
+        response = client.get("/api/config/model")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current_model"] == "invalid/model"
+        assert data["is_valid"] is False
+        assert data["status"] == "invalid"
+        assert "error" in data
+        assert "Unsupported model" in data["error"]
+
+    def test_model_configuration_missing_api_key(self, client, mock_model_config):
+        """Test model configuration endpoint with missing API key."""
+        mock_model_config.get_model_from_env.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = False
+        mock_model_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
+        mock_model_config.get_required_api_key.return_value = "GEMINI_API_KEY"
+        
+        response = client.get("/api/config/model")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current_model"] == "gemini/gemini-2.5-flash"
+        assert data["is_valid"] is False
+        assert data["status"] == "invalid"
+        assert "error" in data
+        assert "Missing API key" in data["error"]
 
     def test_upload_single_file_success(self, client, sample_txt_content, mock_successful_processing):
         """Test successful single file upload."""
