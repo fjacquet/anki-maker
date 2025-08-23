@@ -225,3 +225,4 @@ api_keys.*
 tokens/
 tokens.*
 examples/Excel++.pdf
+.DS_Store

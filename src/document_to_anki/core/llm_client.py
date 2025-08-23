@@ -137,18 +137,117 @@ class LLMClient:
         logger.info(f"Split text into {len(chunks)} chunks for processing")
         return chunks
 
-    def _create_flashcard_prompt(self, text: str) -> str:
+    def get_french_prompt_template(self, content_type: str = "general") -> str:
+        """
+        Get French-specific prompt template for flashcard generation.
+
+        Args:
+            content_type: Type of content ("academic", "technical", "general")
+
+        Returns:
+            French prompt template string
+        """
+        base_instructions = """Vous êtes un expert en création de cartes mémoire (flashcards) pour l'apprentissage efficace et la rétention à long terme.
+
+RÈGLES CRITIQUES DE FORMATAGE JSON:
+- Votre réponse doit être UNIQUEMENT un tableau JSON valide, rien d'autre
+- Aucun texte explicatif avant ou après le JSON
+- Utilisez des guillemets doubles pour toutes les chaînes
+- Échappez les guillemets à l'intérieur des chaînes avec des barres obliques inverses
+- Assurez-vous que tous les objets JSON sont correctement fermés avec des virgules entre eux
+- Le dernier objet du tableau ne doit PAS avoir de virgule finale
+
+INSTRUCTIONS IMPORTANTES:
+1. Analysez le texte fourni et identifiez les concepts, faits et relations les plus importants
+2. Créez un mélange de cartes question-réponse et de cartes à trous (cloze deletion)
+3. Concentrez-vous sur les informations clés qui seraient précieuses pour la rétention à long terme
+4. Formulez des questions claires, spécifiques et sans ambiguïté EN FRANÇAIS
+5. Assurez-vous que les réponses sont concises mais complètes EN FRANÇAIS
+6. Créez des suppressions à trous pour les termes importants, dates et concepts
+
+EXIGENCES LINGUISTIQUES CRITIQUES:
+- TOUTES les questions DOIVENT être en français
+- TOUTES les réponses DOIVENT être en français
+- Utilisez une grammaire française correcte et un vocabulaire approprié
+- Respectez les accords de genre et de nombre
+- Adaptez le registre de langue au contenu"""
+
+        content_specific = {
+            "academic": """
+- Utilisez un vocabulaire académique précis
+- Privilégiez la terminologie scientifique française
+- Créez des questions qui testent la compréhension conceptuelle
+- Incluez des définitions et des explications détaillées""",
+            "technical": """
+- Utilisez la terminologie technique française appropriée
+- Créez des questions sur les processus et procédures
+- Incluez des questions sur les causes et effets
+- Privilégiez la précision technique""",
+            "general": """
+- Utilisez un français accessible et clair
+- Créez des questions variées sur les faits principaux
+- Incluez des questions de compréhension générale
+- Adaptez le niveau de langue au contenu"""
+        }
+
+        specific_instructions = content_specific.get(content_type, content_specific["general"])
+
+        return f"""{base_instructions}
+
+{specific_instructions}
+
+EXIGENCES DES CARTES MÉMOIRE:
+- Chaque carte mémoire doit avoir exactement ces champs: "question", "answer", "card_type"
+- card_type doit être soit "qa" (question-réponse) soit "cloze" (suppression à trous)
+- Pour les cartes cloze, utilisez le format {{{{c1::texte}}}} dans le champ question
+- Visez 10-50 cartes mémoire selon la richesse du contenu
+- Privilégiez la qualité à la quantité
+
+EXEMPLE DE SORTIE JSON VALIDE:
+[
+  {{
+    "question": "Quelle est la capitale de la France ?",
+    "answer": "Paris",
+    "card_type": "qa"
+  }},
+  {{
+    "question": "La capitale de la France est {{{{c1::Paris}}}}",
+    "answer": "Paris",
+    "card_type": "cloze"
+  }}
+]
+
+TEXTE À TRAITER:
+{{text}}
+
+TABLEAU JSON:"""
+
+    def _create_flashcard_prompt(self, text: str, language: str = "french", content_type: str = "general") -> str:
         """
         Create a carefully crafted prompt for flashcard generation.
 
         Args:
             text: The text content to generate flashcards from
+            language: Target language for flashcards ("french" or "english")
+            content_type: Type of content ("academic", "technical", "general")
 
         Returns:
             The formatted prompt string
         """
-        prompt = f"""You are an expert educator creating high-quality Anki flashcards for effective \
-learning and retention.
+        if language == "french":
+            template = self.get_french_prompt_template(content_type)
+            return template.format(text=text)
+        
+        # Default English prompt (existing implementation)
+        prompt = f"""You are an expert educator creating high-quality Anki flashcards for effective learning and retention.
+
+CRITICAL JSON FORMATTING RULES:
+- Your response must be ONLY a valid JSON array, nothing else
+- No explanatory text before or after the JSON
+- Use double quotes for all strings
+- Escape any quotes inside strings with backslashes
+- Ensure all JSON objects are properly closed with commas between them
+- The last object in the array should NOT have a trailing comma
 
 INSTRUCTIONS:
 1. Analyze the following text and identify the most important concepts, facts, and relationships
@@ -158,15 +257,14 @@ INSTRUCTIONS:
 5. Ensure answers are concise but complete
 6. Create cloze deletions for important terms, dates, and concepts
 
-FORMATTING REQUIREMENTS:
-- Return ONLY a valid JSON array
+FLASHCARD REQUIREMENTS:
 - Each flashcard must have exactly these fields: "question", "answer", "card_type"
 - card_type must be either "qa" (question-answer) or "cloze" (cloze deletion)
 - For cloze cards, use {{{{c1::text}}}} format in the question field
-- Aim for 50-150 flashcards depending on content richness
+- Aim for 10-50 flashcards depending on content richness
 - Prioritize quality over quantity
 
-EXAMPLE OUTPUT:
+EXAMPLE VALID JSON OUTPUT:
 [
   {{
     "question": "What is the capital of France?",
@@ -183,7 +281,7 @@ EXAMPLE OUTPUT:
 TEXT TO PROCESS:
 {text}
 
-Generate flashcards as a JSON array:"""
+JSON ARRAY:"""
 
         return prompt
 
@@ -238,7 +336,7 @@ Generate flashcards as a JSON array:"""
 
     def _parse_flashcard_response(self, response_text: str) -> list[FlashcardData]:
         """
-        Parse LLM response into structured flashcard data.
+        Parse LLM response into structured flashcard data with robust error handling.
 
         Args:
             response_text: Raw response from the LLM
@@ -249,12 +347,15 @@ Generate flashcards as a JSON array:"""
         flashcards = []
 
         try:
+            # Clean up the response text
+            cleaned_response = self._clean_json_response(response_text)
+            
             # Try to extract JSON from the response
-            json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
+            json_match = re.search(r"\[.*\]", cleaned_response, re.DOTALL)
             if json_match:
                 json_str = json_match.group(0)
             else:
-                json_str = response_text
+                json_str = cleaned_response
 
             # Parse JSON
             data = json.loads(json_str)
@@ -292,7 +393,25 @@ Generate flashcards as a JSON array:"""
 
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
-            logger.debug(f"Raw response: {response_text}")
+            logger.debug(f"Raw response (first 500 chars): {response_text[:500]}")
+
+            # Try to fix common JSON issues and retry
+            fixed_json = self._attempt_json_fix(response_text)
+            if fixed_json:
+                try:
+                    data = json.loads(fixed_json)
+                    if isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict) and all(key in item for key in ["question", "answer", "card_type"]):
+                                question = item["question"].strip()
+                                answer = item["answer"].strip()
+                                card_type = item["card_type"] if item["card_type"] in ["qa", "cloze"] else "qa"
+                                if question and answer:
+                                    flashcards.append(FlashcardData(question=question, answer=answer, card_type=card_type))
+                        logger.info(f"JSON fix successful, parsed {len(flashcards)} flashcards")
+                        return flashcards
+                except:
+                    pass
 
             # Fallback: try to extract question-answer pairs manually
             flashcards = self._fallback_parse(response_text)
@@ -302,6 +421,70 @@ Generate flashcards as a JSON array:"""
             flashcards = self._fallback_parse(response_text)
 
         return flashcards
+
+    def _clean_json_response(self, response_text: str) -> str:
+        """
+        Clean up common issues in JSON responses from LLMs.
+
+        Args:
+            response_text: Raw response text
+
+        Returns:
+            Cleaned response text
+        """
+        # Remove any text before the first [
+        start_idx = response_text.find('[')
+        if start_idx > 0:
+            response_text = response_text[start_idx:]
+        
+        # Remove any text after the last ]
+        end_idx = response_text.rfind(']')
+        if end_idx != -1 and end_idx < len(response_text) - 1:
+            response_text = response_text[:end_idx + 1]
+        
+        # Remove markdown code block markers
+        response_text = re.sub(r'```json\s*', '', response_text)
+        response_text = re.sub(r'```\s*$', '', response_text)
+        
+        return response_text.strip()
+
+    def _attempt_json_fix(self, response_text: str) -> str | None:
+        """
+        Attempt to fix common JSON formatting issues.
+
+        Args:
+            response_text: Raw response text
+
+        Returns:
+            Fixed JSON string or None if unfixable
+        """
+        try:
+            # Clean the response first
+            cleaned = self._clean_json_response(response_text)
+            
+            # Try to fix trailing commas
+            fixed = re.sub(r',\s*}', '}', cleaned)
+            fixed = re.sub(r',\s*]', ']', fixed)
+            
+            # Try to fix missing commas between objects
+            fixed = re.sub(r'}\s*{', '},{', fixed)
+            
+            # Try to fix unescaped quotes in strings
+            # This is a simple approach - more sophisticated parsing might be needed
+            lines = fixed.split('\n')
+            for i, line in enumerate(lines):
+                if '"question":' in line or '"answer":' in line:
+                    # Find the value part and escape internal quotes
+                    if ':' in line:
+                        key_part, value_part = line.split(':', 1)
+                        # Simple quote escaping - this could be improved
+                        if value_part.count('"') > 2:  # More than opening and closing quotes
+                            # This is a basic fix - might need more sophisticated handling
+                            pass
+            
+            return fixed
+        except:
+            return None
 
     def _fallback_parse(self, response_text: str) -> list[FlashcardData]:
         """
@@ -315,11 +498,27 @@ Generate flashcards as a JSON array:"""
         """
         flashcards = []
 
+        # Try to extract individual JSON objects even if the array is malformed
+        json_object_pattern = r'\{\s*"question"\s*:\s*"([^"]+)"\s*,\s*"answer"\s*:\s*"([^"]+)"\s*,\s*"card_type"\s*:\s*"([^"]+)"\s*\}'
+        matches = re.findall(json_object_pattern, response_text, re.DOTALL | re.IGNORECASE)
+        
+        for question, answer, card_type in matches:
+            question = question.strip()
+            answer = answer.strip()
+            card_type = card_type.strip() if card_type in ["qa", "cloze"] else "qa"
+            if question and answer:
+                flashcards.append(FlashcardData(question=question, answer=answer, card_type=card_type))
+
+        if flashcards:
+            logger.info(f"Fallback JSON object parser extracted {len(flashcards)} flashcards")
+            return flashcards
+
         # Try to find question-answer patterns
         qa_patterns = [
             r"Q:\s*(.+?)\s*A:\s*(.+?)(?=Q:|$)",
             r"Question:\s*(.+?)\s*Answer:\s*(.+?)(?=Question:|$)",
             r"\d+\.\s*(.+?)\s*-\s*(.+?)(?=\d+\.|$)",
+            r'"question":\s*"([^"]+)"\s*,\s*"answer":\s*"([^"]+)"',
         ]
 
         for pattern in qa_patterns:
@@ -333,18 +532,20 @@ Generate flashcards as a JSON array:"""
                 break
 
         if flashcards:
-            logger.info(f"Fallback parser extracted {len(flashcards)} flashcards")
+            logger.info(f"Fallback pattern parser extracted {len(flashcards)} flashcards")
         else:
             logger.warning("Fallback parser could not extract any flashcards")
 
         return flashcards
 
-    async def generate_flashcards_from_text(self, text: str) -> list[dict[str, str]]:
+    async def generate_flashcards_from_text(self, text: str, language: str = "french", content_type: str = "general") -> list[dict[str, str]]:
         """
-        Generate flashcards from text content using Gemini LLM.
+        Generate flashcards from text content using configurable LLM with French language support.
 
         Args:
             text: The input text to generate flashcards from
+            language: Target language for flashcards ("french" or "english", default: "french")
+            content_type: Type of content ("academic", "technical", "general", default: "general")
 
         Returns:
             List of dictionaries containing flashcard data
@@ -353,18 +554,18 @@ Generate flashcards as a JSON array:"""
             logger.warning("Empty text provided for flashcard generation")
             return []
 
-        logger.info(f"Generating flashcards from text ({len(text)} characters)")
+        logger.info(f"Generating {language} flashcards from text ({len(text)} characters) - Content type: {content_type}")
 
         # Chunk the text if it's too long
         text_chunks = self.chunk_text_for_processing(text)
         all_flashcards = []
 
         for i, chunk in enumerate(text_chunks):
-            logger.info(f"Processing chunk {i + 1}/{len(text_chunks)}")
+            logger.info(f"Processing chunk {i + 1}/{len(text_chunks)} for {language} flashcards")
 
             try:
-                # Create prompt for this chunk
-                prompt = self._create_flashcard_prompt(chunk)
+                # Create prompt for this chunk with language and content type
+                prompt = self._create_flashcard_prompt(chunk, language=language, content_type=content_type)
 
                 # Make API call with retry logic
                 response = await self._make_api_call_with_retry(prompt)
@@ -382,7 +583,7 @@ Generate flashcards as a JSON array:"""
                         }
                     )
 
-                logger.info(f"Generated {len(chunk_flashcards)} flashcards from chunk {i + 1}")
+                logger.info(f"Generated {len(chunk_flashcards)} {language} flashcards from chunk {i + 1}")
 
                 # Add small delay between chunks to be respectful to the API
                 if i < len(text_chunks) - 1:
@@ -392,7 +593,7 @@ Generate flashcards as a JSON array:"""
                 logger.error(f"Failed to process chunk {i + 1}: {e}")
                 continue
 
-        logger.info(f"Total flashcards generated: {len(all_flashcards)}")
+        logger.info(f"Total {language} flashcards generated: {len(all_flashcards)}")
         return all_flashcards
 
     def generate_flashcards_from_text_sync(self, text: str) -> list[dict[str, str]]:

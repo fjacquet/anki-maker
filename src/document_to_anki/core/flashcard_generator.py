@@ -59,6 +59,75 @@ class FlashcardGenerator:
         """Get the current list of flashcards."""
         return self._flashcards.copy()
 
+    async def generate_flashcards_async(self, text_content: list[str], source_files: list[str] | None = None) -> ProcessingResult:
+        """
+        Generate flashcards from text content using LLM (async version).
+
+        Args:
+            text_content: List of text strings to process
+            source_files: Optional list of source file names corresponding to text_content
+
+        Returns:
+            ProcessingResult containing generated flashcards and processing metadata
+        """
+        start_time = time.time()
+        all_flashcards = []
+        errors = []
+        warnings: list[str] = []
+
+        if not text_content:
+            errors.append("No text content provided for flashcard generation")
+            return ProcessingResult(
+                flashcards=[],
+                source_files=source_files or [],
+                processing_time=time.time() - start_time,
+                errors=errors,
+                warnings=warnings,
+            )
+
+        logger.info(f"Starting flashcard generation for {len(text_content)} text chunks")
+
+        # Process each text chunk
+        for i, text in enumerate(text_content):
+            if not text or not text.strip():
+                warnings.append(f"Skipping empty text chunk {i + 1}")
+                continue
+
+            try:
+                source_file = source_files[i] if source_files and i < len(source_files) else None
+                chunk_flashcards = await self._generate_flashcards_from_single_text_async(text, source_file, i + 1, warnings)
+                all_flashcards.extend(chunk_flashcards)
+
+            except Exception as e:
+                error_msg = f"Failed to generate flashcards from text chunk {i + 1}: {str(e)}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                continue
+
+        # Validate generated flashcards
+        valid_flashcards = []
+        for flashcard in all_flashcards:
+            if flashcard.validate_content():
+                valid_flashcards.append(flashcard)
+            else:
+                warnings.append(f"Invalid flashcard generated: {flashcard.question[:50]}...")
+
+        # Update internal flashcard list
+        self._flashcards = valid_flashcards
+
+        processing_time = time.time() - start_time
+
+        result = ProcessingResult(
+            flashcards=valid_flashcards,
+            source_files=source_files or [],
+            processing_time=processing_time,
+            errors=errors,
+            warnings=warnings,
+        )
+
+        logger.info(f"Flashcard generation completed: {result.get_summary()}")
+        return result
+
     def generate_flashcards(self, text_content: list[str], source_files: list[str] | None = None) -> ProcessingResult:
         """
         Generate flashcards from text content using LLM.
@@ -128,11 +197,11 @@ class FlashcardGenerator:
         logger.info(f"Flashcard generation completed: {result.get_summary()}")
         return result
 
-    def _generate_flashcards_from_single_text(
+    async def _generate_flashcards_from_single_text_async(
         self, text: str, source_file: str | None, chunk_number: int, warnings: list[str] | None = None
     ) -> list[Flashcard]:
         """
-        Generate flashcards from a single text chunk.
+        Generate flashcards from a single text chunk (async version).
 
         Args:
             text: Text content to process
@@ -146,7 +215,64 @@ class FlashcardGenerator:
         logger.info(f"Processing text chunk {chunk_number} ({len(text)} characters)")
 
         try:
-            # Use the LLM client to generate flashcard data
+            # Use the async LLM client method
+            flashcard_data_list = await self.llm_client.generate_flashcards_from_text(text)
+
+            if not flashcard_data_list:
+                logger.warning(f"No flashcards generated from chunk {chunk_number}")
+                return []
+
+            # Convert to Flashcard objects
+            flashcards = []
+            for data in flashcard_data_list:
+                try:
+                    flashcard = Flashcard.create(
+                        question=data["question"],
+                        answer=data["answer"],
+                        card_type=data["card_type"],
+                        source_file=source_file,
+                    )
+                    flashcards.append(flashcard)
+
+                except KeyError as e:
+                    warning_msg = f"Malformed flashcard data missing key {e}: {data}"
+                    logger.warning(warning_msg)
+                    if warnings is not None:
+                        warnings.append(warning_msg)
+                    continue
+                except Exception as e:
+                    warning_msg = f"Failed to create flashcard from data {data}: {e}"
+                    logger.warning(warning_msg)
+                    if warnings is not None:
+                        warnings.append(warning_msg)
+                    continue
+
+            logger.info(f"Generated {len(flashcards)} flashcards from chunk {chunk_number}")
+            return flashcards
+
+        except Exception as e:
+            logger.error(f"LLM generation failed for chunk {chunk_number}: {e}")
+            raise FlashcardGenerationError(f"Failed to generate flashcards: {e}") from e
+
+    def _generate_flashcards_from_single_text(
+        self, text: str, source_file: str | None, chunk_number: int, warnings: list[str] | None = None
+    ) -> list[Flashcard]:
+        """
+        Generate flashcards from a single text chunk (sync version).
+
+        Args:
+            text: Text content to process
+            source_file: Source file name
+            chunk_number: Chunk number for logging
+            warnings: Optional list to collect warnings
+
+        Returns:
+            List of generated Flashcard objects
+        """
+        logger.info(f"Processing text chunk {chunk_number} ({len(text)} characters)")
+
+        try:
+            # Use the sync LLM client method
             flashcard_data_list = self.llm_client.generate_flashcards_from_text_sync(text)
 
             if not flashcard_data_list:

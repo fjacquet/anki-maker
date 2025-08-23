@@ -564,7 +564,7 @@ async def process_files_background(session_id: str, temp_files: list[str]) -> No
         # Generate flashcards
         if flashcard_generator is None:
             raise HTTPException(status_code=500, detail="FlashcardGenerator not initialized")
-        processing_result = flashcard_generator.generate_flashcards(
+        processing_result = await flashcard_generator.generate_flashcards_async(
             text_content=all_text_content, source_files=source_files
         )
 
