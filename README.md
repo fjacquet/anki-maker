@@ -266,6 +266,56 @@ The application includes advanced PDF processing capabilities:
 
 ## Development
 
+### CI-Makefile Integration
+
+This project maintains strict alignment between local development commands and CI pipeline execution. The GitHub Actions workflow uses the same Makefile targets that developers use locally, ensuring consistent behavior.
+
+#### Makefile Targets Used in CI
+
+| CI Job | Makefile Target | Purpose |
+|--------|----------------|---------|
+| **Setup** | `make install-dev` | Install dependencies with all extras |
+| **Test** | `make test-cov` | Run tests with coverage reporting |
+| **Quality** | `make ci-quality` | Run all quality checks with CI-friendly output |
+| **Integration** | `make ci-test-integration` | Run integration tests in CI mode |
+| **Validation** | `make validate` | Validate configuration and environment |
+| **Build** | `make ci-build` | Build package with CI-friendly output |
+
+#### Key CI Features
+
+- **Consistent Commands**: CI uses identical logic to local development
+- **Environment Validation**: Automatic detection of CI vs local environment
+- **Error Handling**: Proper exit codes and error propagation
+- **Output Format**: GitHub Actions-compatible output formatting
+- **Dependency Management**: Uses `uv sync --all-extras` for complete setup
+
+#### Local CI Testing
+
+You can run the exact same commands locally that run in CI:
+
+```bash
+# Test the complete CI pipeline locally
+make ci-setup && make ci-quality && make ci-test && make ci-validate && make ci-build
+
+# Individual CI steps
+make ci-setup     # Set up CI environment
+make ci-quality   # Quality checks with GitHub Actions format
+make ci-test      # Tests with CI-friendly output
+make ci-validate  # Configuration validation
+make ci-build     # Package build
+```
+
+#### Troubleshooting CI Issues
+
+If CI fails but local tests pass, check:
+
+1. **Environment Variables**: Ensure CI has required secrets (GEMINI_API_KEY)
+2. **Dependencies**: Run `make ci-setup` locally to match CI environment
+3. **Output Format**: Use `make ci-quality` to see GitHub Actions formatted output
+4. **Exit Codes**: CI targets fail fast with proper exit codes
+
+For detailed troubleshooting, see [CI-Makefile Troubleshooting](#ci-makefile-troubleshooting).
+
 ### Project Structure
 
 ```
@@ -299,21 +349,27 @@ document-to-anki-cli/
 
 ### Running Tests
 
+The project uses a Makefile-based development workflow that ensures consistency between local development and CI environments.
+
 ```bash
-# Run all tests with coverage
-uv run pytest
+# Run all tests
+make test
 
-# Run specific test categories
-uv run pytest tests/test_cli_integration.py -v
-uv run pytest tests/test_web_integration.py -v
-uv run pytest tests/test_end_to_end.py -v
+# Run tests with coverage report
+make test-cov
 
-# Run with detailed coverage report
-uv run pytest --cov=src/document_to_anki --cov-report=html
+# Run tests with fail-fast (stops on first failure)
+make test-fast
 
-# Run performance tests
-uv run pytest -m "not slow"  # Skip slow tests
-uv run pytest -m "slow"      # Run only slow tests
+# Run integration tests only
+make test-integration
+
+# Run integration tests with coverage
+make test-integration-cov
+
+# CI-specific test execution (used in GitHub Actions)
+make ci-test
+make ci-test-integration
 
 # Run integration test for model configuration
 python test_integration_check.py
@@ -322,37 +378,43 @@ python test_integration_check.py
 python test_startup_validation.py
 ```
 
+**Note**: All test commands use the `uv run` prefix internally for consistent virtual environment handling.
+
 ### Code Quality
 
+The project uses Makefile targets that match the CI pipeline for consistent code quality checks:
+
 ```bash
-# Format code with ruff (automatically formats files)
-uv run ruff format
-
-# Lint code
-uv run ruff check
-
-# Fix linting issues automatically
-uv run ruff check --fix
-
-# Type checking with mypy
-uv run mypy src/
-
-# Security scanning
-uv run bandit -r src/
-
-# Dependency vulnerability check
-uv run safety check
-
 # Run all quality checks (includes automatic formatting)
 make quality
+
+# Individual quality checks
+make lint          # Run linting and auto-fix issues
+make format        # Format code with ruff
+make format-check  # Check formatting without changes
+make type-check    # Run mypy type checking
+make security      # Run bandit security scan
+make audit         # Run dependency vulnerability check
+
+# CI-specific quality checks (used in GitHub Actions)
+make ci-quality
+
+# Fix all auto-fixable issues
+make fix
 ```
+
+**CI Alignment**: The `make ci-quality` target uses GitHub Actions output format and is identical to what runs in CI, ensuring local and CI results match exactly.
 
 ### Development Workflow
 
+The project uses a Makefile-based workflow that ensures consistency between local development and CI:
+
 1. **Setup Development Environment**
    ```bash
-   uv sync --all-extras
-   pre-commit install  # If using pre-commit hooks
+   make setup        # Basic setup
+   make setup-full   # Full setup with samples and environment
+   # Or manually:
+   make install-dev  # Install with all development dependencies
    ```
 
 2. **Make Changes**
@@ -362,18 +424,28 @@ make quality
 
 3. **Test Changes**
    ```bash
-   uv run pytest
-   uv run ruff check
-   uv run mypy src/
-   
-   # Or run all quality checks at once (includes automatic formatting)
-   make quality
+   make test         # Run all tests
+   make quality      # Run all quality checks (includes auto-formatting)
+   make pre-commit   # Run full pre-commit validation
    ```
 
-4. **Submit Changes**
-   - Ensure all tests pass
+4. **CI-Compatible Commands**
+   ```bash
+   # These commands match exactly what runs in GitHub Actions:
+   make ci-setup     # CI environment setup
+   make ci-test      # CI test execution
+   make ci-quality   # CI quality checks
+   make ci-validate  # CI configuration validation
+   make ci-build     # CI package build
+   ```
+
+5. **Submit Changes**
+   - Ensure all tests pass: `make test`
+   - Run quality checks: `make quality`
    - Update documentation if needed
    - Create descriptive commit messages
+
+**CI Alignment**: All `make ci-*` targets use identical logic to GitHub Actions, ensuring local testing matches CI behavior exactly.
 
 ## API Reference
 
@@ -469,6 +541,25 @@ Error: Failed to connect to AI service
 
 For complete troubleshooting information, see **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 
+### CI-Makefile Troubleshooting
+
+If you encounter issues with CI-Makefile alignment:
+
+```bash
+# Test CI pipeline locally
+make ci-setup && make ci-quality && make ci-test && make ci-validate && make ci-build
+
+# Debug environment differences
+make debug-env
+make check-env
+
+# Use CI-equivalent commands
+make ci-quality  # Instead of individual quality tools
+make ci-test     # Instead of direct pytest
+```
+
+See the [CI-Makefile Troubleshooting](docs/TROUBLESHOOTING.md#ci-makefile-troubleshooting) section for detailed guidance.
+
 ## Contributing
 
 We welcome contributions! Please follow these guidelines:
@@ -529,6 +620,36 @@ This project is licensed under the MIT License. See the LICENSE file for details
   - Added comprehensive documentation index (docs/README.md)
   - Updated all cross-references and navigation links
   - Enhanced project organization and documentation discoverability
+- ✅ **CI-Makefile Integration**: Complete alignment between local development and CI pipeline
+  - GitHub Actions workflow uses identical Makefile targets as local development
+  - CI-specific targets (`ci-setup`, `ci-test`, `ci-quality`, `ci-validate`, `ci-build`) for optimized CI execution
+  - Consistent `uv run` usage throughout all commands
+  - Enhanced error handling and exit codes for proper CI integration
+  - Comprehensive troubleshooting guide for CI-Makefile issues
+
+## CI-Makefile Alignment Summary
+
+This project maintains strict consistency between local development and CI environments through:
+
+### Aligned Commands
+- **Local**: `make test` → **CI**: `make test-cov`
+- **Local**: `make quality` → **CI**: `make ci-quality`
+- **Local**: `make validate` → **CI**: `make validate`
+- **Local**: `make build` → **CI**: `make ci-build`
+
+### Key Benefits
+- **Predictable Results**: Local testing matches CI behavior exactly
+- **Easy Debugging**: Run CI commands locally to reproduce issues
+- **Consistent Environment**: Same `uv run` prefix and error handling
+- **Maintainable**: Single source of truth for all development workflows
+
+### Quick CI Testing
+```bash
+# Test the complete CI pipeline locally
+make ci-setup && make ci-quality && make ci-test && make ci-validate && make ci-build
+```
+
+For detailed information, see the [CI-Makefile Integration](#ci-makefile-integration) section and [CI-Makefile Troubleshooting](docs/TROUBLESHOOTING.md#ci-makefile-troubleshooting).
 
 ## Acknowledgments
 

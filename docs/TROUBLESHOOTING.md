@@ -363,6 +363,275 @@ Error: Permission denied writing to output file
 3. Run with appropriate privileges
 4. Ensure the output directory exists
 
+## CI-Makefile Troubleshooting
+
+This section covers issues related to the CI-Makefile alignment and development workflow consistency.
+
+### Problem: CI passes but local tests fail (or vice versa)
+
+**Symptoms:**
+- GitHub Actions shows passing tests but `make test` fails locally
+- Local `make quality` passes but CI quality checks fail
+- Different behavior between `uv run pytest` and `make test`
+
+**Solutions:**
+1. **Use CI-equivalent commands locally:**
+   ```bash
+   # Instead of direct uv commands, use Makefile targets
+   make ci-setup     # Match CI environment setup
+   make ci-test      # Use CI test configuration
+   make ci-quality   # Use CI quality check format
+   ```
+
+2. **Check environment differences:**
+   ```bash
+   make debug-env    # Show environment information
+   make check-env    # Validate environment variables
+   ```
+
+3. **Verify dependency installation:**
+   ```bash
+   make install-dev  # Ensure all development dependencies
+   uv sync --all-extras  # Alternative direct command
+   ```
+
+### Problem: Makefile targets fail with unclear errors
+
+**Symptoms:**
+```
+make: *** [ci-quality] Error 1
+ERROR: Quality checks failed in CI environment
+```
+
+**Solutions:**
+1. **Run individual quality checks to isolate the issue:**
+   ```bash
+   make lint         # Check linting issues
+   make format-check # Check formatting
+   make type-check   # Check type annotations
+   make security     # Check security issues
+   make audit        # Check dependency vulnerabilities
+   ```
+
+2. **Use verbose output for debugging:**
+   ```bash
+   # Enable verbose mode for detailed output
+   make ci-quality VERBOSE=1
+   
+   # Or run underlying commands directly
+   uv run ruff check --output-format=github
+   uv run mypy src/document_to_anki --no-error-summary
+   ```
+
+3. **Check for environment-specific issues:**
+   ```bash
+   # Verify uv installation and version
+   make check-uv
+   
+   # Check Python version compatibility
+   python --version  # Should be 3.12+
+   ```
+
+### Problem: CI environment setup fails
+
+**Symptoms:**
+```
+ERROR: CI environment setup failed
+Configuration validation failed - this may be expected in CI without API keys
+```
+
+**Solutions:**
+1. **Understand expected CI behavior:**
+   - CI setup may show warnings about missing API keys (this is normal)
+   - Configuration validation uses `MOCK_LLM_RESPONSES=true` in CI
+   - Some warnings are expected and don't indicate failure
+
+2. **Test CI setup locally:**
+   ```bash
+   # Simulate CI environment
+   export GITHUB_ACTIONS=true
+   export MOCK_LLM_RESPONSES=true
+   make ci-setup
+   ```
+
+3. **Check required CI secrets:**
+   - Ensure `GEMINI_API_KEY` is set in GitHub repository secrets
+   - Verify `MOCK_LLM_RESPONSES=true` is set in CI environment
+
+### Problem: Different output formats between local and CI
+
+**Symptoms:**
+- Local quality checks show different format than CI
+- Error messages appear differently in GitHub Actions logs
+
+**Solutions:**
+1. **Use CI-specific targets for consistent output:**
+   ```bash
+   # Use CI quality target for GitHub Actions format
+   make ci-quality
+   
+   # Compare with regular quality target
+   make quality
+   ```
+
+2. **Understand output format differences:**
+   - `make ci-quality` uses `--output-format=github` for ruff
+   - `make ci-quality` uses `--no-error-summary` for mypy
+   - `make ci-quality` uses JSON format for security tools
+
+### Problem: Makefile vs direct command inconsistencies
+
+**Symptoms:**
+- `uv run pytest` works but `make test` fails
+- `uv run ruff check` passes but `make lint` fails
+
+**Solutions:**
+1. **Always use Makefile targets for consistency:**
+   ```bash
+   # Preferred: Use Makefile targets
+   make test         # Instead of: uv run pytest
+   make lint         # Instead of: uv run ruff check
+   make type-check   # Instead of: uv run mypy src/
+   ```
+
+2. **Check Makefile target definitions:**
+   ```bash
+   # View what a target actually does
+   make -n test      # Show commands without executing
+   make -n quality   # Show quality check commands
+   ```
+
+3. **Verify working directory and paths:**
+   - Makefile targets may use different working directories
+   - Check that file paths are correct for your setup
+
+### Problem: Build artifacts and caching issues
+
+**Symptoms:**
+```
+ERROR: Package build failed
+FileNotFoundError: [Errno 2] No such file or directory: 'dist/'
+```
+
+**Solutions:**
+1. **Clean build artifacts:**
+   ```bash
+   make clean        # Remove all build artifacts
+   make ci-build     # Rebuild from clean state
+   ```
+
+2. **Check build dependencies:**
+   ```bash
+   make check-uv     # Verify uv installation
+   make install-dev  # Ensure build dependencies
+   ```
+
+3. **Verify build process:**
+   ```bash
+   # Test build process step by step
+   make clean
+   make install-dev
+   make ci-build
+   ```
+
+### Problem: Integration test failures in CI
+
+**Symptoms:**
+```
+ERROR: Integration tests failed in CI environment
+ModuleNotFoundError during integration tests
+```
+
+**Solutions:**
+1. **Test integration locally with CI settings:**
+   ```bash
+   export MOCK_LLM_RESPONSES=true
+   make ci-test-integration
+   ```
+
+2. **Check test dependencies:**
+   ```bash
+   # Ensure all test dependencies are installed
+   make install-dev
+   
+   # Run integration tests with verbose output
+   make test-integration VERBOSE=1
+   ```
+
+3. **Verify test environment:**
+   ```bash
+   # Check that test fixtures and sample data exist
+   make create-samples
+   
+   # Run integration validation
+   python test_integration_check.py
+   ```
+
+### Best Practices for CI-Makefile Consistency
+
+1. **Always use Makefile targets:**
+   - Use `make test` instead of `uv run pytest`
+   - Use `make quality` instead of individual tool commands
+   - Use `make ci-*` targets to match CI behavior exactly
+
+2. **Test locally before pushing:**
+   ```bash
+   # Run the complete CI pipeline locally
+   make ci-setup && make ci-quality && make ci-test && make ci-validate && make ci-build
+   ```
+
+3. **Keep Makefile and CI workflow synchronized:**
+   - CI workflow should only use `make` commands
+   - Avoid direct tool invocations in GitHub Actions
+   - Update both Makefile and CI when adding new checks
+
+4. **Use environment variables consistently:**
+   ```bash
+   # Set up local environment to match CI
+   export GITHUB_ACTIONS=true  # For CI simulation
+   export MOCK_LLM_RESPONSES=true  # For testing without API keys
+   ```
+
+5. **Monitor CI logs for Makefile target output:**
+   - CI logs show exact Makefile commands being executed
+   - Compare local `make` output with CI logs
+   - Look for environment-specific differences
+
+### Debugging CI-Makefile Issues
+
+1. **Enable verbose output:**
+   ```bash
+   make debug-env    # Show environment information
+   make -n target    # Show commands without executing
+   ```
+
+2. **Compare local and CI environments:**
+   ```bash
+   # Local environment check
+   make check-env
+   make check-uv
+   
+   # Simulate CI environment
+   export GITHUB_ACTIONS=true
+   make check-env
+   ```
+
+3. **Test individual components:**
+   ```bash
+   # Test each CI step individually
+   make ci-setup
+   make ci-quality
+   make ci-test
+   make ci-validate
+   make ci-build
+   ```
+
+4. **Check exit codes and error propagation:**
+   ```bash
+   # Verify that failures propagate correctly
+   make ci-quality; echo "Exit code: $?"
+   ```
+
 ## Getting Help
 
 ### Enable Verbose Logging
@@ -427,8 +696,8 @@ document-to-anki test.txt --verbose
 make quality
 
 # Check code formatting and style
-uv run ruff check
-uv run ruff format  # This will automatically format your code
+make lint         # Run linting and auto-fix issues
+make format       # Format code (automatically applies fixes)
 ```
 
 ### Report Issues
