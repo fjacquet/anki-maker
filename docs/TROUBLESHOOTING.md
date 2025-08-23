@@ -43,7 +43,7 @@ ModuleNotFoundError: No module named 'litellm'
 ```
 
 **Solutions:**
-1. Ensure you've run the installation: `uv sync`
+1. Ensure you've run the installation: `uv sync` (or `uv sync --all-extras` for development)
 2. Activate the virtual environment: `source .venv/bin/activate`
 3. Install missing packages manually: `uv add litellm`
 4. Try reinstalling: `uv sync --reinstall`
@@ -422,6 +422,13 @@ ls -la input-file.pdf
 # Test with minimal example
 echo "Test content for flashcard generation." > test.txt
 document-to-anki test.txt --verbose
+
+# Run code quality checks (includes automatic formatting)
+make quality
+
+# Check code formatting and style
+uv run ruff check
+uv run ruff format  # This will automatically format your code
 ```
 
 ### Report Issues

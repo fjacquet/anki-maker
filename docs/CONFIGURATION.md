@@ -624,4 +624,41 @@ OPENAI_API_KEY=your-openai-api-key-here
 # CORS_ORIGINS=["http://localhost:3000"]
 ```
 
+## Development Setup
+
+### Installing Development Dependencies
+
+For development work, use the enhanced installation command that includes all optional dependencies:
+
+```bash
+# Install all development dependencies (recommended for contributors)
+make install-dev
+
+# Or directly with uv
+uv sync --all-extras
+```
+
+This installs:
+- Testing frameworks (pytest, pytest-cov, pytest-mock)
+- Code quality tools (ruff, mypy, bandit, safety)
+- Development utilities (pre-commit, watchdog)
+
+### Development Workflow
+
+```bash
+# 1. Set up development environment
+make install-dev
+
+# 2. Run quality checks (includes automatic code formatting)
+make quality
+
+# 3. Run tests
+make test
+
+# 4. Run specific test categories
+make test-integration
+```
+
+**Important**: The `make quality` command now automatically formats your code files using `ruff format`. This ensures consistent code style but will modify your files. The change improves development workflow by automatically applying formatting fixes rather than just reporting formatting issues.
+
 This comprehensive configuration guide covers all aspects of setting up and tuning Document to Anki CLI for your specific needs.

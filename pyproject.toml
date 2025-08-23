@@ -31,7 +31,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.1.1",
     # Document processing
-    "PyPDF2>=3.0.0",
+    "pypdf2>=3.0.0",
     "python-docx>=1.1.0",
     # Web interface
     "Jinja2>=3.1.0",
@@ -45,6 +45,19 @@ dependencies = [
     "rich>=14.1.0",
     "loguru>=0.7.2",
     "pdfplumber>=0.11.7",
+    "pypdf>=6.0.0",
+    "altair>=5.5.0",
+    "blinker>=1.9.0",
+    "cachetools>=6.1.0",
+    "docx>=0.2.4",
+    "gitdb>=4.0.12",
+    "ollama>=0.5.3",
+    "openai>=1.101.0",
+    "streamlit>=1.48.1",
+    "tornado>=6.5.2",
+    "tenacity>=9.1.2",
+    "uritemplate>=4.2.0",
+    "lint>=1.2.1",
 ]
 
 [project.scripts]
@@ -114,7 +127,7 @@ exclude = [
 ]
 
 # Same as Black.
-line-length = 110
+line-length = 120
 indent-width = 4
 
 # Assume Python 3.12.
@@ -182,6 +195,7 @@ dev-dependencies = [
     "pytest-cov>=6.2.1",
     "safety>=3.2.4",
 ]
+package=true
 
 
 
@@ -210,4 +224,10 @@ markers = [
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+    "pytest-mock>=3.14.1",
 ]

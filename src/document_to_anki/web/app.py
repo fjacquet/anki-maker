@@ -56,8 +56,10 @@ import asyncio
 import tempfile
 import time
 import uuid
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,9 +68,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 from pydantic import BaseModel, Field
+from starlette.datastructures import UploadFile as StarletteUploadFile
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
 
 from ..config import ConfigurationError, ModelConfig
 from ..core.document_processor import DocumentProcessingError, DocumentProcessor
@@ -90,7 +92,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Content-Security-Policy: Prevents XSS and injection attacks
     """
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable) -> Any:
         """
         Process request and add security headers to response.
 
@@ -125,7 +127,7 @@ cleanup_task = None
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Any:
     """
     Manage application lifespan events.
 
@@ -204,12 +206,12 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Global instances - will be initialized in lifespan
-document_processor = None
-flashcard_generator = None
+document_processor: DocumentProcessor | None = None
+flashcard_generator: FlashcardGenerator | None = None
 
 # Session storage for managing flashcard editing workflows
 # In production, this should be replaced with proper session management (Redis, database, etc.)
-sessions: dict[str, dict[str, any]] = {}
+sessions: dict[str, dict[str, Any]] = {}
 
 # Templates and static files
 templates = Jinja2Templates(directory="src/document_to_anki/web/templates")
@@ -295,7 +297,7 @@ def create_session() -> str:
     return session_id
 
 
-def get_session(session_id: str) -> dict[str, any]:
+def get_session(session_id: str) -> dict[str, Any]:
     """
     Get session data by ID and update last accessed time.
 
@@ -407,7 +409,7 @@ def flashcard_to_response(flashcard: Flashcard) -> FlashcardResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(request: Request) -> HTMLResponse:
     """Serve the main application page."""
     return templates.TemplateResponse(request=request, name="index.html")
 
@@ -418,10 +420,11 @@ async def get_files_from_request(request: Request) -> list[UploadFile]:
     files = form.getlist("files")
 
     # Filter out empty files and convert to UploadFile objects
-    upload_files = []
+    upload_files: list[UploadFile] = []
     for file in files:
-        if hasattr(file, "filename") and file.filename:
-            upload_files.append(file)
+        if isinstance(file, StarletteUploadFile) and hasattr(file, "filename") and file.filename:
+            # StarletteUploadFile is compatible with FastAPI UploadFile
+            upload_files.append(file)  # type: ignore[arg-type]
 
     return upload_files
 
@@ -456,9 +459,7 @@ async def upload_files(request: Request, session_id: str | None = Form(None)) ->
 
         for file in files:
             if not file.filename:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="File must have a filename"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must have a filename")
 
             # Check file extension
             file_ext = Path(file.filename).suffix.lower()
@@ -534,6 +535,8 @@ async def process_files_background(session_id: str, temp_files: list[str]) -> No
         for i, temp_file_path in enumerate(temp_files):
             try:
                 # Process the file
+                if document_processor is None:
+                    raise HTTPException(status_code=500, detail="DocumentProcessor not initialized")
                 result = document_processor.process_upload(temp_file_path)
 
                 if result.success:
@@ -559,6 +562,8 @@ async def process_files_background(session_id: str, temp_files: list[str]) -> No
         session_data["message"] = "Generating flashcards using AI..."
 
         # Generate flashcards
+        if flashcard_generator is None:
+            raise HTTPException(status_code=500, detail="FlashcardGenerator not initialized")
         processing_result = flashcard_generator.generate_flashcards(
             text_content=all_text_content, source_files=source_files
         )
@@ -631,9 +636,7 @@ async def get_flashcards(session_id: str) -> list[FlashcardResponse]:
 
 
 @app.put("/api/flashcards/{session_id}/{flashcard_id}")
-async def edit_flashcard(
-    session_id: str, flashcard_id: str, edit_request: FlashcardEditRequest
-) -> JSONResponse:
+async def edit_flashcard(session_id: str, flashcard_id: str, edit_request: FlashcardEditRequest) -> JSONResponse:
     """
     Edit an existing flashcard.
 
@@ -658,11 +661,11 @@ async def edit_flashcard(
                 break
 
         if not target_flashcard:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Flashcard {flashcard_id} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flashcard {flashcard_id} not found")
 
         # Validate content
+        if flashcard_generator is None:
+            raise HTTPException(status_code=500, detail="FlashcardGenerator not initialized")
         is_valid, error_message = flashcard_generator.validate_flashcard_content(
             edit_request.question, edit_request.answer, target_flashcard.card_type
         )
@@ -719,9 +722,7 @@ async def delete_flashcard(session_id: str, flashcard_id: str) -> JSONResponse:
                     }
                 )
 
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Flashcard {flashcard_id} not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flashcard {flashcard_id} not found")
 
     except HTTPException:
         raise
@@ -748,6 +749,8 @@ async def add_flashcard(session_id: str, create_request: FlashcardCreateRequest)
 
     try:
         # Validate content
+        if flashcard_generator is None:
+            raise HTTPException(status_code=500, detail="FlashcardGenerator not initialized")
         is_valid, error_message = flashcard_generator.validate_flashcard_content(
             create_request.question, create_request.answer, create_request.card_type
         )
@@ -812,6 +815,8 @@ async def export_flashcards(session_id: str, export_request: ExportRequest) -> F
             temp_path = Path(temp_file.name)
 
         # Export flashcards
+        if flashcard_generator is None:
+            raise HTTPException(status_code=500, detail="FlashcardGenerator not initialized")
         success, summary = flashcard_generator.export_to_csv(temp_path, flashcards)
 
         if not success:
@@ -828,24 +833,27 @@ async def export_flashcards(session_id: str, export_request: ExportRequest) -> F
         logger.info(f"Exported {len(flashcards)} flashcards from session {session_id}")
 
         # Return file for download
-        async def cleanup_temp_file():
+        def cleanup_temp_file() -> None:
             """Clean up temporary file after download."""
             try:
                 temp_path.unlink(missing_ok=True)
             except Exception as e:
                 logger.warning(f"Failed to cleanup temp file {temp_path}: {e}")
 
+        from starlette.background import BackgroundTask
+
         return FileResponse(
-            path=str(temp_path), filename=filename, media_type="text/csv", background=cleanup_temp_file
+            path=str(temp_path),
+            filename=filename,
+            media_type="text/csv",
+            background=BackgroundTask(cleanup_temp_file),
         )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Export failed for session {session_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Export failed: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Export failed: {str(e)}") from e
 
 
 @app.delete("/api/sessions/{session_id}")
@@ -862,14 +870,10 @@ async def cleanup_session_endpoint(session_id: str) -> JSONResponse:
     try:
         # Check if session exists first
         if session_id not in sessions:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
 
         cleanup_session(session_id)
-        return JSONResponse(
-            content={"success": True, "message": f"Session {session_id} cleaned up successfully"}
-        )
+        return JSONResponse(content={"success": True, "message": f"Session {session_id} cleaned up successfully"})
     except HTTPException:
         raise
     except Exception as e:
@@ -887,7 +891,7 @@ async def health_check() -> JSONResponse:
             "status": "healthy",
             "message": "Document to Anki API is running",
             "active_sessions": len(sessions),
-            "supported_formats": list(document_processor.get_supported_formats()),
+            "supported_formats": (list(document_processor.get_supported_formats()) if document_processor else []),
         }
     )
 
@@ -914,9 +918,7 @@ async def get_model_configuration() -> JSONResponse:
         if not is_valid:
             if current_model not in ModelConfig.SUPPORTED_MODELS:
                 config_info["error"] = f"Unsupported model: {current_model}"
-                config_info["suggestion"] = (
-                    f"Set MODEL to one of: {', '.join(ModelConfig.get_supported_models())}"  # noqa: E501
-                )
+                config_info["suggestion"] = f"Set MODEL to one of: {', '.join(ModelConfig.get_supported_models())}"  # noqa: E501
             else:
                 required_key = ModelConfig.get_required_api_key(current_model)
                 config_info["error"] = f"Missing API key for {current_model}"
@@ -1100,9 +1102,7 @@ async def document_processing_error_handler(
     logger.warning(f"Document processing error: {exc}")
 
     if request.url.path.startswith("/api/"):
-        return JSONResponse(
-            status_code=400, content={"detail": "Document processing failed", "message": str(exc)}
-        )
+        return JSONResponse(status_code=400, content={"detail": "Document processing failed", "message": str(exc)})
 
     return templates.TemplateResponse(
         request=request,
@@ -1125,9 +1125,7 @@ async def flashcard_generation_error_handler(
     logger.warning(f"Flashcard generation error: {exc}")
 
     if request.url.path.startswith("/api/"):
-        return JSONResponse(
-            status_code=400, content={"detail": "Flashcard generation failed", "message": str(exc)}
-        )
+        return JSONResponse(status_code=400, content={"detail": "Flashcard generation failed", "message": str(exc)})
 
     return templates.TemplateResponse(
         request=request,
@@ -1143,7 +1141,7 @@ async def flashcard_generation_error_handler(
 
 
 # Server runner function
-def run_server(host: str = "0.0.0.0", port: int = 8000, reload: bool = False) -> None:
+def run_server(host: str = "127.0.0.1", port: int = 8000, reload: bool = False) -> None:  # nosec B104
     """
     Run the FastAPI server.
 

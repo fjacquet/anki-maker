@@ -41,7 +41,7 @@ def sample_text_file(temp_directory):
     - Automation and scripting
     - Scientific computing
     """
-    
+
     file_path = temp_directory / "sample_python.txt"
     file_path.write_text(content.strip())
     return file_path
@@ -85,7 +85,7 @@ def sample_markdown_file(temp_directory):
     6. **Model Evaluation**: Testing model performance
     7. **Deployment**: Implementing the solution in production
     """
-    
+
     file_path = temp_directory / "sample_datascience.md"
     file_path.write_text(content.strip())
     return file_path
@@ -99,32 +99,32 @@ def sample_flashcards():
             question="What is Python?",
             answer="A high-level, interpreted programming language known for its simplicity and readability",
             card_type="qa",
-            source_file="sample.txt"
+            source_file="sample.txt",
         ),
         Flashcard.create(
             question="Who created Python?",
             answer="Guido van Rossum",
             card_type="qa",
-            source_file="sample.txt"
+            source_file="sample.txt",
         ),
         Flashcard.create(
             question="Python was first released in {{c1::1991}}",
             answer="1991",
             card_type="cloze",
-            source_file="sample.txt"
+            source_file="sample.txt",
         ),
         Flashcard.create(
             question="What is Data Science?",
             answer="An interdisciplinary field that uses scientific methods to extract knowledge from data",
             card_type="qa",
-            source_file="datascience.md"
+            source_file="datascience.md",
         ),
         Flashcard.create(
             question="Data Science uses {{c1::scientific methods}} to extract {{c2::knowledge}} from data",
             answer="scientific methods and knowledge",
             card_type="cloze",
-            source_file="datascience.md"
-        )
+            source_file="datascience.md",
+        ),
     ]
 
 
@@ -135,7 +135,7 @@ def mock_document_processing_result():
         text_content="Sample processed text content for testing purposes.",
         source_files=["sample.txt", "datascience.md"],
         file_count=2,
-        total_characters=50
+        total_characters=50,
     )
 
 
@@ -147,7 +147,7 @@ def mock_flashcard_generation_result(sample_flashcards):
         source_files=["sample.txt", "datascience.md"],
         processing_time=2.5,
         errors=[],
-        warnings=[]
+        warnings=[],
     )
 
 
@@ -158,18 +158,18 @@ def mock_successful_llm_response():
         {
             "question": "What is the main topic of this document?",
             "answer": "Programming and technology concepts",
-            "card_type": "qa"
+            "card_type": "qa",
         },
         {
             "question": "The document discusses {{c1::programming}} concepts",
             "answer": "programming",
-            "card_type": "cloze"
+            "card_type": "cloze",
         },
         {
             "question": "What are the key benefits mentioned?",
             "answer": "Simplicity, readability, and ease of use",
-            "card_type": "qa"
-        }
+            "card_type": "qa",
+        },
     ]
 
 
@@ -185,7 +185,7 @@ def mock_csv_export_summary():
         "file_size_bytes": 350,
         "output_path": "test_output.csv",
         "source_files": ["sample.txt", "datascience.md"],
-        "errors": []
+        "errors": [],
     }
 
 
@@ -195,6 +195,7 @@ def cleanup_sessions():
     yield
     # Clean up any sessions created during tests
     from src.document_to_anki.web.app import sessions
+
     sessions.clear()
 
 
@@ -207,21 +208,11 @@ def integration_test_marker():
 # Pytest configuration for integration tests
 def pytest_configure(config):
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
-    config.addinivalue_line(
-        "markers", "cli: mark test as CLI-specific"
-    )
-    config.addinivalue_line(
-        "markers", "web: mark test as web API-specific"
-    )
-    config.addinivalue_line(
-        "markers", "e2e: mark test as end-to-end"
-    )
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "cli: mark test as CLI-specific")
+    config.addinivalue_line("markers", "web: mark test as web API-specific")
+    config.addinivalue_line("markers", "e2e: mark test as end-to-end")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -246,16 +237,12 @@ def mock_llm_client(mocker):
     """Mock the LLM client for consistent testing."""
     mock_client = mocker.patch("src.document_to_anki.core.llm_client.LLMClient")
     mock_instance = mock_client.return_value
-    
+
     # Default successful response
     mock_instance.generate_flashcards_from_text_sync.return_value = [
-        {
-            "question": "Test question",
-            "answer": "Test answer",
-            "card_type": "qa"
-        }
+        {"question": "Test question", "answer": "Test answer", "card_type": "qa"}
     ]
-    
+
     return mock_instance
 
 
@@ -264,16 +251,16 @@ def mock_file_operations(mocker):
     """Mock file operations for testing without actual file I/O."""
     # Mock Path.exists to return True by default
     mocker.patch("pathlib.Path.exists", return_value=True)
-    
+
     # Mock Path.is_file to return True by default
     mocker.patch("pathlib.Path.is_file", return_value=True)
-    
+
     # Mock Path.is_dir to return False by default
     mocker.patch("pathlib.Path.is_dir", return_value=False)
-    
+
     # Mock file reading operations
     mocker.patch("pathlib.Path.read_text", return_value="Sample file content")
-    
+
     return mocker
 
 
@@ -281,6 +268,7 @@ def mock_file_operations(mocker):
 def disable_logging():
     """Disable logging during tests to reduce noise."""
     import logging
+
     logging.disable(logging.CRITICAL)
     yield
     logging.disable(logging.NOTSET)
@@ -290,24 +278,25 @@ def disable_logging():
 @pytest.fixture
 def performance_monitor():
     """Monitor performance metrics during tests."""
-    import time
-    import psutil
     import os
-    
+    import time
+
+    import psutil
+
     process = psutil.Process(os.getpid())
     start_time = time.time()
     start_memory = process.memory_info().rss / 1024 / 1024  # MB
-    
+
     yield
-    
+
     end_time = time.time()
     end_memory = process.memory_info().rss / 1024 / 1024  # MB
-    
+
     execution_time = end_time - start_time
     memory_delta = end_memory - start_memory
-    
+
     # Log performance metrics (could be extended to fail tests if thresholds exceeded)
-    print(f"\nPerformance metrics:")
+    print("\nPerformance metrics:")
     print(f"  Execution time: {execution_time:.2f}s")
     print(f"  Memory delta: {memory_delta:.2f}MB")
 
@@ -317,6 +306,7 @@ def performance_monitor():
 def simulate_network_error(mocker):
     """Simulate network errors for testing error handling."""
     import requests
+
     mocker.patch("requests.post", side_effect=requests.ConnectionError("Network error"))
     mocker.patch("requests.get", side_effect=requests.ConnectionError("Network error"))
 
@@ -331,7 +321,8 @@ def simulate_file_permission_error(mocker):
 @pytest.fixture
 def simulate_memory_error(mocker):
     """Simulate memory errors for testing resource handling."""
+
     def memory_error_side_effect(*args, **kwargs):
         raise MemoryError("Out of memory")
-    
+
     return memory_error_side_effect

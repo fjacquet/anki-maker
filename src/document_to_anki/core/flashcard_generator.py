@@ -59,9 +59,7 @@ class FlashcardGenerator:
         """Get the current list of flashcards."""
         return self._flashcards.copy()
 
-    def generate_flashcards(
-        self, text_content: list[str], source_files: list[str] | None = None
-    ) -> ProcessingResult:
+    def generate_flashcards(self, text_content: list[str], source_files: list[str] | None = None) -> ProcessingResult:
         """
         Generate flashcards from text content using LLM.
 
@@ -97,9 +95,7 @@ class FlashcardGenerator:
 
             try:
                 source_file = source_files[i] if source_files and i < len(source_files) else None
-                chunk_flashcards = self._generate_flashcards_from_single_text(
-                    text, source_file, i + 1, warnings
-                )
+                chunk_flashcards = self._generate_flashcards_from_single_text(text, source_file, i + 1, warnings)
                 all_flashcards.extend(chunk_flashcards)
 
             except Exception as e:
@@ -189,9 +185,7 @@ class FlashcardGenerator:
             logger.error(f"LLM generation failed for chunk {chunk_number}: {e}")
             raise FlashcardGenerationError(f"Failed to generate flashcards: {e}") from e
 
-    def preview_flashcards(
-        self, flashcards: list[Flashcard] | None = None, console: Console | None = None
-    ) -> None:
+    def preview_flashcards(self, flashcards: list[Flashcard] | None = None, console: Console | None = None) -> None:
         """
         Display a rich-formatted preview of flashcards for CLI.
 
@@ -224,9 +218,7 @@ class FlashcardGenerator:
                 else (card.source_file or "Unknown")
             )
 
-            table.add_row(
-                card.id[:8] + "...", card.card_type.upper(), question_preview, answer_preview, source_preview
-            )
+            table.add_row(card.id[:8] + "...", card.card_type.upper(), question_preview, answer_preview, source_preview)
 
         console.print(table)
 
@@ -501,9 +493,7 @@ class FlashcardGenerator:
             logger.error(error_message)
             return None, error_message
 
-    def export_to_csv(
-        self, output_path: Path, flashcards: list[Flashcard] | None = None
-    ) -> tuple[bool, dict]:
+    def export_to_csv(self, output_path: Path, flashcards: list[Flashcard] | None = None) -> tuple[bool, dict]:
         """
         Export flashcards to Anki-compatible CSV format with comprehensive summary reporting.
 

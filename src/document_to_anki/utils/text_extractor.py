@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-import pypdf
 from docx import Document
 from loguru import logger
+from PyPDF2 import PdfReader
 
 try:
     import pdfplumber
@@ -52,8 +52,7 @@ class TextExtractor:
 
         if file_extension not in self.SUPPORTED_FORMATS:
             raise TextExtractionError(
-                f"Unsupported file format: {file_extension}. "
-                f"Supported formats: {', '.join(self.SUPPORTED_FORMATS)}"
+                f"Unsupported file format: {file_extension}. Supported formats: {', '.join(self.SUPPORTED_FORMATS)}"
             )
 
         try:
@@ -90,14 +89,14 @@ class TextExtractor:
             with open(file_path, "rb") as file:
                 # Use strict=False to handle malformed PDFs more gracefully
                 try:
-                    pdf_reader = pypdf.PdfReader(file, strict=False)
+                    pdf_reader = PdfReader(file)
                 except Exception as reader_error:
                     # If PyPDF fails completely, try with different settings
                     self.logger.warning(f"Initial PDF reader failed for {file_path}: {reader_error}")
                     file.seek(0)  # Reset file pointer
                     try:
                         # Try with even more lenient settings
-                        pdf_reader = pypdf.PdfReader(file)
+                        pdf_reader = PdfReader(file)
                     except Exception as fallback_error:
                         # If PyPDF fails completely, try pdfplumber as last resort
                         if HAS_PDFPLUMBER:
@@ -123,11 +122,6 @@ class TextExtractor:
                 successful_pages = 0
                 for page_num, page in enumerate(pdf_reader.pages):
                     try:
-                        # Handle potential NullObject errors by checking page validity
-                        if page is None:
-                            self.logger.warning(f"Page {page_num + 1} is null in {file_path}")
-                            continue
-
                         page_text = page.extract_text()
                         if page_text and page_text.strip():  # Only add non-empty pages
                             text_content.append(page_text)
@@ -137,9 +131,7 @@ class TextExtractor:
                         self.logger.warning(f"Skipping malformed page {page_num + 1} in {file_path}: {e}")
                         continue
                     except Exception as e:
-                        self.logger.warning(
-                            f"Failed to extract text from page {page_num + 1} in {file_path}: {e}"
-                        )
+                        self.logger.warning(f"Failed to extract text from page {page_num + 1} in {file_path}: {e}")
                         continue
 
                 extracted_text = "\n\n".join(text_content)
@@ -164,9 +156,10 @@ class TextExtractor:
             raise TextExtractionError(f"PDF file not found: {file_path}") from e
         except PermissionError as e:
             raise TextExtractionError(f"Permission denied accessing PDF file: {file_path}") from e
-        except pypdf.errors.PdfReadError as e:
-            raise TextExtractionError(f"Invalid or corrupted PDF file: {file_path} - {str(e)}") from e
         except Exception as e:
+            # Handle PyPDF2 specific errors
+            if "PdfReadError" in str(type(e)) or "PDF" in str(e):
+                raise TextExtractionError(f"Invalid or corrupted PDF file: {file_path} - {str(e)}") from e
             raise TextExtractionError(f"Unexpected error extracting from PDF {file_path}: {str(e)}") from e
 
     def _extract_with_pdfplumber(self, file_path: Path) -> str:
@@ -215,9 +208,7 @@ class TextExtractor:
                             f"The PDF may be image-based or use unsupported formatting."
                         )
                     else:
-                        self.logger.warning(
-                            f"No text content extracted from PDF using pdfplumber: {file_path}"
-                        )  # noqa: E501
+                        self.logger.warning(f"No text content extracted from PDF using pdfplumber: {file_path}")  # noqa: E501
                         return ""
 
                 self.logger.info(
@@ -282,9 +273,7 @@ class TextExtractor:
             elif "no such file" in error_msg:
                 raise TextExtractionError(f"DOCX file not found: {file_path}") from e
             else:
-                raise TextExtractionError(
-                    f"Unexpected error extracting from DOCX {file_path}: {str(e)}"
-                ) from e
+                raise TextExtractionError(f"Unexpected error extracting from DOCX {file_path}: {str(e)}") from e
 
     def extract_text_from_txt(self, file_path: Path) -> str:
         """
@@ -329,9 +318,7 @@ class TextExtractor:
         except PermissionError as e:
             raise TextExtractionError(f"Permission denied accessing text file: {file_path}") from e
         except Exception as e:
-            raise TextExtractionError(
-                f"Unexpected error extracting from text file {file_path}: {str(e)}"
-            ) from e
+            raise TextExtractionError(f"Unexpected error extracting from text file {file_path}: {str(e)}") from e
 
     def extract_text_from_md(self, file_path: Path) -> str:
         """

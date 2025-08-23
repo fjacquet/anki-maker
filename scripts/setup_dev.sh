@@ -60,7 +60,7 @@ fi
 # Run initial quality checks
 echo "🔍 Running initial quality checks..."
 uv run lint || echo "⚠️  Linting issues found - run 'uv run fix' to auto-fix"
-uv run format-check || echo "⚠️  Formatting issues found - run 'uv run format' to fix"
+uv run ruff format --check || echo "⚠️  Formatting issues found - run 'uv run ruff format' to fix"
 
 # Create sample documents for testing
 echo "📄 Creating sample documents..."
@@ -155,5 +155,7 @@ echo "   uv run dev-web       - Run web server in development mode"
 echo ""
 echo "🔗 Documentation:"
 echo "   README.md            - Main documentation"
-echo "   examples/usage_examples.md - Usage examples"
-echo "   API.md               - API documentation"
+echo "   docs/API.md          - API documentation"
+echo "   docs/CONFIGURATION.md - Configuration guide"
+echo "   docs/EXAMPLES.md     - Usage examples"
+echo "   docs/TROUBLESHOOTING.md - Troubleshooting guide"

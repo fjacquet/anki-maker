@@ -40,7 +40,7 @@ cd document-to-anki-cli
 uv sync
 
 # Install in development mode (includes testing tools)
-uv sync --group dev
+uv sync --all-extras
 ```
 
 ### Alternative Installation
@@ -286,6 +286,11 @@ document-to-anki-cli/
 │   └── utils/                     # Utility modules
 │       ├── file_handler.py       # File operations
 │       └── text_extractor.py     # Text extraction
+├── docs/                          # Documentation
+│   ├── API.md                    # API reference
+│   ├── CONFIGURATION.md          # Configuration guide
+│   ├── EXAMPLES.md               # Usage examples
+│   └── TROUBLESHOOTING.md        # Troubleshooting guide
 ├── tests/                         # Test suite
 ├── test_integration_check.py      # Integration test for model configuration
 ├── pyproject.toml                # Project configuration
@@ -320,7 +325,7 @@ python test_startup_validation.py
 ### Code Quality
 
 ```bash
-# Format code with ruff
+# Format code with ruff (automatically formats files)
 uv run ruff format
 
 # Lint code
@@ -337,13 +342,16 @@ uv run bandit -r src/
 
 # Dependency vulnerability check
 uv run safety check
+
+# Run all quality checks (includes automatic formatting)
+make quality
 ```
 
 ### Development Workflow
 
 1. **Setup Development Environment**
    ```bash
-   uv sync --group dev
+   uv sync --all-extras
    pre-commit install  # If using pre-commit hooks
    ```
 
@@ -357,6 +365,9 @@ uv run safety check
    uv run pytest
    uv run ruff check
    uv run mypy src/
+   
+   # Or run all quality checks at once (includes automatic formatting)
+   make quality
    ```
 
 4. **Submit Changes**
@@ -413,7 +424,16 @@ Pydantic model representing a single flashcard.
 - `to_csv_row()`: Convert to Anki-compatible CSV format
 - `validate_content()`: Check if flashcard content is valid
 
-## Troubleshooting
+## Documentation
+
+For detailed information, see the comprehensive documentation in the `docs/` folder:
+
+- **[API Documentation](docs/API.md)** - Complete API reference for Python, REST, and CLI interfaces
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Environment variables, model selection, and advanced configuration
+- **[Usage Examples](docs/EXAMPLES.md)** - Comprehensive examples for CLI, web interface, and Python API
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues, solutions, and debugging tips
+
+## Quick Troubleshooting
 
 ### Common Issues
 
@@ -447,29 +467,7 @@ Error: Failed to connect to AI service
 - Verify API key is valid and has quota remaining
 - Try again after a few minutes (rate limiting)
 
-#### Permission Errors
-```
-Error: Permission denied writing to output file
-```
-**Solutions:**
-- Check file/folder permissions
-- Choose a different output location
-- Ensure no other application is using the output file
-
-### Getting Help
-
-1. **Check the logs**: Enable verbose mode (`--verbose`) for detailed error information
-2. **Review error messages**: The application provides actionable error guidance
-3. **Check file formats**: Ensure your documents are in supported formats
-4. **Verify configuration**: Double-check your `.env` file and API keys
-5. **Test with sample files**: Try with known-good documents first
-
-### Performance Tips
-
-1. **Optimize document size**: Smaller documents process faster
-2. **Use batch mode**: Skip interactive preview for automated workflows
-3. **Process incrementally**: Handle large document sets in smaller batches
-4. **Monitor API usage**: Be aware of Gemini API rate limits and quotas
+For complete troubleshooting information, see **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 
 ## Contributing
 
@@ -479,7 +477,7 @@ We welcome contributions! Please follow these guidelines:
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/yourusername/document-to-anki-cli.git`
-3. Create a virtual environment: `uv sync --group dev`
+3. Create a virtual environment: `uv sync --all-extras`
 4. Create a feature branch: `git checkout -b feature/amazing-feature`
 
 ### Code Standards
@@ -521,6 +519,16 @@ This project is licensed under the MIT License. See the LICENSE file for details
 - ✅ Accessible, responsive web design (WCAG 2.1 AA)
 - ✅ Session-based flashcard editing and management
 - ✅ Anki-compatible CSV export with detailed statistics
+- ✅ **Improved Development Setup**: Enhanced `make install-dev` to use `--all-extras` for complete dependency installation
+- ✅ **Enhanced Development Workflow**: Updated Makefile to automatically format code during quality checks
+  - `make quality`, `make format`, and `make lint` now automatically apply formatting fixes
+  - Improves developer experience by eliminating manual formatting steps
+  - Ensures consistent code style across the project
+- ✅ **Improved Documentation Structure**: Organized all documentation into `docs/` folder
+  - Moved API.md, CONFIGURATION.md, EXAMPLES.md, and TROUBLESHOOTING.md to docs/
+  - Added comprehensive documentation index (docs/README.md)
+  - Updated all cross-references and navigation links
+  - Enhanced project organization and documentation discoverability
 
 ## Acknowledgments
 

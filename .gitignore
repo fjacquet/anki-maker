@@ -206,3 +206,21 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 examples/Microeconomics.pdf
+
+# Security-sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+secrets.*
+*.secret
+.secrets
+credentials/
+credentials.*
+*.credentials
+api_keys/
+api_keys.*
+*.token
+tokens/
+tokens.*

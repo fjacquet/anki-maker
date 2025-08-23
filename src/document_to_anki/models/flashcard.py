@@ -18,9 +18,7 @@ class Flashcard(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
 
     @classmethod
-    def create(
-        cls, question: str, answer: str, card_type: str, source_file: str | None = None
-    ) -> "Flashcard":
+    def create(cls, question: str, answer: str, card_type: str, source_file: str | None = None) -> "Flashcard":
         """Create a new flashcard with auto-generated ID."""
         # Validate card_type
         if card_type not in ["qa", "cloze"]:

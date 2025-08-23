@@ -49,7 +49,7 @@ All commands use `uv run` prefix for consistency:
 ```bash
 # Installation
 make install          # Install package
-make install-dev      # Install with dev dependencies
+make install-dev      # Install with all development dependencies
 
 # Testing
 make test            # Run all tests
@@ -136,7 +136,7 @@ src/document_to_anki/
 
 ## Development Workflow
 
-1. **Setup**: `make setup` or `uv sync --group dev`
+1. **Setup**: `make setup` or `uv sync --all-extras`
 2. **Quality**: `make quality` before commits
 3. **Testing**: `make test` for full test suite
 4. **Pre-commit**: `make pre-commit` for final checks

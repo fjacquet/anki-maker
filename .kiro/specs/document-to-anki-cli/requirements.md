@@ -127,3 +127,70 @@ This feature involves creating a modern Python application that converts digital
 3. WHEN the MODEL variable is not set THEN the system SHALL default to "gemini/gemini-2.5-flash" as the fallback model
 4. WHEN an invalid model is specified THEN the system SHALL display a clear error message listing supported models
 5. WHEN the model is changed THEN the system SHALL validate that the corresponding API key is available (GEMINI_API_KEY for Gemini models, OPENAI_API_KEY for OpenAI models)
+### Requi
+rement 11
+
+**User Story:** As a developer, I want the CI pipeline to use the same commands as the Makefile, so that I can be confident that local testing matches CI behavior.
+
+#### Acceptance Criteria
+
+1. WHEN the CI workflow runs quality checks THEN it SHALL use the same `make quality` command that developers use locally
+2. WHEN the CI workflow runs tests THEN it SHALL use the same `make test` or `make ci-test` commands available in the Makefile
+3. WHEN the CI workflow runs linting THEN it SHALL use the same `make lint` command from the Makefile
+4. WHEN the CI workflow runs type checking THEN it SHALL use the same `make type-check` command from the Makefile
+5. WHEN the CI workflow runs security checks THEN it SHALL use the same `make security` and `make audit` commands from the Makefile
+
+### Requirement 12
+
+**User Story:** As a developer, I want the CI pipeline to use uv commands consistently, so that dependency management is identical between local and CI environments.
+
+#### Acceptance Criteria
+
+1. WHEN the CI workflow installs dependencies THEN it SHALL use `uv sync` instead of `uv pip install -e ".[dev]"`
+2. WHEN the CI workflow runs any command THEN it SHALL use `uv run` prefix consistently as defined in the Makefile
+3. WHEN the CI workflow sets up the environment THEN it SHALL follow the same pattern as `make install-dev`
+
+### Requirement 13
+
+**User Story:** As a developer, I want the CI pipeline to have the same build and validation steps as the Makefile, so that the CI process is predictable and debuggable locally.
+
+#### Acceptance Criteria
+
+1. WHEN the CI workflow builds the package THEN it SHALL use `make build` command
+2. WHEN the CI workflow validates configuration THEN it SHALL use `make validate` command instead of calling `python scripts/validate_config.py` directly
+3. WHEN the CI workflow prepares for release THEN it SHALL use `make prepare-release` command
+4. WHEN the CI workflow cleans artifacts THEN it SHALL use `make clean` command when appropriate
+5. WHEN the CI workflow installs dependencies THEN it SHALL use `make install-dev` instead of `uv pip install -e ".[dev]"`
+
+### Requirement 14
+
+**User Story:** As a developer, I want the CI pipeline to support the same development workflow targets, so that I can replicate CI steps locally for debugging.
+
+#### Acceptance Criteria
+
+1. WHEN the CI workflow runs pre-commit checks THEN it SHALL use `make pre-commit` command
+2. WHEN the CI workflow runs integration tests THEN it SHALL use `make test-integration` command
+3. WHEN the CI workflow runs fast tests THEN it SHALL use `make test-fast` or `make ci-test` command
+4. WHEN the CI workflow runs coverage tests THEN it SHALL use `make test-cov` command
+
+### Requirement 15
+
+**User Story:** As a maintainer, I want the CI pipeline to be maintainable through the Makefile, so that changes to build logic only need to be made in one place.
+
+#### Acceptance Criteria
+
+1. WHEN a new quality check is added to the Makefile THEN it SHALL automatically be available in CI through make commands
+2. WHEN the Makefile commands change THEN the CI workflow SHALL continue to work without modification
+3. WHEN debugging CI issues THEN developers SHALL be able to run the exact same commands locally using make
+4. IF a Makefile command fails THEN the CI workflow SHALL fail with the same error message and exit code
+
+### Requirement 16
+
+**User Story:** As a developer, I want to understand the relationship between scripts and Makefile targets, so that I know which approach to use for different tasks.
+
+#### Acceptance Criteria
+
+1. WHEN scripts exist in the scripts/ directory THEN they SHALL either be integrated into Makefile targets or documented as standalone utilities
+2. WHEN the CI workflow needs validation THEN it SHALL use `make validate` instead of calling scripts directly
+3. WHEN quality checks are needed THEN the CI SHALL use `make quality` instead of the `scripts/quality_check.sh` script
+4. IF scripts are kept THEN they SHALL be documented and their relationship to Makefile targets SHALL be clear

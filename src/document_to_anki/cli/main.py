@@ -154,9 +154,13 @@ def main(ctx: click.Context, verbose: bool, version: bool) -> None:
         click.echo("Document to Anki CLI v0.1.0")
         return
 
-    # Create CLI context
+    # Create CLI context - this will validate model configuration
     ctx.ensure_object(dict)
-    ctx.obj = CLIContext(verbose=verbose)
+    try:
+        ctx.obj = CLIContext(verbose=verbose)
+    except ConfigurationError:
+        # Configuration error was already printed by CLIContext
+        ctx.exit(1)
 
     # If no subcommand is provided, show help
     if ctx.invoked_subcommand is None:
@@ -174,9 +178,7 @@ def main(ctx: click.Context, verbose: bool, version: bool) -> None:
 @click.option("--no-preview", is_flag=True, help="Skip flashcard preview and editing step")
 @click.option("--batch", is_flag=True, help="Enable batch processing mode (no interactive prompts)")
 @click.pass_obj
-def convert(
-    cli_ctx: CLIContext, input_path: Path, output: Path | None, no_preview: bool, batch: bool
-) -> None:
+def convert(cli_ctx: CLIContext, input_path: Path, output: Path | None, no_preview: bool, batch: bool) -> None:
     """
     Convert documents to Anki flashcards.
 
@@ -325,9 +327,7 @@ def convert(
                 elif "network" in str(e).lower() or "connection" in str(e).lower():
                     console.print("• [bold]Network issue detected:[/bold] Check internet connectivity")
                 elif "content" in str(e).lower() or "text" in str(e).lower():
-                    console.print(
-                        "• [bold]Content issue detected:[/bold] Ensure documents have readable text"
-                    )
+                    console.print("• [bold]Content issue detected:[/bold] Ensure documents have readable text")
 
                 sys.exit(1)
 
@@ -388,9 +388,7 @@ def convert(
             success, summary = cli_ctx.flashcard_generator.export_to_csv(output)
 
             if success:
-                console.print(
-                    f"[green]✓[/green] Successfully exported {summary['exported_flashcards']} flashcards"
-                )  # noqa: E501
+                console.print(f"[green]✓[/green] Successfully exported {summary['exported_flashcards']} flashcards")  # noqa: E501
                 console.print(f"[green]✓[/green] Output file: {summary['output_path']}")
 
                 # Show detailed export summary
@@ -510,9 +508,7 @@ def convert(
 )
 @click.option("--batch", is_flag=True, help="Enable batch processing mode (no interactive prompts)")
 @click.pass_obj
-def batch_convert(
-    cli_ctx: CLIContext, input_paths: tuple[Path, ...], output_dir: Path | None, batch: bool
-) -> None:
+def batch_convert(cli_ctx: CLIContext, input_paths: tuple[Path, ...], output_dir: Path | None, batch: bool) -> None:
     """
     Convert multiple documents to Anki flashcards in batch mode.
 
@@ -721,9 +717,7 @@ def _handle_edit_flashcard(cli_ctx: CLIContext, console: Console) -> None:
 
         # Apply edit with error handling
         try:
-            success, message = cli_ctx.flashcard_generator.edit_flashcard(
-                target_card.id, new_question, new_answer
-            )
+            success, message = cli_ctx.flashcard_generator.edit_flashcard(target_card.id, new_question, new_answer)
 
             if success:
                 console.print(f"[green]✓[/green] {message}")
@@ -958,13 +952,9 @@ def _show_statistics(cli_ctx: CLIContext, console: Console) -> None:
 
     # Show recommendations
     if stats["total_count"] == 0:
-        console.print(
-            "\n[yellow]💡 No flashcards yet. Generate some from documents or add manually![/yellow]"
-        )
+        console.print("\n[yellow]💡 No flashcards yet. Generate some from documents or add manually![/yellow]")
     elif stats["invalid_count"] > 0:
-        console.print(
-            f"\n[yellow]💡 Consider editing the {stats['invalid_count']} invalid flashcard(s).[/yellow]"
-        )
+        console.print(f"\n[yellow]💡 Consider editing the {stats['invalid_count']} invalid flashcard(s).[/yellow]")
     elif stats["total_count"] < 5:
         console.print("\n[yellow]💡 Consider adding more flashcards for better study sessions.[/yellow]")
     else:

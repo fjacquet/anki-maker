@@ -163,7 +163,7 @@
 
 ## Model Configuration Integration
 
-- [ ] 18. Integrate ModelConfig throughout the application
+- [x] 18. Integrate ModelConfig throughout the application
   - Update LLMClient constructor to use ModelConfig.validate_and_get_model() instead of hardcoded model
   - Update FlashcardGenerator to pass configured model to LLMClient
   - Add model validation to CLI startup with clear error messages for invalid models or missing API keys
@@ -175,14 +175,14 @@
 
 ## Code Quality and Final Polish
 
-- [ ] 19. Fix code quality issues and ensure standards compliance
+- [x] 19. Fix code quality issues and ensure standards compliance
   - Fix ruff linting errors (import sorting, deprecated typing imports, unused imports)
   - Resolve mypy type checking errors (pydantic-settings Field usage, type annotations)
   - Fix failing tests and ensure all 199 tests pass consistently
   - Ensure code coverage remains above 80% threshold
   - _Requirements: 6.3, 6.4, 6.5_
 
-- [ ] 20. Security and dependency validation
+- [x] 20. Security and dependency validation
   - Run bandit security scanning and address any security issues
   - Run safety dependency vulnerability checking and update vulnerable packages
   - Validate all environment variable handling for security best practices
@@ -207,3 +207,75 @@
   - Create sample configuration files and usage examples with model configuration
   - Document supported models and required API keys
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 10.1, 10.2, 10.3, 10.4, 10.5_
+#
+# CI/CD and Build System Alignment
+
+- [x] 23. Audit and enhance Makefile for CI compatibility
+  - Review all existing Makefile targets to ensure they work in CI environment
+  - Test that `uv run` commands work properly in GitHub Actions
+  - Verify that all targets handle environment variables correctly
+  - _Requirements: CI alignment for consistent local/CI development_
+
+- [x] 24. Add missing CI-specific Makefile targets
+  - Create `ci-setup` target that combines installation and basic validation
+  - Ensure `ci-test` target exists and is optimized for CI (fail-fast, concise output)
+  - Ensure `ci-quality` target exists and runs all quality checks efficiently
+  - Add proper error handling and exit codes to all CI targets
+  - _Requirements: CI optimization and consistency_
+
+- [ ] 25. Update CI workflow dependency installation
+  - Replace `uv pip install -e ".[dev]"` with `make install-dev` in all CI jobs
+  - Ensure `make install-dev` works correctly in GitHub Actions environment
+  - Test that dependency installation is consistent between local and CI
+  - _Requirements: Dependency management consistency_
+
+- [ ] 26. Update CI workflow test execution
+  - Replace custom pytest commands with `make ci-test` in test job
+  - Replace coverage commands with `make test-cov` where appropriate
+  - Ensure test results and coverage reports are generated correctly
+  - Verify that test failures propagate properly through Makefile
+  - _Requirements: Test execution consistency_
+
+- [ ] 27. Update CI workflow quality checks
+  - Replace individual ruff, mypy, bandit commands with `make ci-quality`
+  - Ensure all quality check outputs are preserved for CI reporting
+  - Test that quality check failures fail the CI job appropriately
+  - _Requirements: Quality assurance consistency_
+
+- [ ] 28. Update CI workflow validation steps
+  - Replace `python scripts/validate_config.py` with `make validate`
+  - Ensure configuration validation works with CI environment variables
+  - Test that validation failures are properly reported
+  - _Requirements: Configuration validation consistency_
+
+- [ ] 29. Update CI workflow build process
+  - Replace direct `uv build` command with `make build`
+  - Ensure build artifacts are created correctly through Makefile
+  - Test that build process works identically to direct commands
+  - _Requirements: Build process consistency_
+
+- [ ] 30. Update integration test job
+  - Replace custom integration test commands with `make test-integration`
+  - Ensure integration tests run properly through Makefile
+  - Verify that integration test results are reported correctly
+  - _Requirements: Integration testing consistency_
+
+- [ ] 31. Handle scripts directory alignment
+  - Document the relationship between scripts and Makefile targets
+  - Decide whether to integrate `scripts/quality_check.sh` into Makefile or remove it
+  - Update any remaining script calls in CI to use Makefile targets instead
+  - _Requirements: Script and Makefile consistency_
+
+- [ ] 32. Test and validate CI-Makefile alignment
+  - Create test branch with updated CI workflow
+  - Run full CI pipeline to ensure all jobs work with Makefile targets
+  - Compare CI results with local `make` command results for consistency
+  - Verify error handling and exit codes work correctly
+  - _Requirements: End-to-end CI validation_
+
+- [ ] 33. Update documentation and cleanup
+  - Update README.md to reflect CI-Makefile alignment
+  - Document which Makefile targets are used in CI
+  - Remove or update any outdated references to direct commands in CI
+  - Add troubleshooting guide for CI-Makefile issues
+  - _Requirements: Documentation and maintenance_

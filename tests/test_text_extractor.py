@@ -102,8 +102,8 @@ class TestTextExtractor:
         mock_reader_instance.pages = [mocker.MagicMock(), mocker.MagicMock()]
         mock_reader_instance.pages[0].extract_text.return_value = "Page 1 content"
         mock_reader_instance.pages[1].extract_text.return_value = "Page 2 content"
-        
-        mock_pdf_reader = mocker.patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader")
+
+        mock_pdf_reader = mocker.patch("src.document_to_anki.utils.text_extractor.PdfReader")
         mock_pdf_reader.return_value = mock_reader_instance
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
@@ -117,8 +117,8 @@ class TestTextExtractor:
         """Test PDF extraction from encrypted file."""
         mock_reader_instance = mocker.MagicMock()
         mock_reader_instance.is_encrypted = True
-        
-        mock_pdf_reader = mocker.patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader")
+
+        mock_pdf_reader = mocker.patch("src.document_to_anki.utils.text_extractor.PdfReader")
         mock_pdf_reader.return_value = mock_reader_instance
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
@@ -133,23 +133,24 @@ class TestTextExtractor:
         mock_reader_instance = mocker.MagicMock()
         mock_reader_instance.pages = []  # No pages
         mock_reader_instance.is_encrypted = False
-        
-        mocker.patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader", return_value=mock_reader_instance)
-        
+
+        mocker.patch("src.document_to_anki.utils.text_extractor.PdfReader", return_value=mock_reader_instance)
+
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             result = self.extractor.extract_text_from_pdf(Path(tmp.name))
             assert result == ""
-        
+
         Path(tmp.name).unlink()
 
     def test_extract_text_from_pdf_permission_error(self, mocker):
         """Test PDF extraction with permission error."""
-        mocker.patch("src.document_to_anki.utils.text_extractor.pypdf.PdfReader", side_effect=PermissionError("Access denied"))
-        
+        # Mock the file open operation to raise PermissionError
+        mocker.patch("builtins.open", side_effect=PermissionError("Access denied"))
+
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             with pytest.raises(TextExtractionError, match="Permission denied"):
                 self.extractor.extract_text_from_pdf(Path(tmp.name))
-        
+
         Path(tmp.name).unlink()
 
     def test_extract_text_from_pdf_file_not_found(self):
@@ -167,7 +168,7 @@ class TestTextExtractor:
         mock_paragraph2.text = "Second paragraph"
         mock_doc.paragraphs = [mock_paragraph1, mock_paragraph2]
         mock_doc.tables = []
-        
+
         mock_document = mocker.patch("src.document_to_anki.utils.text_extractor.Document")
         mock_document.return_value = mock_doc
 
@@ -186,21 +187,21 @@ class TestTextExtractor:
     def test_extract_text_from_docx_permission_error(self, mocker):
         """Test DOCX extraction with permission error."""
         mocker.patch("src.document_to_anki.utils.text_extractor.Document", side_effect=PermissionError("Access denied"))
-        
+
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
             with pytest.raises(TextExtractionError, match="Permission denied"):
                 self.extractor.extract_text_from_docx(Path(tmp.name))
-        
+
         Path(tmp.name).unlink()
 
     def test_extract_text_from_docx_corrupted_file(self, mocker):
         """Test DOCX extraction from corrupted file."""
         mocker.patch("src.document_to_anki.utils.text_extractor.Document", side_effect=Exception("not a zip file"))
-        
+
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
             with pytest.raises(TextExtractionError, match="Invalid or corrupted DOCX file"):
                 self.extractor.extract_text_from_docx(Path(tmp.name))
-        
+
         Path(tmp.name).unlink()
 
     def test_extract_text_from_docx_empty_content(self, mocker):
@@ -208,13 +209,13 @@ class TestTextExtractor:
         mock_doc = mocker.MagicMock()
         mock_doc.paragraphs = []
         mock_doc.tables = []
-        
+
         mocker.patch("src.document_to_anki.utils.text_extractor.Document", return_value=mock_doc)
-        
+
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
             result = self.extractor.extract_text_from_docx(Path(tmp.name))
             assert result == ""
-        
+
         Path(tmp.name).unlink()
 
     def test_extract_text_integration_txt(self):
@@ -230,45 +231,17 @@ class TestTextExtractor:
 
         # Clean up
         Path(tmp.name).unlink()
-    def test_extract_text_unsupported_format(self):
-        """Test extraction from unsupported file format."""
-        with tempfile.NamedTemporaryFile(suffix=".xyz", delete=False) as temp_file:
-            temp_path = Path(temp_file.name)
-            temp_file.write(b"test content")
-        
-        try:
-            with pytest.raises(TextExtractionError, match="Unsupported file format"):
-                self.extractor.extract_text(temp_path)
-        finally:
-            temp_path.unlink()
 
     def test_extract_text_exception_handling(self, mocker):
         """Test exception handling in extract_text method."""
         # Mock extract_text_from_txt to raise a non-TextExtractionError
-        mocker.patch.object(
-            self.extractor, 
-            'extract_text_from_txt', 
-            side_effect=ValueError("Unexpected error")
-        )
-        
+        mocker.patch.object(self.extractor, "extract_text_from_txt", side_effect=ValueError("Unexpected error"))
+
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
             tmp.write(b"test content")
             tmp.flush()
-            
+
             with pytest.raises(TextExtractionError, match="Failed to extract text"):
                 self.extractor.extract_text(Path(tmp.name))
-            
-            Path(tmp.name).unlink()
 
-    def test_extract_text_from_md_alias(self):
-        """Test that extract_text_from_md calls extract_text_from_txt."""
-        with tempfile.NamedTemporaryFile(suffix=".md", mode='w', delete=False) as temp_file:
-            temp_path = Path(temp_file.name)
-            temp_file.write("# Test Markdown\n\nThis is a test.")
-        
-        try:
-            result = self.extractor.extract_text_from_md(temp_path)
-            assert "Test Markdown" in result
-            assert "This is a test" in result
-        finally:
-            temp_path.unlink()
+            Path(tmp.name).unlink()

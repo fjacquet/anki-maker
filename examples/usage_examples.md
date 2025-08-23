@@ -185,9 +185,14 @@ uv run quality
 
 # Individual checks
 uv run lint
-uv run format-check
+uv run ruff format --check  # Check formatting without modifying files
 uv run type-check
 uv run security
+
+# Or use make targets (note: make format automatically modifies files)
+make lint      # Includes automatic formatting
+make format    # Automatically formats code
+make quality   # Runs all checks including automatic formatting
 ```
 
 ### Development Server

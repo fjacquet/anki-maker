@@ -765,7 +765,7 @@ jobs:
     - name: Install dependencies
       run: |
         source $HOME/.cargo/env
-        uv sync
+        uv sync --all-extras
     
     - name: Generate flashcards
       env:
@@ -787,6 +787,13 @@ jobs:
       with:
         name: generated-flashcards
         path: flashcards/
+        
+    - name: Run code quality checks
+      run: |
+        source $HOME/.cargo/env
+        source .venv/bin/activate
+        # Note: make quality now automatically formats code
+        make quality
 ```
 
 ### Docker Integration
@@ -811,7 +818,7 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN uv sync
+RUN uv sync --all-extras
 
 # Expose web interface port
 EXPOSE 8000

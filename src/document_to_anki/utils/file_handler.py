@@ -67,9 +67,7 @@ class FileHandler:
 
             expected_mime = expected_mimes.get(extension)
             if expected_mime and not mime_type.startswith(expected_mime.split("/")[0]):
-                logger.warning(
-                    f"MIME type mismatch for {file_path}: expected {expected_mime}, got {mime_type}"
-                )
+                logger.warning(f"MIME type mismatch for {file_path}: expected {expected_mime}, got {mime_type}")
 
         # Check file size
         file_size = file_path.stat().st_size
@@ -143,9 +141,7 @@ class FileHandler:
                 file_list = zip_ref.namelist()
 
                 if len(file_list) > self.MAX_FILES_COUNT:
-                    raise FileHandlingError(
-                        f"Too many files in ZIP: {len(file_list)} (max: {self.MAX_FILES_COUNT})"
-                    )
+                    raise FileHandlingError(f"Too many files in ZIP: {len(file_list)} (max: {self.MAX_FILES_COUNT})")
 
                 # Create temporary extraction directory
                 extract_dir = zip_path.parent / f"{zip_path.stem}_extracted"
@@ -223,9 +219,7 @@ class FileHandler:
                     all_files.append(file_path)
 
             if len(all_files) > self.MAX_FILES_COUNT:
-                raise FileHandlingError(
-                    f"Too many files in folder: {len(all_files)} (max: {self.MAX_FILES_COUNT})"
-                )
+                raise FileHandlingError(f"Too many files in folder: {len(all_files)} (max: {self.MAX_FILES_COUNT})")
 
             logger.info(f"Processing folder {folder_path} with {len(all_files)} files")
 

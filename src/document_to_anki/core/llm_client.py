@@ -63,8 +63,7 @@ class LLMClient:
                 else:
                     required_key = ModelConfig.get_required_api_key(model)
                     raise ConfigurationError(
-                        f"Missing API key for model '{model}'. "
-                        f"Please set the {required_key} environment variable."
+                        f"Missing API key for model '{model}'. Please set the {required_key} environment variable."
                     )
             self.model = model
 
@@ -235,9 +234,7 @@ Generate flashcards as a JSON array:"""
                 else:
                     logger.error(f"All {self.max_retries} API call attempts failed")
 
-        raise Exception(
-            f"Failed to get response from LLM after {self.max_retries} attempts: {last_exception}"
-        )
+        raise Exception(f"Failed to get response from LLM after {self.max_retries} attempts: {last_exception}")
 
     def _parse_flashcard_response(self, response_text: str) -> list[FlashcardData]:
         """

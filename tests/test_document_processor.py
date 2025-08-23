@@ -102,9 +102,7 @@ class TestDocumentProcessor:
         # Mock folder processing
         mock_file_paths = [Path("file1.txt"), Path("file2.txt")]
         mocker.patch.object(self.processor.file_handler, "process_folder", return_value=mock_file_paths)
-        mocker.patch.object(
-            self.processor.text_extractor, "extract_text", side_effect=["Content 1", "Content 2"]
-        )
+        mocker.patch.object(self.processor.text_extractor, "extract_text", side_effect=["Content 1", "Content 2"])
 
         result = self.processor.process_upload("/test/folder")
 

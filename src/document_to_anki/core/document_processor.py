@@ -244,9 +244,7 @@ class DocumentProcessor:
                 if text_content.strip():
                     extracted_texts.append(text_content)
                     successful_extractions += 1
-                    self.logger.debug(
-                        f"Successfully extracted {len(text_content)} characters from {file_path}"
-                    )
+                    self.logger.debug(f"Successfully extracted {len(text_content)} characters from {file_path}")
                 else:
                     self.logger.warning(f"No text content extracted from: {file_path}")
                     failed_extractions += 1
@@ -312,8 +310,7 @@ class DocumentProcessor:
         consolidated_text = "\n\n".join(consolidated_parts)
 
         self.logger.info(
-            f"Text consolidation completed: {len(texts)} files consolidated into "
-            f"{len(consolidated_text)} characters"
+            f"Text consolidation completed: {len(texts)} files consolidated into {len(consolidated_text)} characters"
         )
 
         return consolidated_text

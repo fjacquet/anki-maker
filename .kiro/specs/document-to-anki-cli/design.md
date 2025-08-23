@@ -418,4 +418,108 @@ tests/
 - No persistent storage of user documents
 - Secure handling of temporary files
 - Clear data retention policies
-- Optional local-only processing mode
+- Optional local-only processing mode## CI/CD
+ Pipeline Alignment
+
+### Overview
+
+The CI/CD pipeline alignment ensures that GitHub Actions workflows use the same logic and commands as the project's Makefile, providing consistency between local development and CI environments. This eliminates discrepancies between what developers run locally and what runs in CI.
+
+### Current State Analysis
+
+**Makefile Structure:**
+- Uses `uv sync` for dependency installation
+- Provides composite targets like `make quality`, `make test-cov`, `make ci-test`
+- Has specific CI targets: `ci-test`, `ci-quality`, `pre-commit`
+- Uses `uv run` prefix consistently for all commands
+
+**CI Workflow Issues:**
+- Uses `uv pip install -e ".[dev]"` instead of `uv sync`
+- Calls `python scripts/validate_config.py` directly instead of `make validate`
+- Runs individual quality commands instead of `make quality` or `make ci-quality`
+- Has inconsistent command patterns across jobs
+
+**Scripts Directory:**
+- Contains standalone scripts that duplicate Makefile functionality
+- `quality_check.sh` - duplicates `make quality` logic but without `uv run` prefix
+- `setup_dev.sh` - duplicates `make setup` logic
+- `validate_config.py` - different from `make validate` logic
+
+### CI Workflow Jobs Alignment
+
+#### Test Job
+- **Current**: Custom pytest commands with coverage
+- **Target**: Use `make test-cov` or `make ci-test`
+- **Interface**: Makefile targets that handle test execution and coverage reporting
+
+#### Quality Job  
+- **Current**: Individual ruff, mypy, bandit, pip-audit commands
+- **Target**: Use `make ci-quality` or `make quality`
+- **Interface**: Single Makefile target that runs all quality checks
+
+#### Integration Job
+- **Current**: Custom test commands and direct script calls
+- **Target**: Use `make test-integration` and `make validate`
+- **Interface**: Makefile targets for integration testing and validation
+
+#### Build Job
+- **Current**: Direct `uv build` command
+- **Target**: Use `make build`
+- **Interface**: Makefile target that handles package building
+
+### Dependency Installation Standardization
+
+#### Installation Strategy
+- **Current**: `uv pip install -e ".[dev]"`
+- **Target**: `make install-dev`
+- **Rationale**: Ensures consistent dependency resolution and virtual environment setup
+
+### Makefile Enhancements
+
+#### CI-Specific Targets
+The Makefile already has some CI-specific targets that should be utilized:
+- `ci-test`: Optimized test execution for CI (fail-fast, short output)
+- `ci-quality`: Quality checks optimized for CI environment
+- `pre-commit`: Comprehensive pre-commit validation
+
+#### Missing Targets
+New targets may need to be added:
+- `ci-setup`: CI-specific setup that ensures proper environment
+- `ci-validate`: CI-specific validation that may include additional checks
+
+### Error Handling for CI Alignment
+
+#### CI Failure Scenarios
+1. **Makefile Target Failure**: CI job should fail with the same exit code as the Makefile target
+2. **Missing Dependencies**: `make install-dev` should handle dependency installation errors
+3. **Environment Issues**: CI should use the same environment setup as local development
+
+#### Error Propagation
+- Makefile targets must preserve exit codes from underlying commands
+- CI workflow should not add additional error handling that masks Makefile errors
+- Error messages should be identical between local and CI execution
+
+### Implementation Strategy
+
+#### Phase 1: Makefile Audit and Enhancement
+1. Review existing Makefile targets for CI compatibility
+2. Add missing CI-specific targets if needed
+3. Ensure all targets work with CI environment constraints
+4. Test Makefile targets in CI-like environment locally
+
+#### Phase 2: CI Workflow Update
+1. Update dependency installation to use `make install-dev`
+2. Replace individual commands with appropriate Makefile targets
+3. Update validation steps to use `make validate`
+4. Ensure environment variables are properly passed to Makefile
+
+#### Phase 3: Scripts Integration Decision
+1. Evaluate whether scripts should be integrated into Makefile or removed
+2. Update documentation to clarify script vs Makefile usage
+3. Ensure no CI workflow depends on scripts that duplicate Makefile functionality
+
+#### Phase 4: Validation and Testing
+1. Test updated CI workflow in feature branch
+2. Verify local development workflow remains unchanged
+3. Confirm error handling and exit codes are preserved
+4. Update documentation with new CI workflow patterns

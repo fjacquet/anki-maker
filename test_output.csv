@@ -1,0 +1,5 @@
+Question,Answer,Card Type,Source File
+What is the purpose of this document?,This document is for creating flashcards.,qa,/var/folders/yf/l79_wd8x54702k3vntd015l80000gn/T/tmpvt3xxmwy.txt
+This is a {{c1::test document}} for creating flashcards.,test document,cloze,/var/folders/yf/l79_wd8x54702k3vntd015l80000gn/T/tmpvt3xxmwy.txt
+This is a test document for {{c1::creating flashcards}}.,creating flashcards,cloze,/var/folders/yf/l79_wd8x54702k3vntd015l80000gn/T/tmpvt3xxmwy.txt
+What type of document is this?,A test document.,qa,/var/folders/yf/l79_wd8x54702k3vntd015l80000gn/T/tmpvt3xxmwy.txt

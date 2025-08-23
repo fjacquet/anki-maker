@@ -87,9 +87,9 @@ class TestFileHandler:
             mock_stat_result.st_size = FileHandler.MAX_FILE_SIZE + 1
             mock_stat_result.st_mode = stat.S_IFREG | 0o644  # Regular file mode
 
-            with mocker.patch("pathlib.Path.stat", return_value=mock_stat_result):
-                with pytest.raises(FileHandlingError, match="File too large"):
-                    self.file_handler.validate_file_type(large_file)
+            mocker.patch("pathlib.Path.stat", return_value=mock_stat_result)
+            with pytest.raises(FileHandlingError, match="File too large"):
+                self.file_handler.validate_file_type(large_file)
 
     def test_process_zip_archive_valid(self):
         """Test processing a valid ZIP archive."""
