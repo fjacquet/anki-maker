@@ -36,8 +36,7 @@ jobs:
       run: make install-dev
     
     - name: Run tests
-      run: |
-        uv run test-cov
+      run: make test-cov
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         MOCK_LLM_RESPONSES: true
@@ -68,25 +67,8 @@ jobs:
     - name: Install dependencies
       run: make install-dev
     
-    - name: Run linting
-      run: |
-        uv run lint
-    
-    - name: Check formatting
-      run: |
-        uv run ruff format --check
-    
-    - name: Type checking
-      run: |
-        uv run type-check
-    
-    - name: Security check
-      run: |
-        uv run security
-    
-    - name: Dependency audit
-      run: |
-        uv run audit
+    - name: Run quality checks
+      run: make ci-quality
 
   integration:
     name: Integration Tests
@@ -115,15 +97,13 @@ jobs:
         echo "# Markdown Test\n\nThis is a test document." > test_documents/sample.md
     
     - name: Test CLI integration
-      run: |
-        uv run test-integration
+      run: make ci-test-integration
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         MOCK_LLM_RESPONSES: true
     
     - name: Test configuration validation
-      run: |
-        python scripts/validate_config.py
+      run: make validate
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
@@ -148,8 +128,7 @@ jobs:
       run: make install-dev
     
     - name: Build package
-      run: |
-        uv run build
+      run: make ci-build
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
@@ -201,13 +180,8 @@ jobs:
       run: make install-dev
     
     - name: Build package
-      run: |
-        uv run build
-    
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      run: make ci-build
+  
 
   docker:
     name: Build Docker Image

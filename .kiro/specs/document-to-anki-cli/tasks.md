@@ -229,32 +229,32 @@
   - Test that dependency installation is consistent between local and CI
   - _Requirements: Dependency management consistency_
 
-- [ ] 26. Update CI workflow test execution
+- [x] 26. Update CI workflow test execution
   - Replace custom pytest commands with `make ci-test` in test job
   - Replace coverage commands with `make test-cov` where appropriate
   - Ensure test results and coverage reports are generated correctly
   - Verify that test failures propagate properly through Makefile
   - _Requirements: Test execution consistency_
 
-- [ ] 27. Update CI workflow quality checks
+- [x] 27. Update CI workflow quality checks
   - Replace individual ruff, mypy, bandit commands with `make ci-quality`
   - Ensure all quality check outputs are preserved for CI reporting
   - Test that quality check failures fail the CI job appropriately
   - _Requirements: Quality assurance consistency_
 
-- [ ] 28. Update CI workflow validation steps
+- [x] 28. Update CI workflow validation steps
   - Replace `python scripts/validate_config.py` with `make validate`
   - Ensure configuration validation works with CI environment variables
   - Test that validation failures are properly reported
   - _Requirements: Configuration validation consistency_
 
-- [ ] 29. Update CI workflow build process
+- [x] 29. Update CI workflow build process
   - Replace direct `uv build` command with `make build`
   - Ensure build artifacts are created correctly through Makefile
   - Test that build process works identically to direct commands
   - _Requirements: Build process consistency_
 
-- [ ] 30. Update integration test job
+- [x] 30. Update integration test job
   - Replace custom integration test commands with `make test-integration`
   - Ensure integration tests run properly through Makefile
   - Verify that integration test results are reported correctly

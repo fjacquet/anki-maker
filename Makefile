@@ -66,6 +66,18 @@ test-fast: check-env ## Run tests with fail-fast
 test-integration: check-env ## Run integration tests only
 	uv run pytest -m integration
 
+test-integration-cov: check-env ## Run integration tests with coverage report
+	uv run pytest -m integration --cov=src/document_to_anki --cov-report=html --cov-report=term --cov-report=xml
+
+ci-test-integration: check-env ## Run integration tests in CI environment
+	@echo "Running integration tests in CI mode..."
+	@set -e; \
+	uv run pytest -m integration --tb=short --maxfail=1 --no-header --quiet || { \
+		echo "ERROR: Integration tests failed in CI environment"; \
+		exit 1; \
+	}; \
+	echo "CI integration tests completed successfully"
+
 # Code Quality
 lint: ## Run linting checks
 	uv run ruff format    
@@ -124,8 +136,7 @@ setup: ## Set up development environment
 
 validate: check-env ## Validate configuration
 	@echo "Validating configuration..."
-	uv run python -c "from document_to_anki.config import Settings; Settings()"
-	@echo "Configuration validation completed"
+	uv run python scripts/validate_config.py
 
 run-cli: ## Run CLI in development mode
 	uv run document-to-anki
@@ -252,7 +263,7 @@ ci-install: ci-setup ## Alias for ci-setup (for CI workflow compatibility)
 ci-validate: check-env ## Validate configuration in CI environment
 	@echo "Validating configuration in CI mode..."
 	@set -e; \
-	uv run python -c "from document_to_anki.config import Settings; Settings()" || { \
+	uv run python scripts/validate_config.py || { \
 		echo "ERROR: Configuration validation failed"; \
 		echo "This may indicate missing environment variables or configuration issues"; \
 		exit 1; \
