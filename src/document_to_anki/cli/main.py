@@ -48,12 +48,42 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from ..config import ConfigurationError, ModelConfig
+from ..config import ConfigurationError, LanguageConfig, LanguageValidationError, ModelConfig
 from ..core.document_processor import DocumentProcessingError, DocumentProcessor
 from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
 
 
 # Configure loguru logger
+def _show_language_help(console: Console) -> None:
+    """Display comprehensive language configuration help."""
+    console.print("\n[bold blue]📚 Language Configuration Help[/bold blue]")
+    console.print("┌─────────────────────────────────────────────────────────────┐")
+    console.print("│ Set the CARDLANG environment variable to control the        │")
+    console.print("│ language of generated flashcard content.                    │")
+    console.print("└─────────────────────────────────────────────────────────────┘")
+
+    console.print("\n[bold]Supported Languages:[/bold]")
+    supported_languages = LanguageConfig.get_supported_languages_list()
+    for lang in supported_languages:
+        console.print(f"  • {lang}")
+
+    console.print("\n[bold]Usage Examples:[/bold]")
+    console.print("  export CARDLANG=english && document-to-anki input.pdf")
+    console.print("  export CARDLANG=fr && document-to-anki input.pdf")
+    console.print("  CARDLANG=italian document-to-anki batch-convert *.pdf")
+
+    console.print("\n[bold]Configuration Methods:[/bold]")
+    console.print("  1. Environment variable: export CARDLANG=french")
+    console.print("  2. .env file: Add CARDLANG=french to your .env file")
+    console.print("  3. Inline: CARDLANG=french document-to-anki input.pdf")
+
+    console.print("\n[bold]Notes:[/bold]")
+    console.print("  • Default language is English if CARDLANG is not set")
+    console.print("  • Both full names (english) and codes (en) are supported")
+    console.print("  • Language affects flashcard content, not CLI interface")
+    console.print("  • Case-insensitive: 'English', 'ENGLISH', 'english' all work")
+
+
 def setup_logging(verbose: bool = False) -> None:
     """
     Configure loguru logging based on verbosity level.
@@ -136,6 +166,34 @@ class CLIContext:
             self.console.print("export GEMINI_API_KEY=your_api_key_here")
             raise
 
+        # Validate language configuration early
+        try:
+            from ..config import settings
+
+            language_info = settings.get_language_info()
+            logger.info(f"Using language: {language_info.name} ({language_info.code})")
+        except (LanguageValidationError, ValueError) as e:
+            self.console.print(f"[red]❌ Language Configuration Error:[/red] {e}")
+            self.console.print("\n[yellow]💡 How to fix this:[/yellow]")
+
+            supported_languages = LanguageConfig.get_supported_languages_list()
+            self.console.print("• Set CARDLANG environment variable to a supported language:")
+            for lang in supported_languages:
+                self.console.print(f"  - {lang}")
+
+            self.console.print("\n[yellow]Examples:[/yellow]")
+            self.console.print("export CARDLANG=english     # English flashcards (default)")
+            self.console.print("export CARDLANG=fr          # French flashcards")
+            self.console.print("export CARDLANG=italian     # Italian flashcards")
+            self.console.print("export CARDLANG=de          # German flashcards")
+
+            self.console.print("\n[yellow]💡 Note:[/yellow]")
+            self.console.print("• Language affects flashcard content, not the CLI interface")
+            self.console.print("• If CARDLANG is not set, English is used by default")
+            self.console.print("• Both full names and ISO codes are supported")
+            self.console.print("• Run 'document-to-anki language-help' for detailed configuration help")
+            raise
+
         self.document_processor = DocumentProcessor()
         self.flashcard_generator = FlashcardGenerator()
 
@@ -149,6 +207,15 @@ def main(ctx: click.Context, verbose: bool, version: bool) -> None:
     Document to Anki CLI - Convert documents into Anki flashcards using AI.
 
     Supports PDF, DOCX, TXT, and MD files. Can process single files, folders, or ZIP archives.
+
+    LANGUAGE CONFIGURATION:
+    Set the CARDLANG environment variable to control flashcard language:
+    • English: CARDLANG=english or CARDLANG=en (default)
+    • French: CARDLANG=french or CARDLANG=fr
+    • Italian: CARDLANG=italian or CARDLANG=it
+    • German: CARDLANG=german or CARDLANG=de
+
+    Example: export CARDLANG=french && document-to-anki input.pdf
     """
     if version:
         click.echo("Document to Anki CLI v0.1.0")
@@ -184,6 +251,16 @@ def convert(cli_ctx: CLIContext, input_path: Path, output: Path | None, no_previ
 
     INPUT_PATH can be a single file, folder, or ZIP archive containing documents.
     Supported formats: PDF, DOCX, TXT, MD
+
+    LANGUAGE CONFIGURATION:
+    Flashcards are generated in the language specified by the CARDLANG environment variable.
+    Supported languages: English (en), French (fr), Italian (it), German (de)
+    Default: English if CARDLANG is not set
+
+    Examples:
+      document-to-anki input.pdf                    # English (default)
+      CARDLANG=french document-to-anki input.pdf    # French flashcards
+      CARDLANG=de document-to-anki input.pdf        # German flashcards
     """
     console = cli_ctx.console
 
@@ -303,6 +380,15 @@ def convert(cli_ctx: CLIContext, input_path: Path, output: Path | None, no_previ
                 console.print(f"[green]✓[/green] Generated {generation_result.flashcard_count} flashcards")
                 console.print(f"[green]✓[/green] Processing time: {generation_result.processing_time:.1f}s")
 
+                # Show language information
+                try:
+                    from ..config import settings
+
+                    language_info = settings.get_language_info()
+                    console.print(f"[green]✓[/green] Language: {language_info.name} ({language_info.code})")
+                except Exception:
+                    console.print("[yellow]⚠️[/yellow] Language configuration may be invalid")
+
                 if generation_result.warnings:
                     console.print("[yellow]Warnings:[/yellow]")
                     for warning in generation_result.warnings:
@@ -328,6 +414,22 @@ def convert(cli_ctx: CLIContext, input_path: Path, output: Path | None, no_previ
                     console.print("• [bold]Network issue detected:[/bold] Check internet connectivity")
                 elif "content" in str(e).lower() or "text" in str(e).lower():
                     console.print("• [bold]Content issue detected:[/bold] Ensure documents have readable text")
+                elif "language" in str(e).lower():
+                    console.print("• [bold]Language issue detected:[/bold] Check CARDLANG configuration")
+                    console.print("• Run 'document-to-anki language-help' for language setup guidance")
+
+                # Show current language configuration
+                try:
+                    from ..config import settings
+
+                    language_info = settings.get_language_info()
+                    console.print(
+                        f"\n[blue]ℹ️  Current language setting:[/blue] {language_info.name} ({language_info.code})"
+                    )
+                    console.print("[dim]Use 'document-to-anki language-help' to change language settings[/dim]")
+                except Exception:
+                    console.print("\n[yellow]⚠️  Language configuration may be invalid[/yellow]")
+                    console.print("[dim]Run 'document-to-anki language-help' for setup guidance[/dim]")
 
                 sys.exit(1)
 
@@ -410,7 +512,18 @@ def convert(cli_ctx: CLIContext, input_path: Path, output: Path | None, no_previ
                     console.print(f"  • File size: {size_str}")
 
                 console.print("\n[bold green]🎉 Conversion completed successfully![/bold green]")
-                console.print("[dim]Import the CSV file into Anki to start studying.[/dim]")
+
+                # Show language information in success message
+                try:
+                    from ..config import settings
+
+                    language_info = settings.get_language_info()
+                    console.print(
+                        f"[dim]Flashcards generated in {language_info.name}. "
+                        f"Import the CSV file into Anki to start studying.[/dim]"
+                    )
+                except Exception:
+                    console.print("[dim]Import the CSV file into Anki to start studying.[/dim]")
 
                 # Show next steps
                 console.print("\n[bold]Next steps:[/bold]")
@@ -419,6 +532,12 @@ def convert(cli_ctx: CLIContext, input_path: Path, output: Path | None, no_previ
                 console.print(f"3. Select the exported file: {output}")
                 console.print("4. Choose your deck and import settings")
                 console.print("5. Start studying!")
+
+                # Add language configuration tip
+                console.print("\n[bold]💡 Language Tip:[/bold]")
+                console.print("To generate flashcards in a different language next time:")
+                console.print("• Run 'document-to-anki language-help' for configuration options")
+                console.print("• Set CARDLANG environment variable (e.g., CARDLANG=french)")
 
             else:
                 console.print("[red]❌ Export failed:[/red]")
@@ -514,6 +633,13 @@ def batch_convert(cli_ctx: CLIContext, input_paths: tuple[Path, ...], output_dir
 
     INPUT_PATHS can be multiple files, folders, or ZIP archives.
     Each input will generate a separate CSV file.
+
+    LANGUAGE CONFIGURATION:
+    All flashcards are generated in the language specified by CARDLANG environment variable.
+    Supported: English (en), French (fr), Italian (it), German (de)
+
+    Example:
+      CARDLANG=italian document-to-anki batch-convert *.pdf --output-dir ./cards/
     """
     console = cli_ctx.console
 
@@ -575,6 +701,18 @@ def batch_convert(cli_ctx: CLIContext, input_paths: tuple[Path, ...], output_dir
 
     if failed_conversions > 0:
         sys.exit(1)
+
+
+@main.command()
+@click.pass_obj
+def language_help(cli_ctx: CLIContext) -> None:
+    """
+    Show detailed language configuration help and examples.
+
+    Displays supported languages, configuration methods, and usage examples
+    for setting up flashcard generation in different languages.
+    """
+    _show_language_help(cli_ctx.console)
 
 
 def _process_single_input(cli_ctx: CLIContext, input_path: Path, output_path: Path, console: Console) -> bool:

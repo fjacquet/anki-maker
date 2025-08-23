@@ -1,8 +1,8 @@
 """Tests for ModelConfig class."""
 
 import os
-from unittest.mock import patch
 
+# pytest-mock provides the mocker fixture
 import pytest
 
 from src.document_to_anki.config import ConfigurationError, ModelConfig
@@ -11,18 +11,18 @@ from src.document_to_anki.config import ConfigurationError, ModelConfig
 class TestModelConfig:
     """Test cases for ModelConfig class."""
 
-    def test_get_model_from_env_with_env_var(self):
+    def test_get_model_from_env_with_env_var(self, mocker):
         """Test getting model from environment variable."""
-        with patch.dict(os.environ, {"MODEL": "openai/gpt-4"}):
-            model = ModelConfig.get_model_from_env()
-            assert model == "openai/gpt-4"
+        mocker.patch.dict(os.environ, {"MODEL": "openai/gpt-4"})
+        model = ModelConfig.get_model_from_env()
+        assert model == "openai/gpt-4"
 
-    def test_get_model_from_env_default(self):
+    def test_get_model_from_env_default(self, mocker):
         """Test getting default model when env var not set."""
-        with patch.dict(os.environ, {}, clear=True):
-            model = ModelConfig.get_model_from_env()
-            assert model == ModelConfig.DEFAULT_MODEL
-            assert model == "gemini/gemini-2.5-flash"
+        mocker.patch.dict(os.environ, {}, clear=True)
+        model = ModelConfig.get_model_from_env()
+        assert model == ModelConfig.DEFAULT_MODEL
+        assert model == "gemini/gemini-2.5-flash"
 
     def test_get_supported_models(self):
         """Test getting list of supported models."""
@@ -43,17 +43,17 @@ class TestModelConfig:
         assert set(models) == set(expected_models)
         assert len(models) == 11
 
-    def test_validate_model_config_valid_with_api_key(self):
+    def test_validate_model_config_valid_with_api_key(self, mocker):
         """Test validation with valid model and API key."""
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}):
-            result = ModelConfig.validate_model_config("gemini/gemini-2.5-flash")
-            assert result is True
+        mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"})
+        result = ModelConfig.validate_model_config("gemini/gemini-2.5-flash")
+        assert result is True
 
-    def test_validate_model_config_valid_without_api_key(self):
+    def test_validate_model_config_valid_without_api_key(self, mocker):
         """Test validation with valid model but missing API key."""
-        with patch.dict(os.environ, {}, clear=True):
-            result = ModelConfig.validate_model_config("gemini/gemini-2.5-flash")
-            assert result is False
+        mocker.patch.dict(os.environ, {}, clear=True)
+        result = ModelConfig.validate_model_config("gemini/gemini-2.5-flash")
+        assert result is False
 
     def test_validate_model_config_invalid_model(self):
         """Test validation with invalid model."""
@@ -73,48 +73,48 @@ class TestModelConfig:
         api_key = ModelConfig.get_required_api_key("invalid/model")
         assert api_key is None
 
-    def test_validate_and_get_model_success(self):
+    def test_validate_and_get_model_success(self, mocker):
         """Test successful model validation and retrieval."""
-        with patch.dict(os.environ, {"MODEL": "gemini/gemini-2.5-flash", "GEMINI_API_KEY": "test-key"}):
-            model = ModelConfig.validate_and_get_model()
-            assert model == "gemini/gemini-2.5-flash"
+        mocker.patch.dict(os.environ, {"MODEL": "gemini/gemini-2.5-flash", "GEMINI_API_KEY": "test-key"})
+        model = ModelConfig.validate_and_get_model()
+        assert model == "gemini/gemini-2.5-flash"
 
-    def test_validate_and_get_model_unsupported_model(self):
+    def test_validate_and_get_model_unsupported_model(self, mocker):
         """Test validation failure with unsupported model."""
-        with patch.dict(os.environ, {"MODEL": "invalid/model"}):
-            with pytest.raises(ConfigurationError) as exc_info:
-                ModelConfig.validate_and_get_model()
+        mocker.patch.dict(os.environ, {"MODEL": "invalid/model"})
+        with pytest.raises(ConfigurationError) as exc_info:
+            ModelConfig.validate_and_get_model()
 
-            error_msg = str(exc_info.value)
-            assert "Unsupported model 'invalid/model'" in error_msg
-            assert "gemini/gemini-2.5-flash" in error_msg
-            assert "openai/gpt-4" in error_msg
+        error_msg = str(exc_info.value)
+        assert "Unsupported model 'invalid/model'" in error_msg
+        assert "gemini/gemini-2.5-flash" in error_msg
+        assert "openai/gpt-4" in error_msg
 
-    def test_validate_and_get_model_missing_api_key(self):
+    def test_validate_and_get_model_missing_api_key(self, mocker):
         """Test validation failure with missing API key."""
-        with patch.dict(os.environ, {"MODEL": "gemini/gemini-2.5-flash"}, clear=True):
-            with pytest.raises(ConfigurationError) as exc_info:
-                ModelConfig.validate_and_get_model()
+        mocker.patch.dict(os.environ, {"MODEL": "gemini/gemini-2.5-flash"}, clear=True)
+        with pytest.raises(ConfigurationError) as exc_info:
+            ModelConfig.validate_and_get_model()
 
-            error_msg = str(exc_info.value)
-            assert "Missing API key for model 'gemini/gemini-2.5-flash'" in error_msg
-            assert "GEMINI_API_KEY" in error_msg
+        error_msg = str(exc_info.value)
+        assert "Missing API key for model 'gemini/gemini-2.5-flash'" in error_msg
+        assert "GEMINI_API_KEY" in error_msg
 
-    def test_validate_and_get_model_default_with_api_key(self):
+    def test_validate_and_get_model_default_with_api_key(self, mocker):
         """Test validation with default model and API key."""
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True):
-            # Clear MODEL env var to use default
-            if "MODEL" in os.environ:
-                del os.environ["MODEL"]
+        mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True)
+        # Clear MODEL env var to use default
+        if "MODEL" in os.environ:
+            del os.environ["MODEL"]
 
-            model = ModelConfig.validate_and_get_model()
-            assert model == "gemini/gemini-2.5-flash"
+        model = ModelConfig.validate_and_get_model()
+        assert model == "gemini/gemini-2.5-flash"
 
-    def test_openai_model_validation(self):
+    def test_openai_model_validation(self, mocker):
         """Test validation for OpenAI models."""
-        with patch.dict(os.environ, {"MODEL": "openai/gpt-4", "OPENAI_API_KEY": "test-openai-key"}):
-            model = ModelConfig.validate_and_get_model()
-            assert model == "openai/gpt-4"
+        mocker.patch.dict(os.environ, {"MODEL": "openai/gpt-4", "OPENAI_API_KEY": "test-openai-key"})
+        model = ModelConfig.validate_and_get_model()
+        assert model == "openai/gpt-4"
 
     def test_supported_models_constant(self):
         """Test that SUPPORTED_MODELS constant has expected structure."""

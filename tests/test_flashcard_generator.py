@@ -2,8 +2,8 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
+# pytest-mock provides the mocker fixture
 import pytest
 
 from src.document_to_anki.core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
@@ -28,14 +28,14 @@ class TestFlashcardGenerator:
     @pytest.fixture
     def generator_with_config_mock(self, mocker):
         """Create a FlashcardGenerator with ModelConfig mocked."""
-        with patch("src.document_to_anki.core.flashcard_generator.LLMClient") as mock_llm_class:
-            mock_llm_instance = mocker.Mock(spec=LLMClient)
-            mock_llm_instance.get_current_model.return_value = "gemini/gemini-2.5-flash"
-            mock_llm_class.return_value = mock_llm_instance
+        mock_llm_class = mocker.patch("src.document_to_anki.core.flashcard_generator.LLMClient")
+        mock_llm_instance = mocker.Mock(spec=LLMClient)
+        mock_llm_instance.get_current_model.return_value = "gemini/gemini-2.5-flash"
+        mock_llm_class.return_value = mock_llm_instance
 
-            generator = FlashcardGenerator()
-            generator.llm_client = mock_llm_instance
-            return generator
+        generator = FlashcardGenerator()
+        generator.llm_client = mock_llm_instance
+        return generator
 
     @pytest.fixture
     def sample_flashcard_data(self):

@@ -1,6 +1,7 @@
 """Configuration management for Document to Anki CLI application."""
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 from pydantic import Field, field_validator
@@ -11,6 +12,170 @@ class ConfigurationError(Exception):
     """Exception raised for model configuration issues."""
 
     pass
+
+
+class LanguageValidationError(Exception):
+    """Exception raised for language configuration issues."""
+
+    def __init__(self, language: str, supported_languages: list[str]):
+        self.language = language
+        self.supported_languages = supported_languages
+        super().__init__(f"Unsupported language '{language}'. Supported languages: {', '.join(supported_languages)}")
+
+
+@dataclass
+class LanguageInfo:
+    """Language information structure."""
+
+    code: str  # ISO 639-1 code (e.g., "en", "fr")
+    name: str  # Display name (e.g., "English", "French")
+    prompt_key: str  # Internal key for prompt templates
+
+
+class LanguageConfig:
+    """Handles language configuration and validation."""
+
+    SUPPORTED_LANGUAGES: dict[str, dict[str, str]] = {
+        "english": {"code": "en", "name": "English", "prompt_key": "english"},
+        "en": {"code": "en", "name": "English", "prompt_key": "english"},
+        "french": {"code": "fr", "name": "French", "prompt_key": "french"},
+        "fr": {"code": "fr", "name": "French", "prompt_key": "french"},
+        "italian": {"code": "it", "name": "Italian", "prompt_key": "italian"},
+        "it": {"code": "it", "name": "Italian", "prompt_key": "italian"},
+        "german": {"code": "de", "name": "German", "prompt_key": "german"},
+        "de": {"code": "de", "name": "German", "prompt_key": "german"},
+    }
+
+    DEFAULT_LANGUAGE = "english"
+
+    @classmethod
+    def normalize_language(cls, language: str) -> str:
+        """Normalize language input to standard format.
+
+        Args:
+            language: Language code or name to normalize
+
+        Returns:
+            Normalized language key (lowercase)
+
+        Raises:
+            LanguageValidationError: If language is not supported
+        """
+        if not language:
+            return cls.DEFAULT_LANGUAGE
+
+        normalized = language.lower().strip()
+
+        if normalized not in cls.SUPPORTED_LANGUAGES:
+            raise LanguageValidationError(language, cls.get_supported_languages_list())
+
+        return normalized
+
+    @classmethod
+    def validate_language(cls, language: str) -> bool:
+        """Validate if language is supported.
+
+        Args:
+            language: Language code or name to validate
+
+        Returns:
+            True if language is supported, False otherwise
+        """
+        if not language:
+            return True  # Empty language defaults to English
+
+        normalized = language.lower().strip()
+        return normalized in cls.SUPPORTED_LANGUAGES
+
+    @classmethod
+    def get_language_name(cls, language: str) -> str:
+        """Get display name for language.
+
+        Args:
+            language: Language code or name
+
+        Returns:
+            Display name of the language
+
+        Raises:
+            LanguageValidationError: If language is not supported
+        """
+        normalized = cls.normalize_language(language)
+        return cls.SUPPORTED_LANGUAGES[normalized]["name"]
+
+    @classmethod
+    def get_language_code(cls, language: str) -> str:
+        """Get ISO 639-1 code for language.
+
+        Args:
+            language: Language code or name
+
+        Returns:
+            ISO 639-1 language code
+
+        Raises:
+            LanguageValidationError: If language is not supported
+        """
+        normalized = cls.normalize_language(language)
+        return cls.SUPPORTED_LANGUAGES[normalized]["code"]
+
+    @classmethod
+    def get_prompt_key(cls, language: str) -> str:
+        """Get prompt template key for language.
+
+        Args:
+            language: Language code or name
+
+        Returns:
+            Prompt template key for the language
+
+        Raises:
+            LanguageValidationError: If language is not supported
+        """
+        normalized = cls.normalize_language(language)
+        return cls.SUPPORTED_LANGUAGES[normalized]["prompt_key"]
+
+    @classmethod
+    def get_language_info(cls, language: str) -> LanguageInfo:
+        """Get structured language information.
+
+        Args:
+            language: Language code or name
+
+        Returns:
+            LanguageInfo object with code, name, and prompt_key
+
+        Raises:
+            LanguageValidationError: If language is not supported
+        """
+        normalized = cls.normalize_language(language)
+        lang_data = cls.SUPPORTED_LANGUAGES[normalized]
+        return LanguageInfo(code=lang_data["code"], name=lang_data["name"], prompt_key=lang_data["prompt_key"])
+
+    @classmethod
+    def get_supported_languages_list(cls) -> list[str]:
+        """Get list of supported language codes and names.
+
+        Returns:
+            List of supported language identifiers
+        """
+        # Return unique language names and codes
+        seen = set()
+        languages = []
+        for lang_data in cls.SUPPORTED_LANGUAGES.values():
+            if lang_data["name"] not in seen:
+                languages.append(f"{lang_data['name']} ({lang_data['code']})")
+                seen.add(lang_data["name"])
+        return sorted(languages)
+
+    @classmethod
+    def get_all_language_keys(cls) -> list[str]:
+        """Get all supported language keys (including aliases).
+
+        Returns:
+            List of all supported language keys
+        """
+        return list(cls.SUPPORTED_LANGUAGES.keys())
 
 
 class ModelConfig:
@@ -87,6 +252,9 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = Field(None, alias="GEMINI_API_KEY")
     openai_api_key: str | None = Field(None, alias="OPENAI_API_KEY")
     model: str = Field("gemini/gemini-2.5-flash", alias="MODEL")
+
+    # Language Configuration
+    cardlang: str = Field("english", alias="CARDLANG")
 
     # Application Settings
     log_level: str = Field("INFO", alias="LOG_LEVEL")
@@ -165,6 +333,18 @@ class Settings(BaseSettings):
             raise ValueError("Model must be in format 'provider/model-name'")
         return v
 
+    @field_validator("cardlang")
+    @classmethod
+    def validate_cardlang(cls, v: str) -> str:
+        """Validate and normalize language configuration."""
+        if not v or not v.strip():
+            return LanguageConfig.DEFAULT_LANGUAGE  # Default fallback to English
+
+        try:
+            return LanguageConfig.normalize_language(v)
+        except LanguageValidationError as e:
+            raise ValueError(str(e)) from e
+
     def get_api_key(self) -> str | None:
         """Get the appropriate API key based on the model."""
         if self.model.startswith("gemini/"):
@@ -194,6 +374,38 @@ class Settings(BaseSettings):
     def memory_limit_bytes(self) -> int:
         """Get memory limit in bytes."""
         return self.memory_limit_mb * 1024 * 1024
+
+    def get_language_info(self) -> LanguageInfo:
+        """Get structured language information.
+
+        Returns:
+            LanguageInfo object with code, name, and prompt_key for the configured language
+        """
+        return LanguageConfig.get_language_info(self.cardlang)
+
+    def get_language_name(self) -> str:
+        """Get display name for the configured language.
+
+        Returns:
+            Display name of the configured language
+        """
+        return LanguageConfig.get_language_name(self.cardlang)
+
+    def get_language_code(self) -> str:
+        """Get ISO 639-1 code for the configured language.
+
+        Returns:
+            ISO 639-1 language code for the configured language
+        """
+        return LanguageConfig.get_language_code(self.cardlang)
+
+    def get_prompt_key(self) -> str:
+        """Get prompt template key for the configured language.
+
+        Returns:
+            Prompt template key for the configured language
+        """
+        return LanguageConfig.get_prompt_key(self.cardlang)
 
 
 # Global settings instance

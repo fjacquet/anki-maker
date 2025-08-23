@@ -5,8 +5,8 @@ Tests the complete web API workflow from file upload to CSV export.
 """
 
 import asyncio
-from unittest.mock import patch
 
+# pytest-mock provides the mocker fixture
 import pytest
 from fastapi.testclient import TestClient
 
@@ -21,14 +21,14 @@ class TestWebIntegration:
     @pytest.fixture(autouse=True)
     def mock_model_config(self, mocker):
         """Mock ModelConfig for all web tests."""
-        with patch("src.document_to_anki.web.app.ModelConfig") as mock_config:
-            mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
-            mock_config.get_model_from_env.return_value = "gemini/gemini-2.5-flash"
-            mock_config.validate_model_config.return_value = True
-            mock_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
-            mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash"]
-            mock_config.get_required_api_key.return_value = "GEMINI_API_KEY"
-            yield mock_config
+        mock_config = mocker.patch("src.document_to_anki.web.app.ModelConfig")
+        mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_config.get_model_from_env.return_value = "gemini/gemini-2.5-flash"
+        mock_config.validate_model_config.return_value = True
+        mock_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
+        mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash"]
+        mock_config.get_required_api_key.return_value = "GEMINI_API_KEY"
+        return mock_config
 
     @pytest.fixture(autouse=True)
     def mock_llm_client(self, mocker):

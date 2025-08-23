@@ -194,3 +194,15 @@ rement 11
 2. WHEN the CI workflow needs validation THEN it SHALL use `make validate` instead of calling scripts directly
 3. WHEN quality checks are needed THEN the CI SHALL use `make quality` which properly integrates all quality tools
 4. IF scripts are kept THEN they SHALL be documented and their relationship to Makefile targets SHALL be clear
+
+### Requirement 17
+
+**User Story:** As a French-speaking user, I want the AI to generate flashcards in French, so that I can study content in my preferred language.
+
+#### Acceptance Criteria
+
+1. WHEN generating flashcards THEN the system SHALL create questions and answers in French language
+2. WHEN processing any document content THEN the system SHALL instruct the LLM to generate French flashcards regardless of the source document language
+3. WHEN creating question-answer pairs THEN the system SHALL ensure proper French grammar and vocabulary usage
+4. WHEN creating cloze deletion cards THEN the system SHALL use appropriate French sentence structure and context
+5. WHEN the LLM generates responses THEN the system SHALL validate that the output is in French and request regeneration if not

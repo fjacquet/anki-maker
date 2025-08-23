@@ -279,3 +279,77 @@
   - Remove or update any outdated references to direct commands in CI
   - Add troubleshooting guide for CI-Makefile issues
   - _Requirements: Documentation and maintenance_
+
+## French Language Support Implementation
+
+- [ ] 34. Implement French language prompt engineering
+  - Create French-specific prompt templates in LLMClient for flashcard generation
+  - Update generate_flashcards_from_text() to use French prompts that explicitly instruct the LLM to generate French flashcards
+  - Implement get_french_prompt_template() method with carefully crafted French instructions
+  - Add prompt variations for different content types (academic, technical, general)
+  - Test prompts with various input languages to ensure French output
+  - _Requirements: 17.1, 17.2, 17.3, 17.4_
+
+- [ ] 35. Implement French language validation system
+  - Create FrenchLanguageValidator class with linguistic pattern detection
+  - Implement validate_french_content() method using regex patterns for French linguistic markers
+  - Implement validate_flashcard_french() method to check both questions and answers
+  - Add French grammar and vocabulary validation logic
+  - Create comprehensive test cases for French language detection
+  - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
+
+- [ ] 36. Implement French output regeneration mechanism
+  - Add validate_french_output() method to LLMClient for post-generation validation
+  - Implement regenerate_non_french_content() method with enhanced French prompts
+  - Add request_regeneration_if_needed() logic in FlashcardGenerator
+  - Implement retry logic with progressively stronger French emphasis
+  - Add logging and error handling for repeated regeneration failures
+  - _Requirements: 17.1, 17.2, 17.5_
+
+- [ ] 37. Update flashcard generation workflow for French
+  - Modify FlashcardGenerator.generate_flashcards() to include French language validation
+  - Implement validate_language_quality() method to check all generated flashcards
+  - Add regenerate_non_french_flashcards() method for batch regeneration
+  - Update the generation workflow to automatically validate and regenerate non-French content
+  - Add progress indicators for language validation and regeneration steps
+  - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
+
+- [ ] 38. Implement French cloze deletion support
+  - Create French-specific cloze deletion patterns that respect French grammar rules
+  - Implement create_french_cloze_cards() method with proper sentence structure handling
+  - Add gender agreement and verb conjugation awareness for cloze cards
+  - Test cloze deletion with various French sentence structures
+  - Ensure natural French flow in cloze deletion cards
+  - _Requirements: 17.3, 17.4_
+
+- [ ] 39. Add French language error handling
+  - Create LanguageError exception class for French language processing issues
+  - Add specific error messages for French validation failures
+  - Implement fallback mechanisms when French output cannot be achieved
+  - Add user feedback for language processing issues in both CLI and web interfaces
+  - Create troubleshooting guide for French language generation problems
+  - _Requirements: 17.5_
+
+- [ ] 40. Update CLI and web interfaces for French language feedback
+  - Add French language status indicators in CLI output
+  - Implement progress messages for French validation and regeneration in CLI
+  - Add French language validation status to web interface
+  - Update error messages to include French language processing information
+  - Add configuration option to disable French validation if needed (for testing)
+  - _Requirements: 17.1, 17.5_
+
+- [ ] 41. Implement comprehensive French language testing
+  - Create test_french_language_validation.py with comprehensive French detection tests
+  - Add test cases for various input languages (English, Spanish, etc.) with French output validation
+  - Create test_french_flashcard_generation.py for end-to-end French generation testing
+  - Add integration tests for French regeneration workflow
+  - Test edge cases like mixed-language content and technical terminology
+  - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
+
+- [ ] 42. Update documentation for French language support
+  - Document French language generation in README.md
+  - Add examples of French flashcard output
+  - Document the language validation and regeneration process
+  - Add troubleshooting guide for French language issues
+  - Update API documentation to reflect French language parameters
+  - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_

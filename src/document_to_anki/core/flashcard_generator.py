@@ -59,7 +59,9 @@ class FlashcardGenerator:
         """Get the current list of flashcards."""
         return self._flashcards.copy()
 
-    async def generate_flashcards_async(self, text_content: list[str], source_files: list[str] | None = None) -> ProcessingResult:
+    async def generate_flashcards_async(
+        self, text_content: list[str], source_files: list[str] | None = None
+    ) -> ProcessingResult:
         """
         Generate flashcards from text content using LLM (async version).
 
@@ -95,7 +97,9 @@ class FlashcardGenerator:
 
             try:
                 source_file = source_files[i] if source_files and i < len(source_files) else None
-                chunk_flashcards = await self._generate_flashcards_from_single_text_async(text, source_file, i + 1, warnings)
+                chunk_flashcards = await self._generate_flashcards_from_single_text_async(
+                    text, source_file, i + 1, warnings
+                )
                 all_flashcards.extend(chunk_flashcards)
 
             except Exception as e:

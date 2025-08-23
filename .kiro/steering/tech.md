@@ -32,7 +32,9 @@
 - `ruff>=0.1.0` - Linting and formatting
 - `mypy>=1.17.1` - Type checking
 - `bandit>=1.8.6` - Security scanning
-- `safety>=3.2.4` - Dependency auditing
+- pip-audit
+- pytest-mock - we must not use from unittest.mock 
+
 
 ## Build System
 

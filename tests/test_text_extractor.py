@@ -288,17 +288,17 @@ class TestTextExtractor:
         """Test PDF extraction with some malformed pages."""
         mock_reader_instance = mocker.MagicMock()
         mock_reader_instance.is_encrypted = False
-        
+
         # Create pages with mixed success/failure
         mock_page1 = mocker.MagicMock()
         mock_page1.extract_text.return_value = "Good page content"
-        
+
         mock_page2 = mocker.MagicMock()
         mock_page2.extract_text.side_effect = AttributeError("NullObject error")
-        
+
         mock_page3 = mocker.MagicMock()
         mock_page3.extract_text.return_value = "Another good page"
-        
+
         mock_reader_instance.pages = [mock_page1, mock_page2, mock_page3]
 
         mocker.patch("src.document_to_anki.utils.text_extractor.PdfReader", return_value=mock_reader_instance)
@@ -313,14 +313,14 @@ class TestTextExtractor:
         """Test PDF extraction when no text content is found."""
         mock_reader_instance = mocker.MagicMock()
         mock_reader_instance.is_encrypted = False
-        
+
         # Create pages with empty or whitespace-only content
         mock_page1 = mocker.MagicMock()
         mock_page1.extract_text.return_value = "   "  # Only whitespace
-        
+
         mock_page2 = mocker.MagicMock()
         mock_page2.extract_text.return_value = ""  # Empty
-        
+
         mock_reader_instance.pages = [mock_page1, mock_page2]
 
         mocker.patch("src.document_to_anki.utils.text_extractor.PdfReader", return_value=mock_reader_instance)
@@ -352,7 +352,7 @@ class TestTextExtractor:
         mock_page2 = mocker.MagicMock()
         mock_page2.extract_text.return_value = "Page 2 from pdfplumber"
         mock_pdf.pages = [mock_page1, mock_page2]
-        
+
         mock_pdfplumber = mocker.MagicMock()
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
         mocker.patch("src.document_to_anki.utils.text_extractor.pdfplumber", mock_pdfplumber)
@@ -368,7 +368,7 @@ class TestTextExtractor:
         """Test pdfplumber extraction when pdfplumber is not available."""
         # Mock HAS_PDFPLUMBER to False to simulate pdfplumber not being available
         mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PDFPLUMBER", False)
-        
+
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             with pytest.raises(TextExtractionError, match="pdfplumber is not available"):
                 self.extractor._extract_with_pdfplumber(Path(tmp.name))
@@ -379,12 +379,12 @@ class TestTextExtractor:
         """Test DOCX extraction including table content."""
         # Mock document with paragraphs and tables
         mock_doc = mocker.MagicMock()
-        
+
         # Mock paragraphs
         mock_paragraph = mocker.MagicMock()
         mock_paragraph.text = "Document paragraph"
         mock_doc.paragraphs = [mock_paragraph]
-        
+
         # Mock tables
         mock_cell1 = mocker.MagicMock()
         mock_cell1.text = "Cell 1"
@@ -392,12 +392,12 @@ class TestTextExtractor:
         mock_cell2.text = "Cell 2"
         mock_cell3 = mocker.MagicMock()
         mock_cell3.text = "  "  # Empty cell (whitespace only)
-        
+
         mock_row1 = mocker.MagicMock()
         mock_row1.cells = [mock_cell1, mock_cell2]
         mock_row2 = mocker.MagicMock()
         mock_row2.cells = [mock_cell3]  # Row with only empty cells
-        
+
         mock_table = mocker.MagicMock()
         mock_table.rows = [mock_row1, mock_row2]
         mock_doc.tables = [mock_table]
@@ -414,19 +414,20 @@ class TestTextExtractor:
         """Test text extraction with encoding fallback."""
         # Create a file with latin-1 encoding
         test_content = "Café résumé naïve"  # Contains non-ASCII characters
-        
+
         with tempfile.NamedTemporaryFile(mode="wb", suffix=".txt", delete=False) as tmp:
             # Write content in latin-1 encoding
-            tmp.write(test_content.encode('latin-1'))
+            tmp.write(test_content.encode("latin-1"))
             tmp.flush()
 
             # Mock the first encoding (utf-8) to fail
             original_open = open
+
             def mock_open(*args, **kwargs):
-                if 'encoding' in kwargs and kwargs['encoding'] == 'utf-8':
-                    raise UnicodeDecodeError('utf-8', b'', 0, 1, 'invalid start byte')
+                if "encoding" in kwargs and kwargs["encoding"] == "utf-8":
+                    raise UnicodeDecodeError("utf-8", b"", 0, 1, "invalid start byte")
                 return original_open(*args, **kwargs)
-            
+
             mocker.patch("builtins.open", side_effect=mock_open)
 
             result = self.extractor.extract_text_from_txt(Path(tmp.name))
@@ -438,7 +439,7 @@ class TestTextExtractor:
     def test_extract_text_from_txt_all_encodings_fail(self, mocker):
         """Test text extraction when all encodings fail."""
         # Mock open to always raise UnicodeDecodeError
-        mocker.patch("builtins.open", side_effect=UnicodeDecodeError('utf-8', b'', 0, 1, 'invalid start byte'))
+        mocker.patch("builtins.open", side_effect=UnicodeDecodeError("utf-8", b"", 0, 1, "invalid start byte"))
 
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
             with pytest.raises(TextExtractionError, match="Could not decode text file with any supported encoding"):
@@ -506,7 +507,7 @@ class TestTextExtractor:
         """Test pdfplumber extraction with no pages."""
         mock_pdf = mocker.MagicMock()
         mock_pdf.pages = []  # No pages
-        
+
         mock_pdfplumber = mocker.MagicMock()
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
         mocker.patch("src.document_to_anki.utils.text_extractor.pdfplumber", mock_pdfplumber)
@@ -526,14 +527,16 @@ class TestTextExtractor:
         mock_page2 = mocker.MagicMock()
         mock_page2.extract_text.return_value = ""  # Empty
         mock_pdf.pages = [mock_page1, mock_page2]
-        
+
         mock_pdfplumber = mocker.MagicMock()
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
         mocker.patch("src.document_to_anki.utils.text_extractor.pdfplumber", mock_pdfplumber)
         mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PDFPLUMBER", True)
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            with pytest.raises(TextExtractionError, match="No text content could be extracted from PDF using pdfplumber"):
+            with pytest.raises(
+                TextExtractionError, match="No text content could be extracted from PDF using pdfplumber"
+            ):
                 self.extractor._extract_with_pdfplumber(Path(tmp.name))
 
         Path(tmp.name).unlink()
@@ -548,7 +551,7 @@ class TestTextExtractor:
         mock_page3 = mocker.MagicMock()
         mock_page3.extract_text.return_value = "Another good page"
         mock_pdf.pages = [mock_page1, mock_page2, mock_page3]
-        
+
         mock_pdfplumber = mocker.MagicMock()
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
         mocker.patch("src.document_to_anki.utils.text_extractor.pdfplumber", mock_pdfplumber)

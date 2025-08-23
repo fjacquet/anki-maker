@@ -110,28 +110,33 @@ class DocumentProcessor:
 ```
 
 #### FlashcardGenerator
-Manages flashcard creation, editing, and export functionality.
+Manages flashcard creation, editing, and export functionality with French language validation and quality assurance.
 
 ```python
 class FlashcardGenerator:
-    def generate_flashcards(self, text_content: List[str]) -> List[Flashcard]
+    def generate_flashcards(self, text_content: List[str], target_language: str = "french") -> List[Flashcard]
     def preview_flashcards(self, flashcards: List[Flashcard]) -> None
     def edit_flashcard(self, flashcard_id: str, question: str, answer: str) -> None
     def delete_flashcard(self, flashcard_id: str) -> None
     def add_flashcard(self, question: str, answer: str, card_type: str) -> None
     def export_to_csv(self, flashcards: List[Flashcard], output_path: Path) -> None
+    def validate_language_quality(self, flashcards: List[Flashcard]) -> List[Flashcard]
+    def regenerate_non_french_flashcards(self, flashcards: List[Flashcard]) -> List[Flashcard]
 ```
 
 #### LLMClient
-Handles communication with configurable LLM models through litellm, supporting multiple providers.
+Handles communication with configurable LLM models through litellm, supporting multiple providers with French language output validation and regeneration capabilities.
 
 ```python
 class LLMClient:
     def __init__(self, model: str = None)
-    def generate_flashcards_from_text(self, text: str) -> List[Dict[str, str]]
+    def generate_flashcards_from_text(self, text: str, language: str = "french") -> List[Dict[str, str]]
     def chunk_text_for_processing(self, text: str, max_tokens: int) -> List[str]
     def validate_model_and_api_key(self, model: str) -> bool
     def get_supported_models(self) -> List[str]
+    def validate_french_output(self, flashcards: List[Dict[str, str]]) -> bool
+    def regenerate_non_french_content(self, flashcard: Dict[str, str]) -> Dict[str, str]
+    def get_french_prompt_template(self) -> str
 ```
 
 ### Web Interface Components
@@ -256,6 +261,12 @@ class ProcessingResult(BaseModel):
    - Missing required fields
    - Export format issues
 
+5. **Language Processing Errors**
+   - Non-French output from LLM
+   - Grammar validation failures
+   - Language detection issues
+   - Repeated regeneration failures
+
 ### Error Handling Strategy
 
 ```python
@@ -278,6 +289,10 @@ class ConfigurationError(DocumentToAnkiError):
 class ValidationError(DocumentToAnkiError):
     """Errors related to data validation"""
     pass
+
+class LanguageError(DocumentToAnkiError):
+    """Errors related to French language processing and validation"""
+    pass
 ```
 
 ### Error Recovery
@@ -287,6 +302,8 @@ class ValidationError(DocumentToAnkiError):
 - Clear error messages with suggested solutions for configuration issues
 - Automatic fallback to default model when invalid model is specified
 - Comprehensive logging for debugging including model configuration details
+- Automatic regeneration of non-French content with enhanced prompts
+- Language validation with clear feedback when French output cannot be achieved
 
 ## Testing Strategy
 
@@ -329,6 +346,108 @@ tests/
 - **Type Checking**: mypy for static type analysis
 - **Security**: bandit for security vulnerability scanning
 - **Dependencies**: safety for dependency vulnerability checking
+
+## French Language Support
+
+### Overview
+
+The application is designed to generate flashcards exclusively in French, regardless of the source document language. This ensures consistent study materials for French-speaking users and provides an immersive learning experience.
+
+### Language Processing Strategy
+
+#### Prompt Engineering for French Output
+
+The LLM integration includes carefully crafted prompts that explicitly instruct the model to generate French flashcards:
+
+```python
+FRENCH_FLASHCARD_PROMPT = """
+Vous êtes un expert en création de cartes mémoire (flashcards) pour l'apprentissage.
+Analysez le texte fourni et créez des cartes mémoire en français de haute qualité.
+
+Instructions importantes:
+1. Toutes les questions et réponses DOIVENT être en français
+2. Utilisez une grammaire française correcte et un vocabulaire approprié
+3. Créez des questions claires et concises avec des réponses précises
+4. Générez un mélange de cartes question-réponse et de cartes à trous (cloze deletion)
+5. Concentrez-vous sur les informations les plus importantes du texte
+6. Adaptez le niveau de langue au contenu (académique, technique, général)
+
+Format de sortie requis:
+- Type: "qa" pour question-réponse, "cloze" pour suppression à trous
+- Question: La question en français
+- Réponse: La réponse en français
+
+Texte à analyser:
+{text}
+"""
+```
+
+**Design Rationale**: This approach ensures that regardless of the input document language (English, Spanish, etc.), the output flashcards are always in French. The prompt includes specific instructions for French grammar, vocabulary usage, and appropriate language level adaptation.
+
+#### Language Validation
+
+The system implements validation to ensure French output quality:
+
+```python
+class FrenchLanguageValidator:
+    """Validates that LLM output is in French and meets quality standards."""
+    
+    def validate_french_content(self, text: str) -> bool:
+        """Validate that text is in French using linguistic patterns."""
+        # Check for French linguistic markers
+        french_indicators = [
+            r'\b(le|la|les|un|une|des)\b',  # Articles
+            r'\b(est|sont|était|étaient)\b',  # Common verbs
+            r'\b(que|qui|dont|où)\b',  # Relative pronouns
+            r'\b(avec|dans|pour|sur|sous)\b'  # Prepositions
+        ]
+        
+        score = sum(1 for pattern in french_indicators 
+                   if re.search(pattern, text.lower()))
+        return score >= 2  # Minimum threshold for French detection
+    
+    def validate_flashcard_french(self, flashcard: Dict[str, str]) -> bool:
+        """Validate that both question and answer are in French."""
+        return (self.validate_french_content(flashcard['question']) and 
+                self.validate_french_content(flashcard['answer']))
+    
+    def request_regeneration_if_needed(self, flashcards: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """Request regeneration for non-French flashcards."""
+        validated_flashcards = []
+        for flashcard in flashcards:
+            if not self.validate_flashcard_french(flashcard):
+                # Log warning and request regeneration
+                logger.warning(f"Non-French content detected, requesting regeneration")
+                # Trigger regeneration with stronger French emphasis
+                regenerated = self._regenerate_with_french_emphasis(flashcard)
+                validated_flashcards.append(regenerated)
+            else:
+                validated_flashcards.append(flashcard)
+        return validated_flashcards
+```
+
+#### Cloze Deletion in French
+
+Special attention is given to French cloze deletion cards to ensure proper sentence structure:
+
+```python
+def create_french_cloze_cards(self, text: str) -> List[Dict[str, str]]:
+    """Create cloze deletion cards with proper French syntax."""
+    # French-specific cloze patterns that respect grammar rules
+    # Example: "La {{c1::photosynthèse}} est le processus par lequel..."
+    # Ensures grammatical agreement and natural French flow
+```
+
+**Design Rationale**: French has specific grammatical rules (gender agreement, verb conjugation, etc.) that must be considered when creating cloze deletion cards. The system accounts for these linguistic features to create natural-sounding French flashcards.
+
+### Error Handling for Language Issues
+
+The system includes specific error handling for language-related issues:
+
+1. **Non-French Output Detection**: Automatic detection and regeneration of non-French content
+2. **Grammar Validation**: Basic validation of French grammar patterns
+3. **Fallback Mechanisms**: If repeated attempts fail to generate French content, the system provides clear error messages
+4. **User Feedback**: Clear indication when language validation fails and regeneration is attempted
 
 ## Technology Stack
 
@@ -388,6 +507,7 @@ tests/
 - Retry logic with exponential backoff
 - Rate limiting to respect API constraints per provider
 - Response caching for identical content
+- French language output validation and regeneration for non-French responses
 
 ### Web Interface Performance
 
@@ -418,108 +538,178 @@ tests/
 - No persistent storage of user documents
 - Secure handling of temporary files
 - Clear data retention policies
-- Optional local-only processing mode## CI/CD
- Pipeline Alignment
+- Optional local-only processing mode## CI/CD Pipeline Alignment
 
 ### Overview
 
-The CI/CD pipeline alignment ensures that GitHub Actions workflows use the same logic and commands as the project's Makefile, providing consistency between local development and CI environments. This eliminates discrepancies between what developers run locally and what runs in CI.
+The CI/CD pipeline alignment ensures that GitHub Actions workflows use identical commands and logic as the project's Makefile, providing complete consistency between local development and CI environments. This eliminates discrepancies and ensures that developers can replicate CI behavior locally for debugging.
 
-### Current State Analysis
+### Design Principles
 
-**Makefile Structure:**
-- Uses `uv sync` for dependency installation
-- Provides composite targets like `make quality`, `make test-cov`, `make ci-test`
-- Has specific CI targets: `ci-test`, `ci-quality`, `pre-commit`
-- Uses `uv run` prefix consistently for all commands
+#### Command Consistency
+All CI workflow jobs must use the same Makefile targets that developers use locally:
 
-**CI Workflow Issues:**
-- Uses `uv pip install -e ".[dev]"` instead of `uv sync`
-- Calls `python scripts/validate_config.py` directly instead of `make validate`
-- Runs individual quality commands instead of `make quality` or `make ci-quality`
-- Has inconsistent command patterns across jobs
+- **Quality Checks**: `make quality` instead of individual ruff, mypy, bandit commands
+- **Testing**: `make test`, `make ci-test`, or `make test-cov` instead of direct pytest calls
+- **Dependency Installation**: `make install-dev` instead of `uv pip install -e ".[dev]"`
+- **Build Process**: `make build` instead of direct `uv build`
+- **Validation**: `make validate` instead of direct script calls
 
-**Scripts Directory:**
-- Contains specialized scripts that are properly integrated with Makefile targets
-- `security_validation.py` - comprehensive security validation called by `make security-validate`
-- `validate_config.py` - configuration validation called by `make validate`
-- All scripts are executed through Makefile targets with proper `uv run` prefix
+**Design Rationale**: This approach ensures that any changes to build logic, quality checks, or testing procedures only need to be made in the Makefile, and CI automatically inherits these changes without workflow modifications.
 
-### CI Workflow Jobs Alignment
+#### uv Command Consistency
+All commands in CI must use the same `uv` patterns as the Makefile:
 
-#### Test Job
-- **Current**: Custom pytest commands with coverage
-- **Target**: Use `make test-cov` or `make ci-test`
-- **Interface**: Makefile targets that handle test execution and coverage reporting
+```yaml
+# CI Workflow Pattern
+- name: Install dependencies
+  run: make install-dev  # Uses uv sync internally
 
-#### Quality Job  
-- **Current**: Individual ruff, mypy, bandit, pip-audit commands
-- **Target**: Use `make ci-quality` or `make quality`
-- **Interface**: Single Makefile target that runs all quality checks
+- name: Run quality checks  
+  run: make quality      # Uses uv run prefix for all tools
 
-#### Integration Job
-- **Current**: Custom test commands and direct script calls
-- **Target**: Use `make test-integration` and `make validate`
-- **Interface**: Makefile targets for integration testing and validation
+- name: Run tests
+  run: make ci-test      # Uses uv run pytest with CI-optimized flags
+```
 
-#### Build Job
-- **Current**: Direct `uv build` command
-- **Target**: Use `make build`
-- **Interface**: Makefile target that handles package building
+**Design Rationale**: Using `uv sync` instead of `uv pip install -e ".[dev]"` ensures identical dependency resolution between local and CI environments, preventing subtle version differences that could cause CI-only failures.
 
-### Dependency Installation Standardization
+### Makefile Target Mapping
 
-#### Installation Strategy
-- **Current**: `uv pip install -e ".[dev]"`
-- **Target**: `make install-dev`
-- **Rationale**: Ensures consistent dependency resolution and virtual environment setup
-
-### Makefile Enhancements
+#### Core Development Workflow
+- `make install-dev`: Complete development environment setup with all dependencies
+- `make quality`: Comprehensive quality checks (linting, type checking, security)
+- `make test`: Full test suite execution
+- `make ci-test`: CI-optimized test execution (fail-fast, concise output)
+- `make test-cov`: Test execution with coverage reporting
+- `make test-integration`: Integration tests only
 
 #### CI-Specific Targets
-The Makefile already has some CI-specific targets that should be utilized:
-- `ci-test`: Optimized test execution for CI (fail-fast, short output)
-- `ci-quality`: Quality checks optimized for CI environment
-- `pre-commit`: Comprehensive pre-commit validation
+- `make pre-commit`: Pre-commit validation combining quality and fast tests
+- `make validate`: Configuration and environment validation
+- `make build`: Package building with proper artifact generation
+- `make clean`: Cleanup of build artifacts and temporary files
 
-#### Missing Targets
-New targets may need to be added:
-- `ci-setup`: CI-specific setup that ensures proper environment
-- `ci-validate`: CI-specific validation that may include additional checks
+#### Security and Auditing
+- `make security`: Security vulnerability scanning with bandit
+- `make audit`: Dependency vulnerability checking with safety and pip-audit
 
-### Error Handling for CI Alignment
+### Error Handling and Debugging
 
-#### CI Failure Scenarios
-1. **Makefile Target Failure**: CI job should fail with the same exit code as the Makefile target
-2. **Missing Dependencies**: `make install-dev` should handle dependency installation errors
-3. **Environment Issues**: CI should use the same environment setup as local development
+#### Identical Error Propagation
+CI workflows must preserve the exact same error messages and exit codes as local Makefile execution:
 
-#### Error Propagation
-- Makefile targets must preserve exit codes from underlying commands
-- CI workflow should not add additional error handling that masks Makefile errors
-- Error messages should be identical between local and CI execution
+```python
+# Makefile ensures proper exit code propagation
+quality:
+    uv run ruff check .
+    uv run mypy .
+    uv run bandit -r src/
+    # If any command fails, make fails with the same exit code
+```
 
-### Implementation Strategy
+**Design Rationale**: Developers must be able to reproduce CI failures locally by running the exact same `make` command, with identical error output for efficient debugging.
 
-#### Phase 1: Makefile Audit and Enhancement
-1. Review existing Makefile targets for CI compatibility
-2. Add missing CI-specific targets if needed
-3. Ensure all targets work with CI environment constraints
-4. Test Makefile targets in CI-like environment locally
+#### Local CI Simulation
+Developers can simulate the entire CI pipeline locally:
 
-#### Phase 2: CI Workflow Update
-1. Update dependency installation to use `make install-dev`
-2. Replace individual commands with appropriate Makefile targets
-3. Update validation steps to use `make validate`
-4. Ensure environment variables are properly passed to Makefile
+```bash
+# Simulate CI workflow locally
+make clean
+make install-dev
+make quality
+make ci-test
+make validate
+make build
+```
 
-#### Phase 3: Scripts Integration Decision
-1. Evaluate whether scripts should be integrated into Makefile or removed
-2. Update documentation to clarify script vs Makefile usage
-3. Ensure no CI workflow depends on scripts that duplicate Makefile functionality
+### Scripts Directory Integration
 
-#### Phase 4: Validation and Testing
-1. Test updated CI workflow in feature branch
-2. Verify local development workflow remains unchanged
-3. Confirm error handling and exit codes are preserved
-4. Update documentation with new CI workflow patterns
+#### Current State
+The `scripts/` directory contains utilities that must be properly integrated with Makefile targets:
+
+- `scripts/validate_config.py` → Called via `make validate`
+- `scripts/security_validation.py` → Called via `make security-validate`
+
+#### Integration Strategy
+Scripts are executed through Makefile targets rather than directly in CI:
+
+```makefile
+# Makefile integration
+validate:
+    uv run python scripts/validate_config.py
+
+security-validate:
+    uv run python scripts/security_validation.py
+```
+
+**Design Rationale**: This ensures that script execution uses the same environment and error handling as other development tasks, and allows for easy modification of script parameters or replacement without CI changes.
+
+### Implementation Requirements
+
+#### CI Workflow Structure
+Each CI job must follow this pattern:
+
+```yaml
+jobs:
+  test:
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python and uv
+        # ... setup steps
+      - name: Install dependencies
+        run: make install-dev
+      - name: Run tests
+        run: make ci-test
+
+  quality:
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python and uv  
+        # ... setup steps
+      - name: Install dependencies
+        run: make install-dev
+      - name: Run quality checks
+        run: make quality
+
+  integration:
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python and uv
+        # ... setup steps  
+      - name: Install dependencies
+        run: make install-dev
+      - name: Run integration tests
+        run: make test-integration
+      - name: Validate configuration
+        run: make validate
+```
+
+#### Makefile Requirements
+The Makefile must support all CI operations and provide appropriate targets:
+
+- All targets must work in CI environment (no interactive prompts)
+- Proper exit code handling for all commands
+- Environment variable support for CI-specific configuration
+- Consistent `uv run` prefix for all Python commands
+- Clear separation between development and CI-optimized targets
+
+### Validation and Maintenance
+
+#### Continuous Validation
+The CI-Makefile alignment must be continuously validated:
+
+1. **Local Testing**: All CI commands must be testable locally via `make` targets
+2. **Error Consistency**: CI failures must produce identical errors to local execution
+3. **Performance**: CI-specific targets should be optimized for CI environment constraints
+4. **Documentation**: Clear documentation of which Makefile targets correspond to which CI jobs
+
+#### Maintenance Strategy
+Changes to build logic follow this pattern:
+
+1. **Makefile First**: All changes made to Makefile targets
+2. **Local Testing**: Verify changes work locally with `make` commands
+3. **CI Inheritance**: CI automatically inherits changes without workflow modification
+4. **Validation**: Confirm CI behavior matches local behavior
+
+**Design Rationale**: This approach ensures that the Makefile remains the single source of truth for all build, test, and quality operations, while CI workflows remain stable and maintainable.
