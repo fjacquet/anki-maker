@@ -10,6 +10,7 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from loguru import logger
 
@@ -463,7 +464,7 @@ class LLMClient:
 
     def _validate_response_language(
         self, flashcards: list[FlashcardData], expected_language: str
-    ) -> tuple[bool, dict[str, any]]:
+    ) -> tuple[bool, dict[str, Any]]:
         """
         Validate that generated flashcards are in the expected language with detailed metrics.
 
@@ -480,7 +481,7 @@ class LLMClient:
             - language_info: LanguageInfo object for the expected language
             - validation_method: String describing validation method used
         """
-        validation_metrics = {
+        validation_metrics: dict[str, Any] = {
             "success_rate": 0.0,
             "matches_found": 0,
             "total_checks": 0,
@@ -629,7 +630,7 @@ class LLMClient:
 
     async def _generate_flashcards_with_language_validation(
         self, text: str, language: str, content_type: str = "general", max_validation_retries: int = 2
-    ) -> tuple[list[FlashcardData], dict[str, any]]:
+    ) -> tuple[list[FlashcardData], dict[str, Any]]:
         """
         Generate flashcards with language validation and retry mechanism.
 
@@ -646,7 +647,7 @@ class LLMClient:
             - final_validation_passed: Whether final validation passed
             - fallback_used: Whether fallback behavior was triggered
         """
-        validation_summary = {
+        validation_summary: dict[str, Any] = {
             "total_attempts": 0,
             "validation_results": [],
             "final_validation_passed": False,
@@ -808,7 +809,7 @@ class LLMClient:
         all_flashcards = []
 
         # Track overall validation statistics
-        overall_validation_stats = {
+        overall_validation_stats: dict[str, Any] = {
             "total_chunks": len(text_chunks),
             "successful_chunks": 0,
             "failed_chunks": 0,
@@ -893,7 +894,7 @@ class LLMClient:
             logger.info(f"Total {language} flashcards generated: {len(all_flashcards)}")
         return all_flashcards
 
-    def _log_validation_summary(self, language: str, validation_stats: dict[str, any]) -> None:
+    def _log_validation_summary(self, language: str, validation_stats: dict[str, Any]) -> None:
         """
         Log comprehensive validation summary for language validation results.
 
@@ -914,8 +915,10 @@ class LLMClient:
         fallback_used = validation_stats["fallback_used"]
 
         # Calculate success rates
-        success_rate = (successful_chunks / total_chunks * 100) if total_chunks > 0 else 0
-        validation_failure_rate = (validation_failures / successful_chunks * 100) if successful_chunks > 0 else 0
+        success_rate = (int(successful_chunks) / int(total_chunks) * 100) if int(total_chunks) > 0 else 0
+        validation_failure_rate = (
+            (int(validation_failures) / int(successful_chunks) * 100) if int(successful_chunks) > 0 else 0
+        )
 
         logger.info(
             f"Language validation summary for {language_display}:\n"
