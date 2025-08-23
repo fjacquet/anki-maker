@@ -33,9 +33,7 @@ jobs:
       uses: astral-sh/setup-uv@v2
     
     - name: Install dependencies
-      run: |
-        uv sync -U --all-extras
-        uv pip install -e ".[dev]"
+      run: make install-dev
     
     - name: Run tests
       run: |
@@ -68,9 +66,7 @@ jobs:
       uses: astral-sh/setup-uv@v2
     
     - name: Install dependencies
-      run: |
-        uv sync -U --all-extras 
-        uv pip install -e ".[dev]"
+      run: make install-dev
     
     - name: Run linting
       run: |
@@ -110,9 +106,7 @@ jobs:
       uses: astral-sh/setup-uv@v2
     
     - name: Install dependencies
-      run: |
-        uv sync -U --all-extras
-        uv pip install -e ".[dev]"
+      run: make install-dev
     
     - name: Create sample documents
       run: |
@@ -151,8 +145,7 @@ jobs:
       uses: astral-sh/setup-uv@v2
     
     - name: Install dependencies
-      run: |
-        uv pip install -e ".[dev]"
+      run: make install-dev
     
     - name: Build package
       run: |
@@ -205,8 +198,7 @@ jobs:
       uses: astral-sh/setup-uv@v2
     
     - name: Install dependencies
-      run: |
-        uv pip install -e ".[dev]"
+      run: make install-dev
     
     - name: Build package
       run: |

@@ -223,7 +223,7 @@
   - Add proper error handling and exit codes to all CI targets
   - _Requirements: CI optimization and consistency_
 
-- [ ] 25. Update CI workflow dependency installation
+- [x] 25. Update CI workflow dependency installation
   - Replace `uv pip install -e ".[dev]"` with `make install-dev` in all CI jobs
   - Ensure `make install-dev` works correctly in GitHub Actions environment
   - Test that dependency installation is consistent between local and CI
