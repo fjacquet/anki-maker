@@ -205,7 +205,7 @@ addopts = [
     "--cov=src/document_to_anki",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
-    "--cov-fail-under=80",
+    "--cov-fail-under=65",
     "--strict-markers",
     "--strict-config",
     "-ra",

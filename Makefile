@@ -58,7 +58,7 @@ test: check-env ## Run all tests
 	uv run pytest
 
 test-cov: check-env ## Run tests with coverage report
-	uv run pytest --cov=src/document_to_anki --cov-report=html --cov-report=term --cov-report=xml
+	uv run pytest --cov=src/document_to_anki --cov-report=html --cov-report=term --cov-branch --cov-report=xml
 
 test-fast: check-env ## Run tests with fail-fast
 	uv run pytest -x
@@ -67,7 +67,7 @@ test-integration: check-env ## Run integration tests only
 	uv run pytest -m integration
 
 test-integration-cov: check-env ## Run integration tests with coverage report
-	uv run pytest -m integration --cov=src/document_to_anki --cov-report=html --cov-report=term --cov-report=xml
+	uv run pytest -m integration --cov=src/document_to_anki --cov-report=html --cov-report=term --cov-branch --cov-report=xml
 
 test-performance: check-env ## Run performance tests only
 	@echo "Running performance tests..."
