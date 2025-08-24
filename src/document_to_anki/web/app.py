@@ -72,7 +72,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from ..config import ConfigurationError, ModelConfig
+from ..config import ConfigurationError, LanguageValidationError, ModelConfig, settings
 from ..core.document_processor import DocumentProcessingError, DocumentProcessor
 from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
 from ..models.flashcard import Flashcard
@@ -157,8 +157,9 @@ async def lifespan(app: FastAPI) -> Any:
         logger.error(f"Model configuration error: {e}")
         raise
 
-    # Initialize global components
+    # Initialize global components with language configuration
     document_processor = DocumentProcessor()
+    # FlashcardGenerator will use LLMClient which gets language from settings
     flashcard_generator = FlashcardGenerator()
 
     # Start background cleanup task
@@ -410,8 +411,17 @@ def flashcard_to_response(flashcard: Flashcard) -> FlashcardResponse:
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
-    """Serve the main application page."""
-    return templates.TemplateResponse(request=request, name="index.html")
+    """Serve the main application page with language configuration."""
+    language_info = settings.get_language_info()
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "language_name": language_info.name,
+            "language_code": language_info.code,
+            "cardlang": settings.cardlang,
+        },
+    )
 
 
 async def get_files_from_request(request: Request) -> list[UploadFile]:
@@ -934,6 +944,49 @@ async def get_model_configuration() -> JSONResponse:
         )
 
 
+@app.get("/api/config/language")
+async def get_language_configuration() -> JSONResponse:
+    """
+    Get current language configuration status.
+
+    Returns information about the currently configured language,
+    validation status, and supported languages.
+    """
+    try:
+        from ..config import LanguageConfig
+
+        language_info = settings.get_language_info()
+
+        config_info = {
+            "current_language": settings.cardlang,
+            "language_name": language_info.name,
+            "language_code": language_info.code,
+            "prompt_key": language_info.prompt_key,
+            "supported_languages": LanguageConfig.get_supported_languages_list(),
+            "all_language_keys": LanguageConfig.get_all_language_keys(),
+            "status": "valid",
+        }
+
+        return JSONResponse(content=config_info)
+
+    except LanguageValidationError as e:
+        logger.error(f"Language validation error: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "status": "invalid",
+                "error": str(e),
+                "supported_languages": LanguageConfig.get_supported_languages_list(),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error getting language configuration: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"status": "error", "error": "Failed to get language configuration", "details": str(e)},
+        )
+
+
 @app.get("/api/sessions/{session_id}/statistics")
 async def get_session_statistics(session_id: str) -> JSONResponse:
     """Get statistics for a session's flashcards."""
@@ -1133,6 +1186,36 @@ async def flashcard_generation_error_handler(
         context={
             "error_code": 400,
             "error_title": "Flashcard Generation Error",
+            "error_message": str(exc),
+            "show_home_link": True,
+        },
+        status_code=400,
+    )
+
+
+@app.exception_handler(LanguageValidationError)
+async def language_validation_error_handler(
+    request: Request, exc: LanguageValidationError
+) -> JSONResponse | HTMLResponse:
+    """Handle language validation errors."""
+    logger.warning(f"Language validation error: {exc}")
+
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": "Language configuration error",
+                "message": str(exc),
+                "supported_languages": exc.supported_languages,
+            },
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "error_code": 400,
+            "error_title": "Language Configuration Error",
             "error_message": str(exc),
             "show_home_link": True,
         },

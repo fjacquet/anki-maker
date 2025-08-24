@@ -570,15 +570,407 @@ if __name__ == "__main__":
     batch_process_directory(input_dir, output_dir)
 ```
 
+## Language Configuration Examples
+
+### Basic Language Configuration
+
+```bash
+# Generate flashcards in English (default)
+CARDLANG=english document-to-anki textbook.pdf --output english-cards.csv
+
+# Generate flashcards in French
+CARDLANG=french document-to-anki textbook.pdf --output french-cards.csv
+
+# Generate flashcards in Italian using ISO code
+CARDLANG=it document-to-anki textbook.pdf --output italian-cards.csv
+
+# Generate flashcards in German
+CARDLANG=german document-to-anki textbook.pdf --output german-cards.csv
+```
+
+### Multi-Language Document Processing
+
+```bash
+# Process the same document in multiple languages
+document_path="scientific-paper.pdf"
+
+echo "Processing document in multiple languages..."
+
+# English version
+echo "Generating English flashcards..."
+CARDLANG=english document-to-anki "$document_path" --output "paper-en.csv" --no-preview --batch
+
+# French version  
+echo "Generating French flashcards..."
+CARDLANG=french document-to-anki "$document_path" --output "paper-fr.csv" --no-preview --batch
+
+# Italian version
+echo "Generating Italian flashcards..."
+CARDLANG=italian document-to-anki "$document_path" --output "paper-it.csv" --no-preview --batch
+
+# German version
+echo "Generating German flashcards..."
+CARDLANG=german document-to-anki "$document_path" --output "paper-de.csv" --no-preview --batch
+
+echo "Multi-language processing complete!"
+```
+
+### Language-Specific Batch Processing
+
+```bash
+# Create language-specific .env files
+cat > .env.french << 'EOF'
+GEMINI_API_KEY=your-gemini-api-key-here
+CARDLANG=french
+MODEL=gemini/gemini-2.5-pro  # Better quality for non-English
+LOG_LEVEL=INFO
+EOF
+
+cat > .env.german << 'EOF'
+GEMINI_API_KEY=your-gemini-api-key-here
+CARDLANG=german
+MODEL=gemini/gemini-2.5-pro
+LOG_LEVEL=INFO
+EOF
+
+# Process documents with language-specific configurations
+echo "Processing French course materials..."
+cp .env.french .env
+document-to-anki french-course/ --output-dir output-french/ --no-preview --batch
+
+echo "Processing German course materials..."
+cp .env.german .env
+document-to-anki german-course/ --output-dir output-german/ --no-preview --batch
+```
+
+### Python API Language Examples
+
+```python
+from document_to_anki.core.document_processor import DocumentProcessor
+from document_to_anki.core.flashcard_generator import FlashcardGenerator
+from document_to_anki.core.llm_client import LLMClient
+
+# Process the same content in multiple languages
+def generate_multilingual_flashcards(document_path: str):
+    """Generate flashcards in multiple languages from the same document."""
+    
+    # Process document once
+    doc_processor = DocumentProcessor()
+    result = doc_processor.process_upload(document_path)
+    
+    if not result.success:
+        print(f"❌ Failed to process document: {document_path}")
+        return
+    
+    languages = {
+        "english": "en",
+        "french": "fr", 
+        "italian": "it",
+        "german": "de"
+    }
+    
+    for lang_name, lang_code in languages.items():
+        print(f"\n🌍 Generating {lang_name} flashcards...")
+        
+        # Create language-specific LLM client
+        llm_client = LLMClient(
+            model="gemini/gemini-2.5-pro",  # Better for non-English
+            language=lang_name
+        )
+        
+        # Create flashcard generator with language-specific client
+        flashcard_gen = FlashcardGenerator(llm_client=llm_client)
+        
+        # Generate flashcards
+        flashcard_result = flashcard_gen.generate_flashcards(
+            [result.text_content],
+            result.source_files
+        )
+        
+        if flashcard_result.success:
+            # Export with language-specific filename
+            output_file = f"flashcards_{lang_code}.csv"
+            success, summary = flashcard_gen.export_to_csv(output_file)
+            
+            if success:
+                print(f"✅ Generated {summary['exported_flashcards']} {lang_name} flashcards")
+            else:
+                print(f"❌ Failed to export {lang_name} flashcards")
+        else:
+            print(f"❌ Failed to generate {lang_name} flashcards")
+
+# Usage
+generate_multilingual_flashcards("biology-textbook.pdf")
+```
+
+### Language Quality Comparison Script
+
+```python
+#!/usr/bin/env python3
+"""
+Compare flashcard quality across different languages.
+"""
+
+import os
+from pathlib import Path
+from document_to_anki.core.llm_client import LLMClient
+
+def compare_language_quality():
+    """Generate sample flashcards in different languages for quality comparison."""
+    
+    # Sample educational content
+    sample_text = """
+    Photosynthesis is the process by which plants and other organisms convert light energy 
+    into chemical energy that can later be released to fuel the organism's activities. 
+    This chemical energy is stored in carbohydrate molecules, such as sugars, which are 
+    synthesized from carbon dioxide and water. In most cases, oxygen is also released 
+    as a waste product. Most plants, most algae, and cyanobacteria perform photosynthesis.
+    """
+    
+    languages = ["english", "french", "italian", "german"]
+    
+    print("🔬 Language Quality Comparison")
+    print("=" * 50)
+    
+    for language in languages:
+        print(f"\n🌍 {language.upper()} FLASHCARDS:")
+        print("-" * 30)
+        
+        try:
+            # Create language-specific client
+            client = LLMClient(
+                model="gemini/gemini-2.5-pro",
+                language=language
+            )
+            
+            # Generate flashcards
+            flashcards = client.generate_flashcards_from_text_sync(sample_text)
+            
+            # Display first few flashcards
+            for i, card in enumerate(flashcards[:2], 1):
+                print(f"\nCard {i}:")
+                print(f"Q: {card['question']}")
+                print(f"A: {card['answer']}")
+                print(f"Type: {card['card_type']}")
+                
+        except Exception as e:
+            print(f"❌ Error generating {language} flashcards: {e}")
+    
+    print("\n" + "=" * 50)
+    print("💡 Compare the grammar, vocabulary, and cultural appropriateness")
+    print("   of flashcards across different languages.")
+
+if __name__ == "__main__":
+    compare_language_quality()
+```
+
+### Language Configuration Testing
+
+```bash
+#!/bin/bash
+# test_language_config.sh - Comprehensive language configuration testing
+
+echo "🧪 Testing Language Configuration"
+echo "================================"
+
+# Test content
+test_content="The water cycle involves evaporation, condensation, and precipitation. This process is essential for life on Earth."
+
+# Create test file
+echo "$test_content" > test_input.txt
+
+# Test each language
+languages=("english" "en" "french" "fr" "italian" "it" "german" "de")
+
+for lang in "${languages[@]}"; do
+    echo ""
+    echo "Testing language: $lang"
+    echo "------------------------"
+    
+    # Test with current language setting
+    CARDLANG=$lang document-to-anki test_input.txt --output "test_${lang}.csv" --no-preview --batch
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ SUCCESS: Generated flashcards in $lang"
+        
+        # Show first flashcard as sample
+        echo "Sample flashcard:"
+        head -2 "test_${lang}.csv" | tail -1
+    else
+        echo "❌ FAILED: Could not generate flashcards in $lang"
+    fi
+done
+
+# Test invalid language
+echo ""
+echo "Testing invalid language: spanish"
+echo "--------------------------------"
+CARDLANG=spanish document-to-anki test_input.txt --output test_invalid.csv --no-preview --batch 2>&1 | grep -i "error\|unsupported"
+
+# Cleanup
+rm -f test_input.txt test_*.csv
+
+echo ""
+echo "🎉 Language configuration testing complete!"
+```
+
+### Advanced Language Configuration
+
+```python
+#!/usr/bin/env python3
+"""
+Advanced language configuration with quality optimization.
+"""
+
+import os
+from pathlib import Path
+from document_to_anki.core.llm_client import LLMClient
+from document_to_anki.core.flashcard_generator import FlashcardGenerator
+
+class MultiLanguageProcessor:
+    """Advanced multi-language flashcard processor."""
+    
+    def __init__(self):
+        self.language_configs = {
+            "english": {
+                "model": "gemini/gemini-2.5-flash",  # Fast for English
+                "temperature": 0.3,
+                "max_tokens": 20000
+            },
+            "french": {
+                "model": "gemini/gemini-2.5-pro",   # Better for French grammar
+                "temperature": 0.2,  # More consistent for grammar
+                "max_tokens": 25000  # French can be more verbose
+            },
+            "italian": {
+                "model": "gemini/gemini-2.5-pro",
+                "temperature": 0.2,
+                "max_tokens": 25000
+            },
+            "german": {
+                "model": "gemini/gemini-2.5-pro",   # Better for compound words
+                "temperature": 0.1,  # Very consistent for technical terms
+                "max_tokens": 30000  # German compound words can be long
+            }
+        }
+    
+    def process_document_multilingual(self, document_path: str, languages: list[str], output_dir: Path):
+        """Process a document in multiple languages with optimized settings."""
+        
+        from document_to_anki.core.document_processor import DocumentProcessor
+        
+        # Process document once
+        doc_processor = DocumentProcessor()
+        result = doc_processor.process_upload(document_path)
+        
+        if not result.success:
+            print(f"❌ Failed to process document: {document_path}")
+            return {}
+        
+        results = {}
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        for language in languages:
+            if language not in self.language_configs:
+                print(f"⚠️ Unsupported language: {language}")
+                continue
+                
+            print(f"\n🌍 Processing in {language}...")
+            
+            # Get language-specific configuration
+            config = self.language_configs[language]
+            
+            # Create optimized LLM client
+            llm_client = LLMClient(
+                model=config["model"],
+                language=language
+            )
+            
+            # Set language-specific parameters
+            os.environ['GEMINI_TEMPERATURE'] = str(config["temperature"])
+            os.environ['GEMINI_MAX_TOKENS'] = str(config["max_tokens"])
+            
+            # Generate flashcards
+            flashcard_gen = FlashcardGenerator(llm_client=llm_client)
+            flashcard_result = flashcard_gen.generate_flashcards(
+                [result.text_content],
+                result.source_files
+            )
+            
+            if flashcard_result.success:
+                # Export with language-specific filename
+                output_file = output_dir / f"flashcards_{language}.csv"
+                success, summary = flashcard_gen.export_to_csv(output_file)
+                
+                if success:
+                    results[language] = {
+                        "success": True,
+                        "flashcard_count": summary['exported_flashcards'],
+                        "file_path": output_file,
+                        "processing_time": flashcard_result.processing_time
+                    }
+                    print(f"✅ Generated {summary['exported_flashcards']} flashcards")
+                else:
+                    results[language] = {"success": False, "error": "Export failed"}
+                    print(f"❌ Failed to export flashcards")
+            else:
+                results[language] = {"success": False, "error": "Generation failed"}
+                print(f"❌ Failed to generate flashcards")
+        
+        return results
+    
+    def generate_quality_report(self, results: dict):
+        """Generate a quality report for multi-language processing."""
+        
+        print("\n📊 MULTI-LANGUAGE PROCESSING REPORT")
+        print("=" * 50)
+        
+        total_languages = len(results)
+        successful_languages = sum(1 for r in results.values() if r.get("success", False))
+        
+        print(f"Languages processed: {total_languages}")
+        print(f"Successful: {successful_languages}")
+        print(f"Failed: {total_languages - successful_languages}")
+        
+        if successful_languages > 0:
+            print("\nSuccessful Languages:")
+            for lang, result in results.items():
+                if result.get("success", False):
+                    print(f"  • {lang}: {result['flashcard_count']} cards "
+                          f"({result['processing_time']:.1f}s)")
+        
+        failed_languages = [lang for lang, result in results.items() 
+                          if not result.get("success", False)]
+        if failed_languages:
+            print(f"\nFailed Languages: {', '.join(failed_languages)}")
+
+# Usage example
+if __name__ == "__main__":
+    processor = MultiLanguageProcessor()
+    
+    # Process document in multiple languages
+    results = processor.process_document_multilingual(
+        document_path="sample-document.pdf",
+        languages=["english", "french", "italian", "german"],
+        output_dir=Path("multilingual_output")
+    )
+    
+    # Generate quality report
+    processor.generate_quality_report(results)
+```
+
 ## Configuration Examples
 
 ### Environment Configuration
 
 ```bash
-# .env file example
+# .env file example with language configuration
 # API Keys (at least one required based on model choice)
 GEMINI_API_KEY=your-gemini-api-key-here
 OPENAI_API_KEY=your-openai-api-key-here
+
+# Language Configuration (NEW FEATURE)
+CARDLANG=english  # Default language for flashcard generation
 
 # Model Selection
 MODEL=gemini/gemini-2.5-flash  # Default - fast and efficient
@@ -597,6 +989,40 @@ WEB_PORT=8000
 # Optional: Advanced LLM settings
 GEMINI_TEMPERATURE=0.3
 GEMINI_MAX_TOKENS=20000
+```
+
+### Language-Specific Configuration Files
+
+```bash
+# .env.english - English flashcard configuration
+GEMINI_API_KEY=your-gemini-api-key-here
+CARDLANG=english
+MODEL=gemini/gemini-2.5-flash  # Fast for English
+GEMINI_TEMPERATURE=0.3
+LOG_LEVEL=INFO
+
+# .env.french - French flashcard configuration  
+GEMINI_API_KEY=your-gemini-api-key-here
+CARDLANG=french
+MODEL=gemini/gemini-2.5-pro    # Better quality for French grammar
+GEMINI_TEMPERATURE=0.2         # More consistent grammar
+LOG_LEVEL=INFO
+
+# .env.academic - Academic content in Italian
+GEMINI_API_KEY=your-gemini-api-key-here
+CARDLANG=italian
+MODEL=gemini/gemini-2.5-pro
+GEMINI_TEMPERATURE=0.1         # Very consistent for academic content
+GEMINI_MAX_TOKENS=25000        # Longer for detailed explanations
+LOG_LEVEL=DEBUG
+
+# .env.technical - Technical content in German
+GEMINI_API_KEY=your-gemini-api-key-here
+CARDLANG=german
+MODEL=gemini/gemini-2.5-pro
+GEMINI_TEMPERATURE=0.1         # Consistent technical terminology
+GEMINI_MAX_TOKENS=30000        # Handle German compound words
+LOG_LEVEL=INFO
 ```
 
 ### Custom Configuration Script

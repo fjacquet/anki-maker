@@ -68,6 +68,18 @@ This guide covers all configuration options for Document to Anki CLI.
 **Description**: Port number for the web interface  
 **Example**: `WEB_PORT=8080`
 
+#### CARDLANG
+**Default**: `english`  
+**Options**: `english`, `en`, `french`, `fr`, `italian`, `it`, `german`, `de`  
+**Description**: Language for generated flashcard content (questions and answers)  
+**Examples**: 
+- `CARDLANG=english` (default)
+- `CARDLANG=french` or `CARDLANG=fr`
+- `CARDLANG=italian` or `CARDLANG=it`
+- `CARDLANG=german` or `CARDLANG=de`
+
+**Note**: This affects the language of generated flashcard content, not the UI language. The AI will read source documents in any language and generate flashcards in your configured target language.
+
 ### Advanced LLM Configuration
 
 #### GEMINI_TEMPERATURE
@@ -102,6 +114,9 @@ Create a `.env` file in your project root:
 
 # Required: Gemini API Configuration
 GEMINI_API_KEY=your-gemini-api-key-here
+
+# Language Configuration
+CARDLANG=english  # Language for generated flashcard content
 
 # Optional: Logging Configuration
 LOG_LEVEL=INFO
@@ -396,6 +411,258 @@ ESCAPE_HTML=true
 VALIDATE_CSV_OUTPUT=true
 ```
 
+## Language Configuration
+
+### Overview
+
+Document to Anki CLI supports configurable language output for flashcard generation. This allows you to generate flashcards in your preferred language regardless of the source document language.
+
+### Supported Languages
+
+| Language | Full Name | ISO Code | Configuration Examples |
+|----------|-----------|----------|----------------------|
+| English | `english` | `en` | `CARDLANG=english` or `CARDLANG=en` |
+| French | `french` | `fr` | `CARDLANG=french` or `CARDLANG=fr` |
+| Italian | `italian` | `it` | `CARDLANG=italian` or `CARDLANG=it` |
+| German | `german` | `de` | `CARDLANG=german` or `CARDLANG=de` |
+
+### Configuration Methods
+
+#### Method 1: Environment Variable (Recommended)
+```bash
+# In your .env file
+CARDLANG=french
+```
+
+#### Method 2: Command Line Environment Variable
+```bash
+# For single command
+CARDLANG=french document-to-anki input.pdf
+
+# For session
+export CARDLANG=french
+document-to-anki input1.pdf
+document-to-anki input2.pdf
+```
+
+#### Method 3: System Environment Variable
+```bash
+# Add to your shell profile (.bashrc, .zshrc, etc.)
+export CARDLANG=french
+```
+
+### Language Configuration Examples
+
+#### Basic Usage
+```bash
+# Generate flashcards in English (default)
+CARDLANG=english
+document-to-anki textbook.pdf --output english-cards.csv
+
+# Generate flashcards in French
+CARDLANG=french
+document-to-anki textbook.pdf --output french-cards.csv
+
+# Generate flashcards in German using ISO code
+CARDLANG=de
+document-to-anki textbook.pdf --output german-cards.csv
+```
+
+#### Multi-Language Workflow
+```bash
+# Process the same document in multiple languages
+document_path="scientific-paper.pdf"
+
+# English version
+CARDLANG=english document-to-anki "$document_path" --output "paper-en.csv"
+
+# French version  
+CARDLANG=french document-to-anki "$document_path" --output "paper-fr.csv"
+
+# Italian version
+CARDLANG=italian document-to-anki "$document_path" --output "paper-it.csv"
+
+# German version
+CARDLANG=german document-to-anki "$document_path" --output "paper-de.csv"
+```
+
+#### Batch Processing with Language Configuration
+```bash
+# Set language for entire session
+export CARDLANG=french
+
+# Process multiple documents
+document-to-anki lecture1.pdf --output lecture1-fr.csv
+document-to-anki lecture2.pdf --output lecture2-fr.csv
+document-to-anki lecture3.pdf --output lecture3-fr.csv
+```
+
+### Language Quality Features
+
+#### Grammar and Vocabulary
+- **Language-specific grammar**: Uses proper grammar rules for each language
+- **Native vocabulary**: Employs appropriate vocabulary and terminology
+- **Cultural context**: Adapts explanations to be culturally appropriate
+- **Technical terms**: Uses correct technical terminology in the target language
+
+#### Content Adaptation
+- **Question phrasing**: Natural question formation in the target language
+- **Answer formatting**: Follows language-specific conventions
+- **Examples and references**: Uses culturally relevant examples
+- **Formality levels**: Appropriate formality for educational content
+
+### Default Behavior and Migration
+
+#### Default Language
+- **Current default**: English (`CARDLANG=english`)
+- **Previous versions**: Hardcoded French generation
+- **Migration**: See [Migration Guide](MIGRATION.md) for upgrading from previous versions
+
+#### Fallback Behavior
+- **When CARDLANG is not set**: Defaults to English
+- **When CARDLANG is empty**: Defaults to English  
+- **When CARDLANG is invalid**: Shows error with supported languages list
+
+### Language Configuration Validation
+
+#### Automatic Validation
+The application automatically validates language configuration:
+
+```bash
+# Valid configurations (no error)
+CARDLANG=english    # ✅ Valid
+CARDLANG=fr         # ✅ Valid
+CARDLANG=italian    # ✅ Valid
+
+# Invalid configurations (shows error)
+CARDLANG=spanish    # ❌ Error: Unsupported language
+CARDLANG=francais   # ❌ Error: Use 'french' or 'fr'
+```
+
+#### Error Messages
+When an invalid language is specified, you'll see:
+```
+Error: Unsupported language 'spanish'. Supported languages: english, en, french, fr, italian, it, german, de
+```
+
+#### Testing Language Configuration
+```bash
+# Test script to verify language configuration
+#!/bin/bash
+echo "Testing language configuration..."
+
+# Create test content
+echo "Photosynthesis is the process by which plants convert sunlight into energy." > test.txt
+
+# Test each supported language
+for lang in english french italian german; do
+    echo "Testing $lang..."
+    CARDLANG=$lang document-to-anki test.txt --output "test-$lang.csv" --no-preview --batch
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ $lang: SUCCESS"
+        head -2 "test-$lang.csv"
+    else
+        echo "❌ $lang: FAILED"
+    fi
+    echo "---"
+done
+
+# Cleanup
+rm test.txt test-*.csv
+echo "Language configuration test complete!"
+```
+
+### Advanced Language Configuration
+
+#### Model Selection for Language Quality
+Different AI models may perform better with specific languages:
+
+```bash
+# For better quality in non-English languages
+MODEL=gemini/gemini-2.5-pro
+CARDLANG=french
+
+# For faster processing (may have lower quality)
+MODEL=gemini/gemini-2.5-flash
+CARDLANG=german
+```
+
+#### Language-Specific Optimization
+```bash
+# Optimize for specific languages
+CARDLANG=french
+GEMINI_TEMPERATURE=0.2  # Lower temperature for more consistent French grammar
+GEMINI_MAX_TOKENS=25000  # Higher token limit for verbose languages
+
+# For technical content in German
+CARDLANG=german
+GEMINI_TEMPERATURE=0.1  # Very consistent for technical terminology
+```
+
+#### Content Type Considerations
+```bash
+# Academic content in Italian
+CARDLANG=italian
+# Italian academic writing tends to be more formal
+
+# Technical documentation in German  
+CARDLANG=german
+# German technical writing uses compound words and precise terminology
+
+# General education in French
+CARDLANG=french
+# French educational content uses specific pedagogical structures
+```
+
+### Language Configuration Best Practices
+
+#### Consistency
+1. **Choose one primary language** for a project or course
+2. **Document your language choice** in project README or team guidelines
+3. **Use consistent language codes** (either full names or ISO codes, not mixed)
+
+#### Quality Control
+1. **Always review generated flashcards** for language accuracy
+2. **Use interactive mode** for quality control and editing
+3. **Test with small documents first** before processing large batches
+4. **Consider model selection** based on target language requirements
+
+#### Team Collaboration
+```bash
+# Team configuration example (.env.team)
+# Language configuration for Biology course
+CARDLANG=french
+MODEL=gemini/gemini-2.5-pro  # Higher quality for educational content
+LOG_LEVEL=INFO
+
+# Copy team configuration
+cp .env.team .env
+```
+
+#### Multi-Language Projects
+```bash
+# Directory structure for multi-language projects
+project/
+├── .env.english    # CARDLANG=english
+├── .env.french     # CARDLANG=french  
+├── .env.german     # CARDLANG=german
+├── source-docs/    # Original documents
+├── output-en/      # English flashcards
+├── output-fr/      # French flashcards
+└── output-de/      # German flashcards
+
+# Usage
+cp .env.french .env && document-to-anki source-docs/ --output-dir output-fr/
+cp .env.german .env && document-to-anki source-docs/ --output-dir output-de/
+```
+
+### Troubleshooting Language Configuration
+
+For detailed troubleshooting of language-related issues, see:
+- [Language Configuration Issues](TROUBLESHOOTING.md#language-configuration-issues) in the Troubleshooting Guide
+- [Migration Guide](MIGRATION.md) for upgrading from previous versions
+
 ## Model Configuration
 
 ### Supported Models
@@ -598,6 +865,13 @@ Create a template for new installations:
 # Required: API Keys (at least one required based on model choice)
 GEMINI_API_KEY=your-gemini-api-key-here
 OPENAI_API_KEY=your-openai-api-key-here
+
+# Language Configuration (uncomment to customize)
+# CARDLANG=english    # Default - English flashcards
+# CARDLANG=french     # French flashcards
+# CARDLANG=italian    # Italian flashcards  
+# CARDLANG=german     # German flashcards
+# You can also use ISO codes: en, fr, it, de
 
 # Optional: Model Selection (uncomment to customize)
 # MODEL=gemini/gemini-2.5-flash  # Default

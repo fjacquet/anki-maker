@@ -83,6 +83,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-html>=4.0.0",
     "pytest-xdist>=3.0.0",
+    "pyyaml>=6.0.0",
     
     # Code quality
     "ruff>=0.1.0",
@@ -142,7 +143,7 @@ select = [
     "I",  # isort
     "UP", # pyupgrade
 ]
-ignore = []
+ignore = ["F841"]
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"

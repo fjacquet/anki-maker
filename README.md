@@ -63,6 +63,9 @@ The application requires configuration through environment variables. Create a `
 # Required: Gemini API Configuration
 GEMINI_API_KEY=your-gemini-api-key-here
 
+# Language Configuration (New Feature)
+CARDLANG=english  # Language for generated flashcard content
+
 # Optional: Logging Configuration
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR
 LOGURU_LEVEL=INFO
@@ -87,6 +90,58 @@ LITELLM_TIMEOUT=300  # Request timeout in seconds
 WEB_HOST=127.0.0.1  # Web server host
 WEB_PORT=8000  # Web server port
 ```
+
+### Language Configuration
+
+The application now supports configurable language output for flashcard generation. This allows you to generate flashcards in your preferred language regardless of the source document language.
+
+#### Supported Languages
+
+| Language | Full Name | ISO Code | Example Setting |
+|----------|-----------|----------|-----------------|
+| English | `english` | `en` | `CARDLANG=english` or `CARDLANG=en` |
+| French | `french` | `fr` | `CARDLANG=french` or `CARDLANG=fr` |
+| Italian | `italian` | `it` | `CARDLANG=italian` or `CARDLANG=it` |
+| German | `german` | `de` | `CARDLANG=german` or `CARDLANG=de` |
+
+#### Language Configuration Examples
+
+```bash
+# Generate flashcards in English (default)
+CARDLANG=english
+
+# Generate flashcards in French
+CARDLANG=french
+# or
+CARDLANG=fr
+
+# Generate flashcards in Italian
+CARDLANG=italian
+# or
+CARDLANG=it
+
+# Generate flashcards in German
+CARDLANG=german
+# or
+CARDLANG=de
+```
+
+#### Default Behavior
+
+- **When CARDLANG is not set**: Defaults to English
+- **When CARDLANG is empty**: Defaults to English
+- **When CARDLANG is invalid**: Shows error with supported languages list
+
+#### Language Impact on Flashcard Quality
+
+The language configuration affects:
+
+- **Question phrasing**: Uses natural grammar and vocabulary for the target language
+- **Answer formatting**: Follows language-specific conventions
+- **Cultural context**: Adapts explanations to be culturally appropriate
+- **Technical terminology**: Uses proper technical terms in the target language
+
+**Note**: The source document can be in any language - the AI will read and understand it, then generate flashcards in your configured target language.
 
 ### Getting API Keys
 
@@ -120,6 +175,24 @@ document-to-anki documents/ --output folder-flashcards.csv
 
 # Process a ZIP archive
 document-to-anki archive.zip --output archive-flashcards.csv
+```
+
+#### Language Configuration Examples
+
+```bash
+# Generate flashcards in French from an English document
+CARDLANG=french document-to-anki english-textbook.pdf --output french-cards.csv
+
+# Generate flashcards in German using ISO code
+CARDLANG=de document-to-anki scientific-paper.pdf --output german-cards.csv
+
+# Generate flashcards in Italian from multiple documents
+CARDLANG=italian document-to-anki documents/ --output italian-study-cards.csv
+
+# Use environment variable for consistent language across sessions
+export CARDLANG=french
+document-to-anki lecture1.pdf --output lecture1-fr.csv
+document-to-anki lecture2.pdf --output lecture2-fr.csv
 ```
 
 #### Advanced CLI Options
@@ -216,8 +289,12 @@ from pathlib import Path
 from document_to_anki.core.llm_client import LLMClient
 from document_to_anki.models.flashcard import Flashcard
 
-# Custom LLM configuration
-llm_client = LLMClient(model="gemini/gemini-2.5-flash", timeout=300)
+# Custom LLM configuration with language support
+llm_client = LLMClient(
+    model="gemini/gemini-2.5-flash", 
+    timeout=300,
+    language="french"  # Generate flashcards in French
+)
 
 # Generate flashcards directly from text
 text = "Your educational content here..."
@@ -236,6 +313,40 @@ for data in flashcard_data:
 
 # Validate and export
 valid_cards = [card for card in flashcards if card.validate_content()]
+```
+
+#### Multi-Language API Usage
+
+```python
+from document_to_anki.core.document_processor import DocumentProcessor
+from document_to_anki.core.flashcard_generator import FlashcardGenerator
+from document_to_anki.config import Settings
+
+# Process the same document in multiple languages
+languages = ["english", "french", "italian", "german"]
+document_path = "scientific-paper.pdf"
+
+for lang in languages:
+    # Create settings with specific language
+    settings = Settings(cardlang=lang)
+    
+    # Initialize components with language-specific settings
+    doc_processor = DocumentProcessor()
+    flashcard_gen = FlashcardGenerator(language=lang)
+    
+    # Process document
+    result = doc_processor.process_upload(document_path)
+    
+    # Generate flashcards in the specified language
+    flashcards_result = flashcard_gen.generate_flashcards(
+        [result.text_content], 
+        result.source_files
+    )
+    
+    # Export with language-specific filename
+    output_file = f"flashcards_{lang}.csv"
+    success, summary = flashcard_gen.export_to_csv(output_file)
+    print(f"Generated {summary.total_cards} flashcards in {lang}")
 ```
 
 ## Supported File Formats
@@ -505,6 +616,78 @@ For detailed information, see the comprehensive documentation in the `docs/` fol
 - **[Usage Examples](docs/EXAMPLES.md)** - Comprehensive examples for CLI, web interface, and Python API
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues, solutions, and debugging tips
 
+## Migration Guide
+
+### Upgrading from Previous Versions
+
+If you're upgrading from a version that had hardcoded French flashcard generation, here's what you need to know:
+
+#### What Changed
+
+- **Previous behavior**: Flashcards were always generated in French, regardless of source document language
+- **New behavior**: Flashcards are generated in configurable languages (English, French, Italian, German)
+- **Default language**: Now defaults to English instead of French
+
+#### Migration Steps
+
+1. **For users who want to keep French flashcards**:
+   ```bash
+   # Add this to your .env file
+   CARDLANG=french
+   ```
+
+2. **For users who want English flashcards** (new default):
+   ```bash
+   # No action needed - English is now the default
+   # Or explicitly set:
+   CARDLANG=english
+   ```
+
+3. **For users who want other languages**:
+   ```bash
+   # Italian flashcards
+   CARDLANG=italian
+   
+   # German flashcards  
+   CARDLANG=german
+   ```
+
+#### Backward Compatibility
+
+- **Existing .env files**: Will continue to work without modification
+- **No CARDLANG setting**: Automatically defaults to English (not French)
+- **Invalid CARDLANG values**: Shows clear error message with supported options
+
+#### Quality Improvements
+
+The new language system provides:
+
+- **Better grammar**: Language-specific grammar rules and vocabulary
+- **Cultural context**: Appropriate cultural references and examples
+- **Technical accuracy**: Proper technical terminology in each language
+- **Consistency**: Uniform language usage across all flashcards
+
+#### Troubleshooting Migration Issues
+
+**Problem**: "My flashcards are now in English instead of French"
+```bash
+# Solution: Add French language configuration
+echo "CARDLANG=french" >> .env
+```
+
+**Problem**: "Error: Unsupported language 'francais'"
+```bash
+# Solution: Use supported language codes
+CARDLANG=french  # or CARDLANG=fr
+```
+
+**Problem**: "I want to switch between languages for different documents"
+```bash
+# Solution: Use environment variables per command
+CARDLANG=french document-to-anki french-doc.pdf
+CARDLANG=german document-to-anki german-doc.pdf
+```
+
 ## Quick Troubleshooting
 
 ### Common Issues
@@ -538,6 +721,37 @@ Error: Failed to connect to AI service
 - Check internet connection
 - Verify API key is valid and has quota remaining
 - Try again after a few minutes (rate limiting)
+
+#### Language Configuration Issues
+
+```
+Error: Unsupported language 'spanish'. Supported languages: english, en, french, fr, italian, it, german, de
+```
+**Solution:** Use one of the supported language codes:
+```bash
+# Correct language settings
+CARDLANG=english    # or en
+CARDLANG=french     # or fr  
+CARDLANG=italian    # or it
+CARDLANG=german     # or de
+```
+
+```
+Warning: Generated flashcards may not be in the correct language
+```
+**Solutions:**
+- Check your CARDLANG setting is correct
+- Verify the AI model supports your target language
+- Try regenerating the flashcards
+- Check if the source document has mixed languages
+
+```
+Error: Language validation failed for generated content
+```
+**Solutions:**
+- The AI occasionally generates content in the wrong language
+- The application will automatically retry
+- If persistent, try a different AI model (e.g., switch from gemini-flash to gemini-pro)
 
 For complete troubleshooting information, see **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 
@@ -605,6 +819,13 @@ This project is licensed under the MIT License. See the LICENSE file for details
   - Detailed logging of successful vs. failed page processing
   - Continues processing even when individual pages fail
 - ✅ Gemini Pro AI integration for intelligent flashcard generation
+- ✅ **Multi-Language Configuration**: Configurable language support for flashcard generation
+  - Support for English, French, Italian, and German languages
+  - Environment variable configuration via CARDLANG
+  - Language-specific prompt templates with proper grammar and vocabulary
+  - Automatic language validation and error handling
+  - Backward compatibility with migration guide for existing users
+  - Comprehensive documentation and troubleshooting guidance
 - ✅ Rich progress tracking and error handling
 - ✅ Comprehensive test suite with >80% coverage
 - ✅ Accessible, responsive web design (WCAG 2.1 AA)

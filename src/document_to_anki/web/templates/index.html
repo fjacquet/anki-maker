@@ -57,6 +57,22 @@
             margin: 0 auto;
         }
 
+        .language-info {
+            margin-top: 15px;
+        }
+
+        .language-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
         .main-content {
             background: white;
             border-radius: 12px;
@@ -679,6 +695,11 @@
         <header class="header">
             <h1>Document to Anki Converter</h1>
             <p>Transform your documents into study flashcards using AI. Upload your files and let our intelligent system create personalized learning materials for you.</p>
+            {% if language_name %}
+            <div class="language-info">
+                <span class="language-badge">📚 Flashcards in {{ language_name }} ({{ language_code }})</span>
+            </div>
+            {% endif %}
         </header>
 
         <main class="main-content" role="main" id="main-content">
@@ -837,5 +858,60 @@
     <div id="globalMessage" class="message hidden" role="alert" aria-live="assertive"></div>
 
     <!-- JavaScript functionality is loaded from app.js -->
+    <script>
+        // Language configuration functionality
+        async function loadLanguageConfig() {
+            try {
+                const response = await fetch('/api/config/language');
+                const config = await response.json();
+                
+                if (response.ok) {
+                    console.log('Language configuration:', config);
+                    // Update UI elements if needed
+                    updateLanguageDisplay(config);
+                } else {
+                    console.error('Failed to load language configuration:', config);
+                    showLanguageError(config.error || 'Failed to load language configuration');
+                }
+            } catch (error) {
+                console.error('Error loading language configuration:', error);
+                showLanguageError('Network error loading language configuration');
+            }
+        }
+
+        function updateLanguageDisplay(config) {
+            // Update any dynamic language display elements
+            const languageBadge = document.querySelector('.language-badge');
+            if (languageBadge && config.language_name && config.language_code) {
+                languageBadge.textContent = `📚 Flashcards in ${config.language_name} (${config.language_code})`;
+            }
+        }
+
+        function showLanguageError(message) {
+            // Show language configuration error to user
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message error-message';
+            errorDiv.textContent = `Language Configuration: ${message}`;
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '20px';
+            errorDiv.style.right = '20px';
+            errorDiv.style.zIndex = '1000';
+            errorDiv.style.maxWidth = '300px';
+            
+            document.body.appendChild(errorDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.parentNode.removeChild(errorDiv);
+                }
+            }, 5000);
+        }
+
+        // Load language configuration on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLanguageConfig();
+        });
+    </script>
 </body>
 </html>

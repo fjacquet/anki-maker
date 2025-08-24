@@ -1,0 +1,43 @@
+english:
+  - question: "What is Artificial Intelligence?"
+    answer: "A branch of computer science that aims to create intelligent machines capable of performing tasks that typically require human intelligence"
+    card_type: "qa"
+  - question: "Define {{c1::Machine Learning}}"
+    answer: "Algorithms that improve through experience"
+    card_type: "cloze"
+  - question: "What are the main applications of AI?"
+    answer: "Image recognition, speech synthesis, recommendation systems, and autonomous vehicles"
+    card_type: "qa"
+
+french:
+  - question: "Qu'est-ce que l'Intelligence Artificielle?"
+    answer: "Une branche de l'informatique qui vise à créer des machines intelligentes capables d'effectuer des tâches qui nécessitent généralement l'intelligence humaine"
+    card_type: "qa"
+  - question: "Définir {{c1::l'Apprentissage Automatique}}"
+    answer: "Des algorithmes qui s'améliorent grâce à l'expérience"
+    card_type: "cloze"
+  - question: "Quelles sont les principales applications de l'IA?"
+    answer: "Reconnaissance d'images, synthèse vocale, systèmes de recommandation et véhicules autonomes"
+    card_type: "qa"
+
+italian:
+  - question: "Cos'è l'Intelligenza Artificiale?"
+    answer: "Un ramo dell'informatica che mira a creare macchine intelligenti capaci di svolgere compiti che tipicamente richiedono intelligenza umana"
+    card_type: "qa"
+  - question: "Definire {{c1::l'Apprendimento Automatico}}"
+    answer: "Algoritmi che migliorano attraverso l'esperienza"
+    card_type: "cloze"
+  - question: "Quali sono le principali applicazioni dell'IA?"
+    answer: "Riconoscimento di immagini, sintesi vocale, sistemi di raccomandazione e veicoli autonomi"
+    card_type: "qa"
+
+german:
+  - question: "Was ist Künstliche Intelligenz?"
+    answer: "Ein Zweig der Informatik, der darauf abzielt, intelligente Maschinen zu schaffen, die Aufgaben ausführen können, die normalerweise menschliche Intelligenz erfordern"
+    card_type: "qa"
+  - question: "Definieren Sie {{c1::Maschinelles Lernen}}"
+    answer: "Algorithmen, die sich durch Erfahrung verbessern"
+    card_type: "cloze"
+  - question: "Was sind die Hauptanwendungen der KI?"
+    answer: "Bilderkennung, Sprachsynthese, Empfehlungssysteme und autonome Fahrzeuge"
+    card_type: "qa"

@@ -317,6 +317,315 @@ Interface not working properly in browser
 3. Clear browser cache and cookies
 4. Disable browser extensions that might interfere
 
+## Language Configuration Issues
+
+### Problem: Unsupported language error
+```
+Error: Unsupported language 'spanish'. Supported languages: english, en, french, fr, italian, it, german, de
+```
+
+**Solutions:**
+1. **Use supported language codes:**
+   ```bash
+   # Correct language settings
+   CARDLANG=english    # or en
+   CARDLANG=french     # or fr  
+   CARDLANG=italian    # or it
+   CARDLANG=german     # or de
+   ```
+
+2. **Check for typos in language names:**
+   ```bash
+   # Common mistakes
+   CARDLANG=francais   # ❌ Incorrect
+   CARDLANG=french     # ✅ Correct
+   
+   CARDLANG=espanol    # ❌ Not supported
+   CARDLANG=english    # ✅ Use English instead
+   ```
+
+3. **Verify .env file format:**
+   ```bash
+   # Check your .env file
+   cat .env | grep CARDLANG
+   
+   # Should show something like:
+   CARDLANG=french
+   ```
+
+### Problem: Flashcards generated in wrong language
+```
+Issue: Set CARDLANG=german but flashcards are still in English/French
+```
+
+**Diagnosis Steps:**
+```bash
+# Check if environment variable is loaded
+echo $CARDLANG
+
+# Test with explicit environment variable
+CARDLANG=german document-to-anki test.pdf --verbose
+
+# Verify .env file is in correct location
+ls -la .env
+```
+
+**Solutions:**
+1. **Ensure .env file is in project root directory**
+2. **Restart terminal session** after modifying .env
+3. **Use explicit environment variable:**
+   ```bash
+   CARDLANG=german document-to-anki input.pdf
+   ```
+4. **Check for conflicting environment variables:**
+   ```bash
+   env | grep CARDLANG
+   ```
+
+### Problem: Mixed language output
+```
+Issue: Some flashcards in correct language, others in different language
+```
+
+**Common Causes:**
+- Source document contains multiple languages
+- AI model occasionally generates incorrect language content
+- Inconsistent language configuration during processing
+
+**Solutions:**
+1. **Regenerate flashcards** (system has built-in retry logic):
+   ```bash
+   # Delete existing output and regenerate
+   rm output.csv
+   document-to-anki input.pdf --output output.csv
+   ```
+
+2. **Use more capable AI model:**
+   ```bash
+   # In .env file, switch to more powerful model
+   MODEL=gemini/gemini-2.5-pro  # Instead of gemini-2.5-flash
+   ```
+
+3. **Check source document language consistency:**
+   - Ensure source document doesn't mix languages
+   - Extract text manually to verify content language
+
+4. **Use interactive editing** to fix individual cards:
+   ```bash
+   # Process with interactive mode (default)
+   document-to-anki input.pdf
+   # Then edit problematic cards in the interactive menu
+   ```
+
+### Problem: Poor grammar or vocabulary in target language
+```
+Issue: Flashcards in French/Italian/German have poor grammar or unnatural phrasing
+```
+
+**Solutions:**
+1. **Switch to more capable AI model:**
+   ```bash
+   # Use the more advanced model for better language quality
+   MODEL=gemini/gemini-2.5-pro
+   CARDLANG=french
+   ```
+
+2. **Check source document quality:**
+   - Poor source text leads to poor flashcards
+   - Ensure source document is well-written and clear
+   - Consider preprocessing source text for clarity
+
+3. **Use interactive editing for quality control:**
+   ```bash
+   # Always review and edit generated flashcards
+   document-to-anki input.pdf
+   # Use the edit option in the interactive menu
+   ```
+
+4. **Provide feedback for improvement:**
+   - Report language-specific quality issues
+   - Include examples of poor vs expected output
+
+### Problem: Language validation warnings
+```
+Warning: Generated flashcards may not be in the correct language
+Warning: Language validation failed for generated content
+```
+
+**What this means:**
+- The system detected that generated content might not match the configured language
+- This is a quality control feature to alert you to potential issues
+
+**Solutions:**
+1. **Review the generated flashcards manually:**
+   ```bash
+   # Use interactive mode to check flashcard quality
+   document-to-anki input.pdf --verbose
+   ```
+
+2. **The system will automatically retry:**
+   - Built-in retry logic attempts to regenerate content
+   - Usually resolves itself after 1-2 retries
+
+3. **If warnings persist:**
+   ```bash
+   # Try a different AI model
+   MODEL=gemini/gemini-2.5-pro
+   
+   # Or try processing smaller text chunks
+   # (automatically handled, but smaller files may work better)
+   ```
+
+### Problem: Default language changed from French to English
+```
+Issue: After upgrading, flashcards are now in English instead of French
+```
+
+**This is expected behavior** - the default language changed in the new version.
+
+**Solutions:**
+1. **Restore French as your language:**
+   ```bash
+   # Add to your .env file
+   CARDLANG=french
+   ```
+
+2. **For permanent French usage:**
+   ```bash
+   # Add to your shell profile (.bashrc, .zshrc, etc.)
+   export CARDLANG=french
+   ```
+
+3. **See the migration guide** for detailed upgrade instructions:
+   - [docs/MIGRATION.md](MIGRATION.md)
+
+### Problem: Language configuration not working in web interface
+```
+Issue: Web interface ignores CARDLANG setting
+```
+
+**Solutions:**
+1. **Restart the web server** after changing .env:
+   ```bash
+   # Stop the web server (Ctrl+C)
+   # Then restart
+   document-to-anki-web
+   ```
+
+2. **Verify .env file location:**
+   ```bash
+   # .env file should be in the same directory as where you start the web server
+   ls -la .env
+   ```
+
+3. **Check web server logs:**
+   ```bash
+   # Start web server with verbose logging
+   LOG_LEVEL=DEBUG document-to-anki-web
+   ```
+
+### Problem: Language codes vs full names confusion
+```
+Issue: Unsure whether to use 'fr' or 'french'
+```
+
+**Both formats are supported:**
+
+| Language | Full Name | ISO Code | Both Work |
+|----------|-----------|----------|-----------|
+| English | `CARDLANG=english` | `CARDLANG=en` | ✅ |
+| French | `CARDLANG=french` | `CARDLANG=fr` | ✅ |
+| Italian | `CARDLANG=italian` | `CARDLANG=it` | ✅ |
+| German | `CARDLANG=german` | `CARDLANG=de` | ✅ |
+
+**Recommendations:**
+- Use full names for clarity: `CARDLANG=french`
+- Use ISO codes for brevity: `CARDLANG=fr`
+- Be consistent within your project
+
+### Problem: Testing language configuration
+```
+Issue: Want to verify language configuration is working correctly
+```
+
+**Testing Steps:**
+1. **Create a test document:**
+   ```bash
+   echo "The water cycle involves evaporation, condensation, and precipitation." > test.txt
+   ```
+
+2. **Test each language:**
+   ```bash
+   # Test English
+   CARDLANG=english document-to-anki test.txt --output test-en.csv --no-preview --batch
+   
+   # Test French  
+   CARDLANG=french document-to-anki test.txt --output test-fr.csv --no-preview --batch
+   
+   # Test Italian
+   CARDLANG=italian document-to-anki test.txt --output test-it.csv --no-preview --batch
+   
+   # Test German
+   CARDLANG=german document-to-anki test.txt --output test-de.csv --no-preview --batch
+   ```
+
+3. **Verify output:**
+   ```bash
+   # Check that flashcards are in the correct language
+   head -3 test-en.csv
+   head -3 test-fr.csv
+   head -3 test-it.csv
+   head -3 test-de.csv
+   ```
+
+4. **Automated test script:**
+   ```bash
+   #!/bin/bash
+   # test-languages.sh
+   
+   echo "Testing language configuration..."
+   echo "Photosynthesis converts sunlight into energy." > test-input.txt
+   
+   for lang in english french italian german; do
+       echo "Testing $lang..."
+       CARDLANG=$lang document-to-anki test-input.txt --output "test-$lang.csv" --no-preview --batch
+       if [ $? -eq 0 ]; then
+           echo "✅ $lang: SUCCESS"
+           head -2 "test-$lang.csv"
+       else
+           echo "❌ $lang: FAILED"
+       fi
+       echo "---"
+   done
+   
+   # Cleanup
+   rm test-input.txt test-*.csv
+   ```
+
+### Language Configuration Best Practices
+
+1. **Choose one primary language** for consistency
+2. **Test configuration** with small documents first
+3. **Use interactive mode** for quality control
+4. **Keep language settings** in version control (.env.example)
+5. **Document your choice** for team projects
+
+### Language Quality Optimization
+
+1. **Model Selection:**
+   - Use `gemini-2.5-pro` for better language quality
+   - Use `gemini-2.5-flash` for faster processing
+
+2. **Source Document Quality:**
+   - Ensure source documents are well-written
+   - Avoid documents with mixed languages
+   - Use clear, educational content
+
+3. **Post-Processing:**
+   - Always review generated flashcards
+   - Edit for cultural appropriateness
+   - Verify technical terminology accuracy
+
 ## Export and Output Issues
 
 ### Problem: CSV export fails

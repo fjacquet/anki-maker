@@ -93,10 +93,9 @@ class TestCLIIntegration:
             return_value=mock_gen_result,
         )
 
-        # Mock CSV export
-        mocker.patch(
-            "src.document_to_anki.core.flashcard_generator.FlashcardGenerator.export_to_csv",
-            return_value=(
+        # Mock CSV export with dynamic output path
+        def mock_export_to_csv(output_path):
+            return (
                 True,
                 {
                     "total_flashcards": 2,
@@ -105,10 +104,14 @@ class TestCLIIntegration:
                     "qa_cards": 2,
                     "cloze_cards": 0,
                     "file_size_bytes": 150,
-                    "output_path": "test_output.csv",
+                    "output_path": str(output_path),
                     "errors": [],
                 },
-            ),
+            )
+
+        mocker.patch(
+            "src.document_to_anki.core.flashcard_generator.FlashcardGenerator.export_to_csv",
+            side_effect=mock_export_to_csv,
         )
 
         return sample_flashcards

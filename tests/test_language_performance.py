@@ -1,0 +1,565 @@
+"""
+Performance tests to ensure language processing doesn't impact performance.
+
+This module provides comprehensive performance testing of the language configuration
+system to ensure that language-specific processing maintains acceptable performance
+characteristics across all supported languages.
+"""
+
+import concurrent.futures
+import gc
+import time
+
+import pytest
+
+from document_to_anki.config import LanguageConfig, Settings
+from document_to_anki.core.flashcard_generator import FlashcardGenerator
+from document_to_anki.core.llm_client import LLMClient
+
+
+class TestLanguagePerformance:
+    """Performance tests for language configuration and processing."""
+
+    @pytest.fixture
+    def sample_text_content(self):
+        """Sample text content for performance testing."""
+        return """
+        Machine Learning and Artificial Intelligence
+        
+        Machine learning is a subset of artificial intelligence that enables computers
+        to learn and improve from experience without being explicitly programmed.
+        
+        Key concepts include supervised learning, unsupervised learning, and reinforcement
+        learning. Each approach has different applications and use cases in modern technology.
+        
+        Deep learning, a subset of machine learning, uses neural networks with multiple
+        layers to model and understand complex patterns in data.
+        """
+
+    @pytest.fixture
+    def large_text_content(self):
+        """Large text content for stress testing."""
+        base_content = """
+        Artificial Intelligence represents one of the most significant technological
+        advances of the modern era. It encompasses various subfields including machine
+        learning, natural language processing, computer vision, and robotics.
+        
+        The applications of AI are vast and growing, spanning healthcare, finance,
+        transportation, entertainment, and many other industries. As AI systems become
+        more sophisticated, they are increasingly capable of performing complex tasks
+        that were once thought to require human intelligence.
+        """
+        # Repeat content to create larger text
+        return base_content * 50  # Approximately 10KB of text
+
+    def test_language_validation_performance(self):
+        """Test performance of language validation operations."""
+        languages_to_test = ["english", "french", "italian", "german", "en", "fr", "it", "de"] * 100
+
+        # Test validation performance
+        start_time = time.time()
+        for language in languages_to_test:
+            LanguageConfig.validate_language(language)
+        validation_time = time.time() - start_time
+
+        # Should complete quickly (less than 0.5 seconds for 800 validations)
+        assert validation_time < 0.5, f"Language validation took too long: {validation_time}s"
+
+        # Test normalization performance
+        start_time = time.time()
+        for language in languages_to_test:
+            LanguageConfig.normalize_language(language)
+        normalization_time = time.time() - start_time
+
+        # Should complete quickly (less than 0.5 seconds for 800 normalizations)
+        assert normalization_time < 0.5, f"Language normalization took too long: {normalization_time}s"
+
+        # Test info retrieval performance
+        start_time = time.time()
+        for language in languages_to_test:
+            LanguageConfig.get_language_info(language)
+        info_retrieval_time = time.time() - start_time
+
+        # Should complete quickly (less than 1 second for 800 info retrievals)
+        assert info_retrieval_time < 1.0, f"Language info retrieval took too long: {info_retrieval_time}s"
+
+    def test_settings_instantiation_performance(self, mocker):
+        """Test performance of Settings instantiation with different languages."""
+        languages = ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+
+        # Test multiple instantiations
+        instantiation_times = []
+
+        for language in languages:
+            mocker.patch.dict("os.environ", {"CARDLANG": language}, clear=True)
+
+            start_time = time.time()
+            for _ in range(10):  # 10 instantiations per language
+                settings = Settings(_env_file=None)
+                assert settings.cardlang in ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+            end_time = time.time()
+
+            instantiation_times.append(end_time - start_time)
+
+        # Average time per language should be reasonable
+        avg_time = sum(instantiation_times) / len(instantiation_times)
+        assert avg_time < 0.5, f"Settings instantiation took too long on average: {avg_time}s"
+
+        # No single language should take significantly longer
+        max_time = max(instantiation_times)
+        assert max_time < avg_time * 2, f"Some language took too long: {max_time}s vs avg {avg_time}s"
+
+    def test_llm_client_initialization_performance(self, mocker):
+        """Test performance of LLMClient initialization with different languages."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        languages = ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+        initialization_times = []
+
+        for language in languages:
+            start_time = time.time()
+            for _ in range(10):  # 10 initializations per language
+                client = LLMClient(language=language)
+                assert client.language in ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+            end_time = time.time()
+
+            initialization_times.append(end_time - start_time)
+
+        # Average initialization time should be reasonable
+        avg_time = sum(initialization_times) / len(initialization_times)
+        assert avg_time < 1.0, f"LLMClient initialization took too long on average: {avg_time}s"
+
+        # Performance should be consistent across languages
+        max_time = max(initialization_times)
+        min_time = min(initialization_times)
+        assert max_time / min_time < 3, f"Performance varies too much between languages: {max_time}s vs {min_time}s"
+
+    def test_prompt_template_retrieval_performance(self, mocker):
+        """Test performance of prompt template retrieval for different languages."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        client = LLMClient()
+        languages = ["english", "french", "italian", "german"]
+        content_types = ["general", "academic", "technical"]
+
+        # Test prompt retrieval performance
+        start_time = time.time()
+        for _ in range(100):  # 100 iterations
+            for language in languages:
+                for content_type in content_types:
+                    template = client.get_prompt_template(language, content_type)
+                    assert len(template) > 0
+        end_time = time.time()
+
+        total_time = end_time - start_time
+        # Should complete quickly (less than 2 seconds for 1200 retrievals)
+        assert total_time < 2.0, f"Prompt template retrieval took too long: {total_time}s"
+
+    @pytest.mark.asyncio
+    async def test_flashcard_generation_performance_by_language(self, sample_text_content, mocker):
+        """Test flashcard generation performance across different languages."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        # Mock API responses for each language
+        def mock_api_call(prompt, **kwargs):
+            if "Vous êtes un expert" in prompt:
+                return (
+                    '[{"question": "Qu\'est-ce que l\'IA?", "answer": "Intelligence artificielle", "card_type": "qa"}]'
+                )
+            elif "Sei un esperto" in prompt:
+                return '[{"question": "Cos\'è l\'IA?", "answer": "Intelligenza artificiale", "card_type": "qa"}]'
+            elif "Sie sind ein Experte" in prompt:
+                return '[{"question": "Was ist KI?", "answer": "Künstliche Intelligenz", "card_type": "qa"}]'
+            else:
+                return '[{"question": "What is AI?", "answer": "Artificial Intelligence", "card_type": "qa"}]'
+
+        mocker.patch.object(LLMClient, "_make_api_call_with_retry", side_effect=mock_api_call)
+
+        languages = ["english", "french", "italian", "german"]
+        generation_times = {}
+
+        for language in languages:
+            # Mock Settings for current language
+            mock_settings = mocker.patch("document_to_anki.config.settings")
+            mock_settings.cardlang = language
+            mock_settings.get_language_name.return_value = {
+                "english": "English",
+                "french": "French",
+                "italian": "Italian",
+                "german": "German",
+            }[language]
+            mock_settings.get_language_code.return_value = {
+                "english": "en",
+                "french": "fr",
+                "italian": "it",
+                "german": "de",
+            }[language]
+            mock_settings.get_prompt_key.return_value = language
+
+            # Measure generation time
+            start_time = time.time()
+
+            flashcard_generator = FlashcardGenerator()
+            result = await flashcard_generator.generate_flashcards_async(sample_text_content, ["test.txt"])
+
+            end_time = time.time()
+            generation_times[language] = end_time - start_time
+
+            # Verify generation succeeded
+            assert len(result.flashcards) > 0
+            assert len(result.errors) == 0
+
+        # Check that performance is consistent across languages
+        avg_time = sum(generation_times.values()) / len(generation_times)
+
+        for language, gen_time in generation_times.items():
+            # No language should take more than 2x the average time
+            assert gen_time <= avg_time * 2, f"Language {language} took too long: {gen_time}s vs avg {avg_time}s"
+            # All languages should complete within reasonable time
+            assert gen_time < 5.0, f"Language {language} took too long: {gen_time}s"
+
+    def test_concurrent_language_operations_performance(self, mocker):
+        """Test performance of concurrent language operations."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        def perform_language_operations(language):
+            """Perform various language operations."""
+            start_time = time.time()
+
+            # Language validation operations
+            for _ in range(10):
+                LanguageConfig.validate_language(language)
+                LanguageConfig.normalize_language(language)
+                LanguageConfig.get_language_info(language)
+
+            # Settings instantiation
+            mocker.patch.dict("os.environ", {"CARDLANG": language}, clear=True)
+            settings = Settings(_env_file=None)
+            assert settings.cardlang in ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+
+            # LLMClient initialization
+            client = LLMClient(language=language)
+            assert client.language in ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+
+            end_time = time.time()
+            return language, end_time - start_time
+
+        languages = ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+
+        # Test concurrent execution
+        start_time = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [executor.submit(perform_language_operations, lang) for lang in languages]
+            results = [future.result() for future in concurrent.futures.as_completed(futures)]
+        total_concurrent_time = time.time() - start_time
+
+        # Test sequential execution for comparison
+        start_time = time.time()
+        sequential_results = [perform_language_operations(lang) for lang in languages]
+        total_sequential_time = time.time() - start_time
+
+        # Concurrent execution should be faster or at least not significantly slower
+        assert total_concurrent_time <= total_sequential_time * 1.5, (
+            f"Concurrent execution too slow: {total_concurrent_time}s vs {total_sequential_time}s"
+        )
+
+        # All operations should complete successfully
+        assert len(results) == len(languages)
+        assert len(sequential_results) == len(languages)
+
+    def test_memory_usage_with_repeated_operations(self, mocker):
+        """Test memory usage with repeated language operations."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        # Get initial memory state
+        gc.collect()
+        initial_objects = len(gc.get_objects())
+
+        # Perform many language operations
+        languages = ["english", "french", "italian", "german", "en", "fr", "it", "de"]
+
+        for iteration in range(20):  # 20 iterations
+            for language in languages:
+                # Language config operations
+                LanguageConfig.validate_language(language)
+                LanguageConfig.normalize_language(language)
+                info = LanguageConfig.get_language_info(language)
+
+                # Settings operations
+                mocker.patch.dict("os.environ", {"CARDLANG": language}, clear=True)
+                settings = Settings(_env_file=None)
+
+                # LLMClient operations
+                client = LLMClient(language=language)
+
+                # Clean up references
+                del info, settings, client
+
+            # Force garbage collection every few iterations
+            if iteration % 5 == 0:
+                gc.collect()
+
+        # Final garbage collection
+        gc.collect()
+        final_objects = len(gc.get_objects())
+
+        # Memory usage should not have grown excessively
+        memory_growth_ratio = final_objects / initial_objects
+        assert memory_growth_ratio < 2.0, (
+            f"Memory usage grew too much: {memory_growth_ratio}x (from {initial_objects} to {final_objects} objects)"
+        )
+
+    @pytest.mark.asyncio
+    async def test_large_document_processing_performance(self, large_text_content, mocker):
+        """Test performance with large documents across different languages."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        # Mock API responses
+        def mock_api_call(prompt, **kwargs):
+            # Return multiple flashcards for large content
+            if "Vous êtes un expert" in prompt:
+                return (
+                    '[{"question": "Question 1?", "answer": "Réponse 1", "card_type": "qa"}, '
+                    '{"question": "Question 2?", "answer": "Réponse 2", "card_type": "qa"}]'
+                )
+            elif "Sei un esperto" in prompt:
+                return (
+                    '[{"question": "Domanda 1?", "answer": "Risposta 1", "card_type": "qa"}, '
+                    '{"question": "Domanda 2?", "answer": "Risposta 2", "card_type": "qa"}]'
+                )
+            elif "Sie sind ein Experte" in prompt:
+                return (
+                    '[{"question": "Frage 1?", "answer": "Antwort 1", "card_type": "qa"}, '
+                    '{"question": "Frage 2?", "answer": "Antwort 2", "card_type": "qa"}]'
+                )
+            else:
+                return (
+                    '[{"question": "Question 1?", "answer": "Answer 1", "card_type": "qa"}, '
+                    '{"question": "Question 2?", "answer": "Answer 2", "card_type": "qa"}]'
+                )
+
+        mocker.patch.object(LLMClient, "_make_api_call_with_retry", side_effect=mock_api_call)
+
+        languages = ["english", "french", "italian", "german"]
+        processing_times = {}
+
+        for language in languages:
+            # Mock Settings
+            mock_settings = mocker.patch("document_to_anki.config.settings")
+            mock_settings.cardlang = language
+            mock_settings.get_language_name.return_value = {
+                "english": "English",
+                "french": "French",
+                "italian": "Italian",
+                "german": "German",
+            }[language]
+            mock_settings.get_language_code.return_value = {
+                "english": "en",
+                "french": "fr",
+                "italian": "it",
+                "german": "de",
+            }[language]
+            mock_settings.get_prompt_key.return_value = language
+
+            # Measure processing time for large document
+            start_time = time.time()
+
+            flashcard_generator = FlashcardGenerator()
+            result = await flashcard_generator.generate_flashcards_async(large_text_content, ["large_test.txt"])
+
+            end_time = time.time()
+            processing_times[language] = end_time - start_time
+
+            # Verify processing succeeded
+            assert len(result.flashcards) > 0
+            assert len(result.errors) == 0
+
+        # Performance should be consistent for large documents
+        avg_time = sum(processing_times.values()) / len(processing_times)
+
+        for language, proc_time in processing_times.items():
+            # No language should take more than 2x the average time
+            assert proc_time <= avg_time * 2, (
+                f"Language {language} took too long for large document: {proc_time}s vs avg {avg_time}s"
+            )
+            # Should complete within reasonable time even for large documents
+            assert proc_time < 10.0, f"Language {language} took too long for large document: {proc_time}s"
+
+    def test_stress_test_language_validation(self):
+        """Stress test language validation with many concurrent operations."""
+
+        def validate_languages_batch():
+            """Validate a batch of languages."""
+            languages = ["english", "french", "italian", "german", "en", "fr", "it", "de"] * 50
+            results = []
+
+            for language in languages:
+                try:
+                    is_valid = LanguageConfig.validate_language(language)
+                    normalized = LanguageConfig.normalize_language(language)
+                    info = LanguageConfig.get_language_info(normalized)
+                    results.append((language, is_valid, normalized, info.name))
+                except Exception as e:
+                    results.append((language, False, None, str(e)))
+
+            return results
+
+        # Run stress test with multiple threads
+        start_time = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(validate_languages_batch) for _ in range(10)]
+            all_results = [future.result() for future in concurrent.futures.as_completed(futures)]
+        end_time = time.time()
+
+        total_time = end_time - start_time
+        total_operations = sum(len(results) for results in all_results)
+
+        # Should handle high load efficiently
+        assert total_time < 5.0, f"Stress test took too long: {total_time}s for {total_operations} operations"
+
+        # All operations should succeed
+        for results in all_results:
+            for language, is_valid, normalized, name in results:
+                assert is_valid, f"Validation failed for {language}"
+                assert normalized is not None, f"Normalization failed for {language}"
+                assert name in ["English", "French", "Italian", "German"], f"Invalid name for {language}: {name}"
+
+    def test_performance_regression_detection(self, sample_text_content, mocker):
+        """Test to detect performance regressions in language processing."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        # Define performance benchmarks (in seconds)
+        benchmarks = {
+            "language_validation": 0.001,  # 1ms per validation
+            "settings_instantiation": 0.1,  # 100ms per instantiation
+            "llm_client_init": 0.1,  # 100ms per initialization
+            "prompt_template_retrieval": 0.001,  # 1ms per retrieval
+        }
+
+        # Test language validation performance
+        languages = ["english", "french", "italian", "german"]
+
+        start_time = time.time()
+        for language in languages * 100:  # 400 validations
+            LanguageConfig.validate_language(language)
+        validation_time = (time.time() - start_time) / 400
+
+        assert validation_time < benchmarks["language_validation"], (
+            f"Language validation regression: {validation_time}s > {benchmarks['language_validation']}s"
+        )
+
+        # Test Settings instantiation performance
+        start_time = time.time()
+        for language in languages:
+            mocker.patch.dict("os.environ", {"CARDLANG": language}, clear=True)
+            settings = Settings(_env_file=None)
+        instantiation_time = (time.time() - start_time) / len(languages)
+
+        assert instantiation_time < benchmarks["settings_instantiation"], (
+            f"Settings instantiation regression: {instantiation_time}s > {benchmarks['settings_instantiation']}s"
+        )
+
+        # Test LLMClient initialization performance
+        start_time = time.time()
+        for language in languages:
+            client = LLMClient(language=language)
+        init_time = (time.time() - start_time) / len(languages)
+
+        assert init_time < benchmarks["llm_client_init"], (
+            f"LLMClient initialization regression: {init_time}s > {benchmarks['llm_client_init']}s"
+        )
+
+        # Test prompt template retrieval performance
+        client = LLMClient()
+        start_time = time.time()
+        for language in languages * 100:  # 400 retrievals
+            client.get_prompt_template(language, "general")
+        retrieval_time = (time.time() - start_time) / 400
+
+        assert retrieval_time < benchmarks["prompt_template_retrieval"], (
+            f"Prompt template retrieval regression: {retrieval_time}s > {benchmarks['prompt_template_retrieval']}s"
+        )
+
+    def test_scalability_with_increasing_load(self, mocker):
+        """Test scalability of language operations with increasing load."""
+        # Mock external dependencies
+        mocker.patch("document_to_anki.core.llm_client.litellm")
+        mock_model_config = mocker.patch("document_to_anki.core.llm_client.ModelConfig")
+        mock_model_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_model_config.validate_model_config.return_value = True
+
+        languages = ["english", "french", "italian", "german"]
+        load_levels = [10, 50, 100, 500, 1000]  # Number of operations
+
+        performance_results = {}
+
+        for load in load_levels:
+            # Test language validation scalability
+            start_time = time.time()
+            for _ in range(load):
+                for language in languages:
+                    LanguageConfig.validate_language(language)
+            validation_time = time.time() - start_time
+
+            # Test Settings instantiation scalability
+            start_time = time.time()
+            for i in range(load // 10):  # Fewer instantiations as they're more expensive
+                language = languages[i % len(languages)]
+                mocker.patch.dict("os.environ", {"CARDLANG": language}, clear=True)
+                settings = Settings(_env_file=None)
+            instantiation_time = time.time() - start_time
+
+            performance_results[load] = {
+                "validation_time": validation_time,
+                "instantiation_time": instantiation_time,
+                "validation_ops_per_sec": (load * len(languages)) / validation_time,
+                "instantiation_ops_per_sec": (load // 10) / instantiation_time
+                if instantiation_time > 0
+                else float("inf"),
+            }
+
+        # Check that performance scales reasonably
+        # Operations per second should not degrade significantly with increased load
+        base_validation_ops = performance_results[load_levels[0]]["validation_ops_per_sec"]
+        high_validation_ops = performance_results[load_levels[-1]]["validation_ops_per_sec"]
+
+        # Performance should not degrade by more than 50%
+        assert high_validation_ops >= base_validation_ops * 0.5, (
+            f"Validation performance degraded too much: {high_validation_ops} vs {base_validation_ops} ops/sec"
+        )
+
+        base_instantiation_ops = performance_results[load_levels[0]]["instantiation_ops_per_sec"]
+        high_instantiation_ops = performance_results[load_levels[-1]]["instantiation_ops_per_sec"]
+
+        # Performance should not degrade by more than 50%
+        assert high_instantiation_ops >= base_instantiation_ops * 0.5, (
+            f"Instantiation performance degraded too much: {high_instantiation_ops} vs {base_instantiation_ops} ops/sec"
+        )

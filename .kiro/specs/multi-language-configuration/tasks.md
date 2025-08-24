@@ -70,7 +70,7 @@
   - Write integration tests for CLI help text and error message display
   - _Requirements: 1.4, 6.2, 6.3_
 
-- [ ] 10. Integrate language configuration in web interface
+- [x] 10. Integrate language configuration in web interface
   - Ensure web application uses same Settings instance and language configuration
   - Display current language configuration in web interface
   - Maintain language consistency across all web interface flashcard operations
@@ -78,7 +78,7 @@
   - Write integration tests for web interface language consistency
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 11. Create comprehensive language configuration tests
+- [x] 11. Create comprehensive language configuration tests
   - Write unit tests for all supported language codes and validation scenarios
   - Create tests for invalid language codes and error handling behavior
   - Implement integration tests for environment variable parsing and defaults
@@ -86,7 +86,7 @@
   - Create performance tests to ensure language processing doesn't impact performance
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 12. Update documentation and migration guidance
+- [x] 12. Update documentation and migration guidance
   - Update README with language configuration examples and usage instructions
   - Create migration guide for users upgrading from hardcoded French behavior
   - Document language configuration impact on flashcard generation quality
