@@ -58,7 +58,6 @@ test: check-env ## Run all tests
 	uv run pytest
 
 test-cov: check-env ## Run tests with coverage report
-	uv run pytest --cov=src/document_to_anki --cov-report=html --cov-report=term --cov-branch --cov-report=xml
 
 test-fast: check-env ## Run tests with fail-fast
 	uv run pytest -x

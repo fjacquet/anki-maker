@@ -2,6 +2,10 @@
 
 Convert documents to Anki flashcards using AI-powered content analysis.
 
+
+[![codecov](https://codecov.io/gh/fjacquet/anki-maker/graph/badge.svg?token=FW552JU6AS)](https://codecov.io/gh/fjacquet/anki-maker)
+
+
 ## Overview
 
 Document to Anki CLI is a comprehensive tool that transforms various document formats (PDF, DOCX, TXT, MD) into high-quality Anki flashcards using Google's Gemini Pro AI model. The application provides both CLI and web interfaces, allowing users to upload documents, preview and edit generated flashcards, and export them as Anki-compatible CSV files.
