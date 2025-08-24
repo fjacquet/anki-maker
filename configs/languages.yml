@@ -1,0 +1,49 @@
+# Supported Languages Configuration
+languages:
+  english:
+    code: "en"
+    name: "English"
+    aliases: ["en", "english", "eng"]
+    default: true
+    
+  french:
+    code: "fr" 
+    name: "French"
+    aliases: ["fr", "french", "français", "francais"]
+    default: false
+    
+  italian:
+    code: "it"
+    name: "Italian"
+    aliases: ["it", "italian", "italiano"]
+    default: false
+    
+  german:
+    code: "de"
+    name: "German"
+    aliases: ["de", "german", "deutsch"]
+    default: false
+    
+  spanish:
+    code: "es"
+    name: "Spanish"
+    aliases: ["es", "spanish", "español", "espanol"]
+    default: false
+    
+  portuguese:
+    code: "pt"
+    name: "Portuguese"
+    aliases: ["pt", "portuguese", "português", "portugues"]
+    default: false
+
+# Language configuration
+settings:
+  default_language: "english"
+  fallback_language: "english"
+  case_sensitive: false
+  
+# Validation rules
+validation:
+  min_name_length: 2
+  max_name_length: 50
+  allowed_characters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_"

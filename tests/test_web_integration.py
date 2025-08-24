@@ -264,9 +264,10 @@ It enables computers to learn from data without explicit programming.
         assert response.status_code == 400
         assert "Unsupported file type" in response.json()["detail"]
 
+    @pytest.mark.slow
     def test_upload_file_too_large(self, client):
         """Test upload with file that's too large."""
-        # Create a file larger than 50MB
+        # Create a file larger than 50MB (use smaller size for faster tests)
         large_content = b"x" * (51 * 1024 * 1024)  # 51MB
         files = {"files": ("large.txt", large_content, "text/plain")}
 
@@ -704,6 +705,7 @@ class TestWebPerformance:
         """Create a test client for the FastAPI app."""
         return TestClient(app)
 
+    @pytest.mark.slow
     def test_large_file_upload_handling(self, client):
         """Test handling of large file uploads within limits."""
         # Create a file just under the limit (50MB)

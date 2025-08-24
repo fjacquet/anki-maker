@@ -269,9 +269,9 @@ class TestTextExtractor:
         Path(tmp.name).unlink()
 
     def test_extract_text_from_pdf_with_pdfplumber_fallback(self, mocker):
-        """Test PDF extraction falling back to pdfplumber when PyPDF2 fails."""
-        # Mock PyPDF2 to fail
-        mocker.patch("src.document_to_anki.utils.text_extractor.PdfReader", side_effect=Exception("PyPDF2 failed"))
+        """Test PDF extraction falling back to pdfplumber when pypdf fails."""
+        # Mock pypdf to fail
+        mocker.patch("src.document_to_anki.utils.text_extractor.PdfReader", side_effect=Exception("pypdf failed"))
         # Mock HAS_PDFPLUMBER to True
         mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PDFPLUMBER", True)
         # Mock the pdfplumber fallback method

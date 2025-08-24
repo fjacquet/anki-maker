@@ -33,6 +33,40 @@ class TestCLIIntegration:
         mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash"]
         return mock_config
 
+    @pytest.fixture(autouse=True)
+    def mock_llm_client(self, mocker):
+        """Mock LLM client for all CLI tests to prevent real API calls."""
+        # Mock the LLM client methods
+        mock_flashcards = [
+            {"question": "What is the main topic?", "answer": "Programming concepts", "card_type": "qa"},
+            {"question": "Key benefit mentioned?", "answer": "Simplicity and readability", "card_type": "qa"},
+        ]
+
+        # Mock all possible LLM client methods
+        mocker.patch(
+            "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text_sync",
+            return_value=mock_flashcards,
+        )
+        # Mock litellm.completion to prevent real API calls and return proper response structure
+        mock_response = mocker.Mock()
+        mock_response.choices = [mocker.Mock()]
+        mock_response.choices[0].message = mocker.Mock()
+        mock_response.choices[
+            0
+        ].message.content = (
+            '[{"question": "What is the main topic?", "answer": "Programming concepts", "card_type": "qa"}]'
+        )
+
+        mocker.patch("src.document_to_anki.core.llm_client.litellm.completion", return_value=mock_response)
+
+        # Mock environment variables
+        mocker.patch.dict(
+            "os.environ",
+            {"GEMINI_API_KEY": "test-key", "MODEL": "gemini/gemini-2.5-flash"},
+        )
+
+        return mock_flashcards
+
     @pytest.fixture
     def sample_txt_file(self, tmp_path):
         """Create a sample text file for testing."""
@@ -423,6 +457,40 @@ class TestCLIInteractiveFeatures:
         mock_config.SUPPORTED_MODELS = {"gemini/gemini-2.5-flash": "GEMINI_API_KEY"}
         mock_config.get_supported_models.return_value = ["gemini/gemini-2.5-flash"]
         return mock_config
+
+    @pytest.fixture(autouse=True)
+    def mock_llm_client_interactive(self, mocker):
+        """Mock LLM client for all interactive CLI tests to prevent real API calls."""
+        # Mock the LLM client methods
+        mock_flashcards = [
+            {"question": "What is the main topic?", "answer": "Programming concepts", "card_type": "qa"},
+            {"question": "Key benefit mentioned?", "answer": "Simplicity and readability", "card_type": "qa"},
+        ]
+
+        # Mock all possible LLM client methods
+        mocker.patch(
+            "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text_sync",
+            return_value=mock_flashcards,
+        )
+        # Mock litellm.completion to prevent real API calls and return proper response structure
+        mock_response = mocker.Mock()
+        mock_response.choices = [mocker.Mock()]
+        mock_response.choices[0].message = mocker.Mock()
+        mock_response.choices[
+            0
+        ].message.content = (
+            '[{"question": "What is the main topic?", "answer": "Programming concepts", "card_type": "qa"}]'
+        )
+
+        mocker.patch("src.document_to_anki.core.llm_client.litellm.completion", return_value=mock_response)
+
+        # Mock environment variables
+        mocker.patch.dict(
+            "os.environ",
+            {"GEMINI_API_KEY": "test-key", "MODEL": "gemini/gemini-2.5-flash"},
+        )
+
+        return mock_flashcards
 
     @pytest.fixture
     def sample_file_with_flashcards(self, tmp_path, mocker):

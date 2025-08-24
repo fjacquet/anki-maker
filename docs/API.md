@@ -418,6 +418,59 @@ Get human-readable summary.
 
 The web interface exposes a comprehensive REST API for programmatic access.
 
+### Interactive API Documentation (Swagger/OpenAPI)
+
+The FastAPI web interface automatically generates interactive API documentation that you can access when the server is running:
+
+#### 📚 **Available Documentation Endpoints**
+
+1. **Swagger UI**: `http://localhost:8000/docs`
+   - Interactive API documentation with a modern UI
+   - Test endpoints directly from your browser
+   - View detailed request/response schemas
+   - Try out API calls with sample data
+
+2. **ReDoc**: `http://localhost:8000/redoc`
+   - Alternative documentation format
+   - Clean, readable API documentation
+   - Better for reading and understanding the API structure
+
+3. **OpenAPI JSON Schema**: `http://localhost:8000/openapi.json`
+   - Raw OpenAPI 3.0 specification in JSON format
+   - Can be imported into API testing tools like Postman, Insomnia
+   - Use for code generation in various programming languages
+
+#### 🚀 **How to Access Interactive Documentation**
+
+1. Start the web server:
+   ```bash
+   document-to-anki-web
+   # or
+   uvicorn document_to_anki.web.app:app --host 0.0.0.0 --port 8000
+   ```
+
+2. Open your browser and navigate to:
+   - **Swagger UI**: http://localhost:8000/docs
+   - **ReDoc**: http://localhost:8000/redoc
+
+#### 🔧 **What You'll Find in the Documentation**
+
+The interactive documentation automatically includes:
+- All API endpoints with HTTP methods and paths
+- Request/response schemas with examples
+- Parameter descriptions and validation rules
+- Error response formats
+- Model definitions (Pydantic schemas)
+- Authentication requirements (currently none)
+
+#### 💡 **Benefits of Interactive Documentation**
+
+- **Always Up-to-Date**: Generated directly from code, so it's never outdated
+- **Interactive Testing**: Test API endpoints without writing code
+- **Schema Validation**: See exactly what data formats are expected
+- **Code Examples**: Auto-generated request examples in multiple formats
+- **Error Handling**: Clear documentation of error responses
+
 ### Base URL
 
 ```

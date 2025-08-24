@@ -69,6 +69,14 @@ test-integration: check-env ## Run integration tests only
 test-integration-cov: check-env ## Run integration tests with coverage report
 	uv run pytest -m integration --cov=src/document_to_anki --cov-report=html --cov-report=term --cov-report=xml
 
+test-performance: check-env ## Run performance tests only
+	@echo "Running performance tests..."
+	uv run pytest performance_tests/ -v --tb=short
+
+test-performance-verbose: check-env ## Run performance tests with detailed output
+	@echo "Running performance tests with detailed output..."
+	uv run pytest performance_tests/ -v -s --tb=long --durations=10
+
 ci-test-integration: check-env ## Run integration tests in CI environment
 	@echo "Running integration tests in CI mode..."
 	@set -e; \
@@ -155,6 +163,18 @@ run-cli: ## Run CLI in development mode
 
 run-web: ## Run web server in development mode
 	uv run document-to-anki-web
+
+# Docker compose with external configs
+docker-dev: ## Run development environment with external config
+	docker-compose -f docker-compose.yml -f configs/docker/development.yml up --build
+
+docker-prod: ## Run production environment with external config
+	docker-compose -f docker-compose.yml -f configs/docker/production.yml up -d --build
+
+docker-down: ## Stop all docker services
+	docker-compose down
+	docker-compose -f docker-compose.yml -f configs/docker/development.yml down
+	docker-compose -f docker-compose.yml -f configs/docker/production.yml down
 
 # Build and Distribution
 build: check-uv ## Build the package

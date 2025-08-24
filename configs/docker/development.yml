@@ -1,0 +1,41 @@
+# Development Docker Compose Configuration
+version: '3.8'
+
+services:
+  app-dev:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.12
+        - BUILD_ENV=development
+    
+    ports:
+      - "8000:8000"
+    
+    environment:
+      - LOG_LEVEL=DEBUG
+      - WEB_DEBUG=true
+      - DEV_MODE=true
+      - PYTHONPATH=/app/src
+    
+    volumes:
+      - ../..:/app
+      - ../../exports:/app/exports
+      - ../../logs:/app/logs
+      - ../../.cache:/app/.cache
+    
+    command: ["uvicorn", "document_to_anki.web.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: document-to-anki-dev-network

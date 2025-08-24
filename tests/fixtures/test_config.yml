@@ -1,0 +1,97 @@
+# Test configuration for end-to-end tests
+# This file contains settings and parameters for various test scenarios
+
+# Test timeouts (in seconds)
+timeouts:
+  single_file_workflow: 60
+  multiple_files_workflow: 60
+  zip_file_workflow: 60
+  flashcard_editing_workflow: 45
+  error_recovery_workflow: 30
+  large_document_workflow: 120
+  performance_workflow: 60
+  memory_usage_workflow: 90
+  validation_workflow: 45
+  different_card_types_workflow: 45
+
+# Performance expectations
+performance:
+  document_processing:
+    max_time_seconds: 5
+    max_memory_mb: 50
+  
+  flashcard_generation:
+    max_time_seconds: 5  # Reduced due to mocking
+    max_memory_mb: 100
+  
+  csv_export:
+    max_time_seconds: 2
+    max_memory_mb: 25
+  
+  total_workflow:
+    max_time_seconds: 12
+    max_memory_mb: 150
+
+# Document size limits for testing
+document_sizes:
+  small:
+    repeat_count: 20
+    expected_min_chars: 1000
+  
+  medium:
+    repeat_count: 100
+    expected_min_chars: 5000
+  
+  large:
+    repeat_count: 500
+    expected_min_chars: 10000
+
+# Memory usage test settings
+memory_test:
+  document_count: 3
+  content_repeat_count: 500
+  max_memory_increase_mb: 50
+
+# File format test settings
+file_formats:
+  supported_extensions:
+    - ".pdf"
+    - ".docx"
+    - ".txt"
+    - ".md"
+    - ".zip"
+  
+  max_file_size_mb: 50
+  max_batch_files: 50
+
+# Validation test settings
+validation:
+  expected_warnings_count: 3  # For mixed quality flashcards
+  min_valid_flashcards: 1
+  max_invalid_flashcards: 3
+
+# Environment variables for testing
+environment:
+  mock_llm_responses: true
+  test_mode: true
+  log_level: "ERROR"  # Reduce noise during testing
+  
+# Expected flashcard counts for different scenarios
+expected_counts:
+  python_basics: 4
+  machine_learning: 4
+  mixed_content: 4
+  generic_content: 1
+  mixed_quality_valid: 2  # Only valid ones should remain
+
+# CSV export validation
+csv_export:
+  required_columns: ["Question", "Answer", "Type", "Source"]
+  min_file_size_bytes: 100
+  encoding: "utf-8"
+
+# Error simulation settings
+error_simulation:
+  retry_attempts: 2
+  failure_rate: 0.5  # 50% failure rate for first attempt
+  recovery_success_rate: 1.0  # 100% success on retry

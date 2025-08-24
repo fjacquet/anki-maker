@@ -234,6 +234,16 @@ document-to-anki-web
 uvicorn document_to_anki.web.app:app --host 0.0.0.0 --port 8080
 ```
 
+#### Interactive API Documentation
+
+The web interface includes comprehensive API documentation powered by FastAPI:
+
+- **Swagger UI**: http://localhost:8000/docs - Interactive API testing interface
+- **ReDoc**: http://localhost:8000/redoc - Clean, readable API documentation  
+- **OpenAPI Schema**: http://localhost:8000/openapi.json - Machine-readable API specification
+
+These endpoints provide complete documentation of all REST API endpoints, request/response schemas, and allow you to test the API directly from your browser.
+
 #### Using the Web Interface
 
 1. **Upload Documents**: Drag and drop files or click to browse

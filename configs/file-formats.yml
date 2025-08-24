@@ -1,0 +1,66 @@
+# Supported File Formats Configuration
+formats:
+  pdf:
+    extensions: [".pdf"]
+    mime_types: ["application/pdf"]
+    description: "Portable Document Format"
+    max_size_mb: 50
+    processor: "pypdf"
+    features:
+      - text_extraction
+      - page_by_page_processing
+      - error_recovery
+    
+  docx:
+    extensions: [".docx"]
+    mime_types: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+    description: "Microsoft Word Document"
+    max_size_mb: 25
+    processor: "python-docx"
+    features:
+      - text_extraction
+      - formatting_preservation
+      - table_support
+    
+  txt:
+    extensions: [".txt"]
+    mime_types: ["text/plain"]
+    description: "Plain Text File"
+    max_size_mb: 10
+    processor: "built-in"
+    features:
+      - direct_text_reading
+      - encoding_detection
+    
+  markdown:
+    extensions: [".md", ".markdown"]
+    mime_types: ["text/markdown", "text/x-markdown"]
+    description: "Markdown Document"
+    max_size_mb: 10
+    processor: "built-in"
+    features:
+      - text_extraction
+      - structure_preservation
+    
+  zip:
+    extensions: [".zip"]
+    mime_types: ["application/zip"]
+    description: "ZIP Archive"
+    max_size_mb: 100
+    processor: "zipfile"
+    features:
+      - batch_processing
+      - recursive_extraction
+      - format_filtering
+
+# Processing settings
+processing:
+  max_total_size_mb: 200
+  max_files_per_batch: 50
+  supported_encodings: ["utf-8", "utf-16", "latin-1", "cp1252"]
+  
+# Validation rules
+validation:
+  check_file_signature: true
+  verify_mime_type: true
+  scan_for_malware: false  # Could be enabled with additional tools

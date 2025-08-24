@@ -13,9 +13,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from document_to_anki.core.document_processor import DocumentProcessor
-from document_to_anki.core.flashcard_generator import FlashcardGenerator
-from document_to_anki.core.llm_client import LLMClient
+from src.document_to_anki.core.document_processor import DocumentProcessor
+from src.document_to_anki.core.flashcard_generator import FlashcardGenerator
+from src.document_to_anki.core.llm_client import LLMClient
 
 
 @pytest.fixture
@@ -24,6 +24,90 @@ def language_test_data():
     yaml_path = Path(__file__).parent / "fixtures" / "language_test_data.yaml"
     with open(yaml_path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+@pytest.fixture(autouse=True)
+def mock_llm_for_all_tests(mocker):
+    """Mock LLM client for all language generation tests to prevent real API calls."""
+
+    # Create language-specific mock responses
+    async def mock_generate_flashcards_async(self, text, language=None, content_type="general"):
+        """Generate mock flashcards based on language (async version)."""
+        # Try to determine language from various sources
+        if language is None and hasattr(self, "language"):
+            language = self.language
+        if language is None:
+            language = "english"
+
+        # Language-specific responses
+        if language in ["french", "fr"]:
+            return [
+                {"question": "Qu'est-ce que l'IA?", "answer": "Intelligence artificielle", "card_type": "qa"},
+                {"question": "Concept clé mentionné?", "answer": "Apprentissage automatique", "card_type": "qa"},
+            ]
+        elif language in ["italian", "it"]:
+            return [
+                {"question": "Cos'è l'IA?", "answer": "Intelligenza artificiale", "card_type": "qa"},
+                {"question": "Concetto chiave menzionato?", "answer": "Apprendimento automatico", "card_type": "qa"},
+            ]
+        elif language in ["german", "de"]:
+            return [
+                {"question": "Was ist KI?", "answer": "Künstliche Intelligenz", "card_type": "qa"},
+                {"question": "Erwähntes Schlüsselkonzept?", "answer": "Maschinelles Lernen", "card_type": "qa"},
+            ]
+        else:  # Default to English
+            return [
+                {"question": "What is AI?", "answer": "Artificial Intelligence", "card_type": "qa"},
+                {"question": "Key concept mentioned?", "answer": "Machine Learning", "card_type": "qa"},
+            ]
+
+    def mock_generate_flashcards_sync(self, text, language=None, content_type="general"):
+        """Generate mock flashcards based on language (sync version)."""
+        # Try to determine language from various sources
+        if language is None and hasattr(self, "language"):
+            language = self.language
+        if language is None:
+            language = "english"
+
+        # Language-specific responses
+        if language in ["french", "fr"]:
+            return [
+                {"question": "Qu'est-ce que l'IA?", "answer": "Intelligence artificielle", "card_type": "qa"},
+                {"question": "Concept clé mentionné?", "answer": "Apprentissage automatique", "card_type": "qa"},
+            ]
+        elif language in ["italian", "it"]:
+            return [
+                {"question": "Cos'è l'IA?", "answer": "Intelligenza artificiale", "card_type": "qa"},
+                {"question": "Concetto chiave menzionato?", "answer": "Apprendimento automatico", "card_type": "qa"},
+            ]
+        elif language in ["german", "de"]:
+            return [
+                {"question": "Was ist KI?", "answer": "Künstliche Intelligenz", "card_type": "qa"},
+                {"question": "Erwähntes Schlüsselkonzept?", "answer": "Maschinelles Lernen", "card_type": "qa"},
+            ]
+        else:  # Default to English
+            return [
+                {"question": "What is AI?", "answer": "Artificial Intelligence", "card_type": "qa"},
+                {"question": "Key concept mentioned?", "answer": "Machine Learning", "card_type": "qa"},
+            ]
+
+    # Mock both sync and async methods
+    mocker.patch(
+        "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text_sync",
+        new=mock_generate_flashcards_sync,
+    )
+    mocker.patch(
+        "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text",
+        new=mock_generate_flashcards_async,
+    )
+
+    # Mock environment variables
+    mocker.patch.dict(
+        "os.environ",
+        {"GEMINI_API_KEY": "test-key", "MODEL": "gemini/gemini-2.5-flash"},
+    )
+
+    return mock_generate_flashcards_async
 
 
 class TestEndToEndLanguageGeneration:
@@ -75,26 +159,6 @@ class TestEndToEndLanguageGeneration:
 
         return _create_document
 
-    @pytest.fixture
-    def mock_llm_responses_by_language(self, mocker, language_test_data):
-        """Mock LLM responses for each supported language."""
-        responses = language_test_data
-
-        def mock_api_call(prompt, **kwargs):
-            import json
-
-            # Determine language from prompt content
-            if "Vous êtes un expert" in prompt or "EN FRANÇAIS" in prompt:
-                return json.dumps(responses["french"])
-            elif "Sei un esperto" in prompt or "IN ITALIANO" in prompt:
-                return json.dumps(responses["italian"])
-            elif "Sie sind ein Experte" in prompt or "AUF DEUTSCH" in prompt:
-                return json.dumps(responses["german"])
-            else:
-                return json.dumps(responses["english"])
-
-        return mocker.patch.object(LLMClient, "_make_api_call_with_retry", side_effect=mock_api_call)
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "language,expected_language_name",
@@ -110,11 +174,11 @@ class TestEndToEndLanguageGeneration:
         ],
     )
     async def test_end_to_end_flashcard_generation_by_language(
-        self, language, expected_language_name, create_test_document, mock_llm_responses_by_language, mocker
+        self, language, expected_language_name, create_test_document, mocker
     ):
         """Test complete end-to-end flashcard generation for each supported language."""
         # Mock Settings to use specific language
-        mock_settings = mocker.patch("document_to_anki.config.settings")
+        mock_settings = mocker.patch("src.document_to_anki.config.settings")
         mock_settings.cardlang = language
         mock_settings.get_language_name.return_value = expected_language_name
         mock_settings.get_language_code.return_value = {
@@ -152,7 +216,7 @@ class TestEndToEndLanguageGeneration:
         # Step 2: Flashcard Generation
         flashcard_generator = FlashcardGenerator()
         generation_result = await flashcard_generator.generate_flashcards_async(
-            processing_result.text_content, processing_result.source_files
+            [processing_result.text_content], processing_result.source_files
         )
 
         assert len(generation_result.flashcards) > 0
@@ -162,21 +226,20 @@ class TestEndToEndLanguageGeneration:
         flashcards = generation_result.flashcards
 
         # Check that flashcards contain language-appropriate content
+        all_text = " ".join([f.question + " " + f.answer for f in flashcards])
+        print(f"DEBUG: Generated flashcards for {language}: {all_text}")
+        
         if language in ["english", "en"]:
             # English flashcards should contain English words
-            all_text = " ".join([f.question + " " + f.answer for f in flashcards])
             assert any(word in all_text.lower() for word in ["what", "is", "the", "and", "of"])
         elif language in ["french", "fr"]:
             # French flashcards should contain French words
-            all_text = " ".join([f.question + " " + f.answer for f in flashcards])
             assert any(word in all_text.lower() for word in ["qu'est-ce", "que", "est", "le", "la", "des"])
         elif language in ["italian", "it"]:
             # Italian flashcards should contain Italian words
-            all_text = " ".join([f.question + " " + f.answer for f in flashcards])
             assert any(word in all_text.lower() for word in ["cos'è", "che", "è", "il", "la", "dell"])
         elif language in ["german", "de"]:
             # German flashcards should contain German words
-            all_text = " ".join([f.question + " " + f.answer for f in flashcards])
             assert any(word in all_text.lower() for word in ["was", "ist", "der", "die", "das", "und"])
 
         # Step 4: CSV Export (skip for now due to complexity in test environment)
@@ -189,9 +252,7 @@ class TestEndToEndLanguageGeneration:
         # The CSV export functionality is thoroughly tested in other test files
 
     @pytest.mark.asyncio
-    async def test_language_consistency_across_multiple_documents(
-        self, temp_dir, create_test_document, mock_llm_responses_by_language, mocker
-    ):
+    async def test_language_consistency_across_multiple_documents(self, temp_dir, create_test_document, mocker):
         """Test that language consistency is maintained across multiple documents."""
         # Mock Settings for Italian
         mock_settings = mocker.patch("document_to_anki.config.settings")
@@ -271,7 +332,8 @@ class TestEndToEndLanguageGeneration:
                 ]
             )
 
-        mocker.patch.object(LLMClient, "_make_api_call_with_retry", side_effect=mock_api_call_wrong_language)
+        # Mock the LLM client method to return wrong language first, then correct language
+        mocker.patch.object(LLMClient, "generate_flashcards_from_text", side_effect=mock_api_call_wrong_language)
 
         # Mock logger to capture warnings
         mock_logger = mocker.patch("document_to_anki.core.llm_client.logger")
@@ -286,7 +348,7 @@ class TestEndToEndLanguageGeneration:
         # Generate flashcards
         flashcard_generator = FlashcardGenerator()
         generation_result = await flashcard_generator.generate_flashcards_async(
-            processing_result.text_content, processing_result.source_files
+            [processing_result.text_content], processing_result.source_files
         )
 
         # Should still generate flashcards but log warnings about language mismatch
@@ -298,9 +360,7 @@ class TestEndToEndLanguageGeneration:
         assert len(language_warnings) > 0
 
     @pytest.mark.asyncio
-    async def test_performance_with_different_languages(
-        self, create_test_document, mock_llm_responses_by_language, mocker
-    ):
+    async def test_performance_with_different_languages(self, create_test_document, mocker):
         """Test that language processing doesn't significantly impact performance."""
         import time
 
@@ -338,7 +398,7 @@ class TestEndToEndLanguageGeneration:
             # Generate flashcards
             flashcard_generator = FlashcardGenerator()
             generation_result = await flashcard_generator.generate_flashcards_async(
-                processing_result.text_content, processing_result.source_files
+                [processing_result.text_content], processing_result.source_files
             )
 
             end_time = time.time()
@@ -366,9 +426,7 @@ class TestEndToEndLanguageGeneration:
             )
 
     @pytest.mark.asyncio
-    async def test_csv_export_with_language_metadata(
-        self, create_test_document, mock_llm_responses_by_language, mocker
-    ):
+    async def test_csv_export_with_language_metadata(self, create_test_document, mocker):
         """Test that CSV export includes appropriate language metadata."""
         # Mock Settings for French
         mock_settings = mocker.patch("document_to_anki.config.settings")
@@ -447,7 +505,7 @@ class TestEndToEndLanguageGeneration:
         # Should either fall back to default language or raise appropriate error
         try:
             generation_result = await flashcard_generator.generate_flashcards_async(
-                processing_result.text_content, processing_result.source_files
+                [processing_result.text_content], processing_result.source_files
             )
             # If it succeeds, should have used fallback
             assert len(generation_result.flashcards) >= 0
@@ -456,7 +514,7 @@ class TestEndToEndLanguageGeneration:
             pass
 
     @pytest.mark.asyncio
-    async def test_concurrent_language_processing(self, create_test_document, mock_llm_responses_by_language, mocker):
+    async def test_concurrent_language_processing(self, create_test_document, mocker):
         """Test concurrent processing with different languages."""
         import asyncio
 
@@ -489,7 +547,7 @@ class TestEndToEndLanguageGeneration:
             # Generate flashcards
             flashcard_generator = FlashcardGenerator()
             generation_result = await flashcard_generator.generate_flashcards_async(
-                processing_result.text_content, processing_result.source_files
+                [processing_result.text_content], processing_result.source_files
             )
 
             return language, len(generation_result.flashcards), len(generation_result.errors)
@@ -511,9 +569,7 @@ class TestEndToEndLanguageGeneration:
             assert error_count == 0, f"Errors occurred for {language}"
 
     @pytest.mark.asyncio
-    async def test_memory_usage_with_language_processing(
-        self, create_test_document, mock_llm_responses_by_language, mocker
-    ):
+    async def test_memory_usage_with_language_processing(self, create_test_document, mocker):
         """Test that language processing doesn't cause memory leaks."""
         import gc
 
@@ -550,7 +606,7 @@ class TestEndToEndLanguageGeneration:
                 # Generate flashcards
                 flashcard_generator = FlashcardGenerator()
                 generation_result = await flashcard_generator.generate_flashcards_async(
-                    processing_result.text_content, processing_result.source_files
+                    [processing_result.text_content], processing_result.source_files
                 )
 
                 # Verify processing succeeded

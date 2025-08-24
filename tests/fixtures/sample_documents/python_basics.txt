@@ -1,0 +1,14 @@
+Python Programming Language
+
+Python is a high-level, interpreted programming language created by Guido van Rossum.
+It was first released in 1991 and is known for its simplicity and readability.
+
+Key Features:
+- Easy to learn and use
+- Interpreted language (no compilation needed)
+- Object-oriented programming support
+- Extensive standard library
+- Cross-platform compatibility
+
+Python is widely used in web development, data science, artificial intelligence,
+and automation. Its syntax emphasizes code readability with significant indentation.

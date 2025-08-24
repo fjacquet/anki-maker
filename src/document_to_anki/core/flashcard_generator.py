@@ -47,7 +47,13 @@ class FlashcardGenerator:
             ConfigurationError: If model configuration is invalid.
         """
         try:
-            self.llm_client = llm_client or LLMClient()  # LLMClient will use ModelConfig
+            if llm_client is None:
+                # Import settings here to get the current language configuration
+                from ..config import settings
+
+                self.llm_client = LLMClient(language=settings.cardlang)
+            else:
+                self.llm_client = llm_client
             self._flashcards: list[Flashcard] = []
             logger.info(f"FlashcardGenerator initialized with model: {self.llm_client.get_current_model()}")
         except ConfigurationError as e:
@@ -60,7 +66,7 @@ class FlashcardGenerator:
         return self._flashcards.copy()
 
     async def generate_flashcards_async(
-        self, text_content: list[str], source_files: list[str] | None = None
+        self, text_content: str | list[str], source_files: list[str] | None = None
     ) -> ProcessingResult:
         """
         Generate flashcards from text content using LLM (async version).
@@ -77,7 +83,13 @@ class FlashcardGenerator:
         errors = []
         warnings: list[str] = []
 
-        if not text_content:
+        # Normalize input: accept a single string or a list of strings
+        if isinstance(text_content, str):
+            text_chunks: list[str] = [text_content]
+        else:
+            text_chunks = text_content
+
+        if not text_chunks:
             errors.append("No text content provided for flashcard generation")
             return ProcessingResult(
                 flashcards=[],
@@ -87,10 +99,10 @@ class FlashcardGenerator:
                 warnings=warnings,
             )
 
-        logger.info(f"Starting flashcard generation for {len(text_content)} text chunks")
+        logger.info(f"Starting flashcard generation for {len(text_chunks)} text chunks")
 
         # Process each text chunk
-        for i, text in enumerate(text_content):
+        for i, text in enumerate(text_chunks):
             if not text or not text.strip():
                 warnings.append(f"Skipping empty text chunk {i + 1}")
                 continue
@@ -132,7 +144,9 @@ class FlashcardGenerator:
         logger.info(f"Flashcard generation completed: {result.get_summary()}")
         return result
 
-    def generate_flashcards(self, text_content: list[str], source_files: list[str] | None = None) -> ProcessingResult:
+    def generate_flashcards(
+        self, text_content: str | list[str], source_files: list[str] | None = None
+    ) -> ProcessingResult:
         """
         Generate flashcards from text content using LLM.
 
@@ -148,7 +162,13 @@ class FlashcardGenerator:
         errors = []
         warnings: list[str] = []
 
-        if not text_content:
+        # Normalize input: accept a single string or a list of strings
+        if isinstance(text_content, str):
+            text_chunks: list[str] = [text_content]
+        else:
+            text_chunks = text_content
+
+        if not text_chunks:
             errors.append("No text content provided for flashcard generation")
             return ProcessingResult(
                 flashcards=[],
@@ -158,10 +178,10 @@ class FlashcardGenerator:
                 warnings=warnings,
             )
 
-        logger.info(f"Starting flashcard generation for {len(text_content)} text chunks")
+        logger.info(f"Starting flashcard generation for {len(text_chunks)} text chunks")
 
         # Process each text chunk
-        for i, text in enumerate(text_content):
+        for i, text in enumerate(text_chunks):
             if not text or not text.strip():
                 warnings.append(f"Skipping empty text chunk {i + 1}")
                 continue

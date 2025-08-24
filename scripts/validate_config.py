@@ -127,7 +127,7 @@ def test_imports():
         "rich",
         "loguru",
         "litellm",
-        "PyPDF2",
+        "pypdf",
         "docx",
         "jinja2",
     ]

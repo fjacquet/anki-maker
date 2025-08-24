@@ -4,7 +4,7 @@ from pathlib import Path
 
 from docx import Document
 from loguru import logger
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 try:
     import pdfplumber
@@ -72,7 +72,7 @@ class TextExtractor:
 
     def extract_text_from_pdf(self, file_path: Path) -> str:
         """
-        Extract text from a PDF file using PyPDF2.
+        Extract text from a PDF file using pypdf.
 
         Args:
             file_path: Path to the PDF file
@@ -157,7 +157,7 @@ class TextExtractor:
         except PermissionError as e:
             raise TextExtractionError(f"Permission denied accessing PDF file: {file_path}") from e
         except Exception as e:
-            # Handle PyPDF2 specific errors
+            # Handle pypdf specific errors
             if "PdfReadError" in str(type(e)) or "PDF" in str(e):
                 raise TextExtractionError(f"Invalid or corrupted PDF file: {file_path} - {str(e)}") from e
             raise TextExtractionError(f"Unexpected error extracting from PDF {file_path}: {str(e)}") from e

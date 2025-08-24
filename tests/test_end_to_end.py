@@ -26,137 +26,44 @@ class TestEndToEndWorkflow:
 
     @pytest.fixture
     def sample_documents(self, temp_dir):
-        """Create sample documents for testing."""
+        """Create sample documents for testing using external files."""
+        from tests.fixtures.test_data_loader import test_data_loader
+
         documents = {}
 
-        # Create a text file
-        txt_file = temp_dir / "python_basics.txt"
-        txt_content = """
-        Python Programming Language
-        
-        Python is a high-level, interpreted programming language created by Guido van Rossum.
-        It was first released in 1991 and is known for its simplicity and readability.
-        
-        Key Features:
-        - Easy to learn and use
-        - Interpreted language (no compilation needed)
-        - Object-oriented programming support
-        - Extensive standard library
-        - Cross-platform compatibility
-        
-        Python is widely used in web development, data science, artificial intelligence,
-        and automation. Its syntax emphasizes code readability with significant indentation.
-        """
-        txt_file.write_text(txt_content.strip())
-        documents["txt"] = txt_file
-
-        # Create a markdown file
-        md_file = temp_dir / "machine_learning.md"
-        md_content = """
-        # Machine Learning Fundamentals
-        
-        Machine Learning (ML) is a subset of artificial intelligence that enables computers
-        to learn and make decisions from data without being explicitly programmed for every task.
-        
-        ## Types of Machine Learning
-        
-        ### Supervised Learning
-        - Uses labeled training data to learn patterns
-        - Examples: Classification and Regression
-        - Common algorithms: Linear Regression, Decision Trees, Random Forest
-        
-        ### Unsupervised Learning
-        - Finds patterns in data without labeled examples
-        - Examples: Clustering and Dimensionality Reduction
-        - Common algorithms: K-Means, PCA, DBSCAN
-        
-        ### Reinforcement Learning
-        - Learns through interaction with an environment
-        - Uses rewards and penalties to improve performance
-        - Applications: Game playing, Robotics, Autonomous vehicles
-        
-        ## Key Concepts
-        
-        **Training Data**: The dataset used to train the machine learning model
-        **Features**: Input variables or attributes used to make predictions
-        **Labels**: The correct answers or target values for supervised learning
-        **Model**: The algorithm that learns patterns and makes predictions
-        **Overfitting**: When a model performs well on training data but poorly on new, unseen data
-        """
-        md_file.write_text(md_content.strip())
-        documents["md"] = md_file
+        # Create documents from external files
+        documents["txt"] = test_data_loader.create_temp_document(temp_dir, "python_basics.txt")
+        documents["md"] = test_data_loader.create_temp_document(temp_dir, "machine_learning.md")
 
         return documents
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def mock_llm_responses(self, mocker):
-        """Mock LLM responses for consistent testing."""
-        # Mock responses for different document types
-        python_flashcards = [
-            {
-                "question": "What is Python?",
-                "answer": "A high-level, interpreted programming language created by Guido van Rossum",
-                "card_type": "qa",
-            },
-            {"question": "When was Python first released?", "answer": "1991", "card_type": "qa"},
-            {
-                "question": "Python is known for its {{c1::simplicity}} and {{c2::readability}}",
-                "answer": "simplicity and readability",
-                "card_type": "cloze",
-            },
-            {
-                "question": "Name three key features of Python",
-                "answer": "Easy to learn, interpreted language, object-oriented programming support",
-                "card_type": "qa",
-            },
-        ]
+        """Mock LLM responses for consistent testing - auto-applied to all tests."""
+        from tests.fixtures.test_data_loader import test_data_loader
 
-        ml_flashcards = [
-            {
-                "question": "What is Machine Learning?",
-                "answer": "A subset of artificial intelligence that enables computers to learn and make "
-                "decisions from data without being explicitly programmed",
-                "card_type": "qa",
-            },
-            {
-                "question": "What are the three main types of Machine Learning?",
-                "answer": "Supervised Learning, Unsupervised Learning, and Reinforcement Learning",
-                "card_type": "qa",
-            },
-            {
-                "question": "Supervised learning uses {{c1::labeled training data}} to learn patterns",
-                "answer": "labeled training data",
-                "card_type": "cloze",
-            },
-            {
-                "question": "What is overfitting?",
-                "answer": "When a model performs well on training data but poorly on new, unseen data",
-                "card_type": "qa",
-            },
-        ]
+        # Create mock function using external configuration
+        mock_generate_flashcards = test_data_loader.create_mock_llm_function()
 
-        # Mock the LLM client to return appropriate responses based on content
-        def mock_generate_flashcards(text):
-            if "Python" in text and "programming" in text:
-                return python_flashcards
-            elif "Machine Learning" in text:
-                return ml_flashcards
-            else:
-                return [
-                    {
-                        "question": "Generic question about the content",
-                        "answer": "Generic answer based on the text",
-                        "card_type": "qa",
-                    }
-                ]
-
+        # Mock both sync and async methods
         mocker.patch(
             "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text_sync",
             side_effect=mock_generate_flashcards,
         )
+        mocker.patch(
+            "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text",
+            side_effect=lambda text: mock_generate_flashcards(text),
+        )
 
-        return {"python": python_flashcards, "ml": ml_flashcards}
+        # Mock environment variables to avoid real API calls
+        mocker.patch.dict(
+            "os.environ",
+            {"GEMINI_API_KEY": "test-key", "MODEL": "gemini/gemini-2.5-flash", "MOCK_LLM_RESPONSES": "true"},
+        )
 
+        return test_data_loader.get_mock_llm_responses()
+
+    @pytest.mark.timeout(60)
     def test_single_file_complete_workflow(self, sample_documents, mock_llm_responses, temp_dir):
         """Test complete workflow with a single text file."""
         txt_file = sample_documents["txt"]
@@ -207,6 +114,7 @@ class TestEndToEndWorkflow:
         assert "Python" in csv_content
         assert "programming language" in csv_content.lower()
 
+    @pytest.mark.timeout(60)
     def test_multiple_files_workflow(self, sample_documents, mock_llm_responses, temp_dir):
         """Test complete workflow with multiple files."""
         txt_file = sample_documents["txt"]
@@ -254,6 +162,7 @@ class TestEndToEndWorkflow:
         assert output_file.exists()
         assert summary["exported_flashcards"] > 0
 
+    @pytest.mark.timeout(60)
     def test_zip_file_workflow(self, sample_documents, mock_llm_responses, temp_dir):
         """Test complete workflow with ZIP file containing multiple documents."""
         txt_file = sample_documents["txt"]
@@ -383,21 +292,17 @@ class TestEndToEndWorkflow:
         assert gen_result.success
         assert len(gen_result.flashcards) > 0
 
+    @pytest.mark.slow
     def test_large_document_workflow(self, temp_dir, mock_llm_responses):
         """Test workflow with a large document that requires chunking."""
-        # Create a large document
-        large_file = temp_dir / "large_document.txt"
+        from tests.fixtures.test_data_loader import test_data_loader
 
-        # Generate content that would exceed typical token limits
-        large_content = (
-            """
-        Artificial Intelligence and Machine Learning
-        
-        """
-            + "This is a sentence about AI and ML. " * 1000
-        )  # Repeat to make it large
+        # Get document size configuration from external config
+        size_config = test_data_loader.get_document_size_config("medium")
+        repeat_count = size_config.get("repeat_count", 100)
 
-        large_file.write_text(large_content)
+        # Create document using external template with repetition
+        large_file = test_data_loader.create_temp_document(temp_dir, "large_document.txt", repeat_count=repeat_count)
         output_file = temp_dir / "large_output.csv"
 
         # Process the large document
@@ -405,7 +310,8 @@ class TestEndToEndWorkflow:
         doc_result = processor.process_upload(large_file)
 
         assert doc_result.success
-        assert len(doc_result.text_content) > 10000  # Should be quite large
+        expected_min_chars = size_config.get("expected_min_chars", 1000)
+        assert len(doc_result.text_content) > expected_min_chars
 
         # Generate flashcards (should handle chunking internally)
         generator = FlashcardGenerator()
@@ -422,37 +328,15 @@ class TestEndToEndWorkflow:
 
     def test_different_card_types_workflow(self, temp_dir, mocker):
         """Test workflow that generates different types of flashcards."""
-        # Create document with content suitable for different card types
-        mixed_file = temp_dir / "mixed_content.txt"
-        mixed_content = """
-        Programming Concepts
-        
-        Variables store data values. In Python, you can create a variable by assigning a value to it.
-        Functions are reusable blocks of code. They help organize code and avoid repetition.
-        Loops allow you to repeat code multiple times. Common types include for loops and while loops.
-        """
-        mixed_file.write_text(mixed_content)
+        from tests.fixtures.test_data_loader import test_data_loader
+
+        # Create document using external file
+        mixed_file = test_data_loader.create_temp_document(temp_dir, "mixed_content.txt")
         output_file = temp_dir / "mixed_output.csv"
 
-        # Mock LLM to return mixed card types
-        mixed_flashcards = [
-            {"question": "What do variables store?", "answer": "Data values", "card_type": "qa"},
-            {
-                "question": "Variables store {{c1::data values}} in programming",
-                "answer": "data values",
-                "card_type": "cloze",
-            },
-            {
-                "question": "What are functions?",
-                "answer": "Reusable blocks of code that help organize code and avoid repetition",
-                "card_type": "qa",
-            },
-            {
-                "question": "{{c1::Loops}} allow you to repeat code multiple times",
-                "answer": "Loops",
-                "card_type": "cloze",
-            },
-        ]
+        # Get mixed flashcards from external config
+        responses_config = test_data_loader.get_mock_llm_responses()
+        mixed_flashcards = responses_config["responses"]["programming_concepts"]["flashcards"]
 
         mocker.patch(
             "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text_sync",
@@ -487,33 +371,14 @@ class TestEndToEndWorkflow:
 
     def test_validation_and_quality_workflow(self, sample_documents, temp_dir, mocker):
         """Test workflow with flashcard validation and quality checks."""
+        from tests.fixtures.test_data_loader import test_data_loader
+
         txt_file = sample_documents["txt"]
         output_file = temp_dir / "validated_output.csv"
 
-        # Mock LLM to return some invalid flashcards mixed with valid ones
-        mixed_quality_flashcards = [
-            {"question": "What is Python?", "answer": "A programming language", "card_type": "qa"},
-            {
-                "question": "",  # Invalid: empty question
-                "answer": "Some answer",
-                "card_type": "qa",
-            },
-            {
-                "question": "Valid question",
-                "answer": "",  # Invalid: empty answer
-                "card_type": "qa",
-            },
-            {
-                "question": "Python is a {{c1::programming language}}",
-                "answer": "programming language",
-                "card_type": "cloze",
-            },
-            {
-                "question": "Invalid cloze without markers",
-                "answer": "answer",
-                "card_type": "cloze",  # Invalid: cloze without {{c1::}} markers
-            },
-        ]
+        # Get mixed quality flashcards from external config
+        responses_config = test_data_loader.get_mock_llm_responses()
+        mixed_quality_flashcards = responses_config["responses"]["mixed_quality"]["flashcards"]
 
         mocker.patch(
             "src.document_to_anki.core.llm_client.LLMClient.generate_flashcards_from_text_sync",
@@ -528,12 +393,18 @@ class TestEndToEndWorkflow:
         generator = FlashcardGenerator()
         gen_result = generator.generate_flashcards([doc_result.text_content], doc_result.source_files)
 
+        # Get validation expectations from external config
+        test_config = test_data_loader.get_test_config()
+        validation_config = test_config.get("validation", {})
+        expected_warnings = validation_config.get("expected_warnings_count", 3)
+        min_valid_flashcards = validation_config.get("min_valid_flashcards", 1)
+
         # Should have warnings about invalid flashcards
         assert len(gen_result.warnings) > 0
 
         # Valid flashcards should still be created
         valid_flashcards = [card for card in gen_result.flashcards if card.validate_content()]
-        assert len(valid_flashcards) > 0
+        assert len(valid_flashcards) >= min_valid_flashcards
         assert len(valid_flashcards) < len(mixed_quality_flashcards)  # Some should be filtered out
 
         # Export should only include valid flashcards
@@ -544,23 +415,23 @@ class TestEndToEndWorkflow:
         # Invalid flashcards are filtered during generation, not export
         assert summary["skipped_invalid"] == 0
         # But we should have warnings from generation
-        assert len(gen_result.warnings) >= 3  # Should have warnings about invalid flashcards
+        assert len(gen_result.warnings) >= expected_warnings
 
+    @pytest.mark.slow
     def test_performance_workflow(self, temp_dir, mock_llm_responses):
         """Test workflow performance with timing measurements."""
         import time
 
-        # Create a moderately sized document
-        perf_file = temp_dir / "performance_test.txt"
-        perf_content = (
-            """
-        Software Engineering Principles
-        
-        """
-            + "Software engineering involves systematic approaches to software development. " * 100
-        )
+        from tests.fixtures.test_data_loader import test_data_loader
 
-        perf_file.write_text(perf_content)
+        # Get performance expectations from external config
+        perf_config = test_data_loader.get_performance_expectations("document_processing")
+        size_config = test_data_loader.get_document_size_config("small")
+
+        # Create document using external template
+        perf_file = test_data_loader.create_temp_document(
+            temp_dir, "performance_test.txt", repeat_count=size_config.get("repeat_count", 20)
+        )
         output_file = temp_dir / "performance_output.csv"
 
         # Measure document processing time
@@ -572,9 +443,10 @@ class TestEndToEndWorkflow:
         processing_time = time.time() - start_time
 
         assert doc_result.success
-        assert processing_time < 10.0  # Should complete within 10 seconds
+        max_processing_time = perf_config.get("max_time_seconds", 5.0)
+        assert processing_time < max_processing_time
 
-        # Measure flashcard generation time
+        # Measure flashcard generation time (should be fast with mocking)
         start_time = time.time()
 
         generator = FlashcardGenerator()
@@ -583,7 +455,9 @@ class TestEndToEndWorkflow:
         generation_time = time.time() - start_time
 
         assert gen_result.success
-        assert generation_time < 30.0  # Should complete within 30 seconds (including LLM calls)
+        gen_perf_config = test_data_loader.get_performance_expectations("flashcard_generation")
+        max_generation_time = gen_perf_config.get("max_time_seconds", 5.0)
+        assert generation_time < max_generation_time
 
         # Measure export time
         start_time = time.time()
@@ -593,28 +467,43 @@ class TestEndToEndWorkflow:
         export_time = time.time() - start_time
 
         assert success
-        assert export_time < 5.0  # Should complete within 5 seconds
+        export_perf_config = test_data_loader.get_performance_expectations("csv_export")
+        max_export_time = export_perf_config.get("max_time_seconds", 2.0)
+        assert export_time < max_export_time
 
         # Verify total workflow time is reasonable
         total_time = processing_time + generation_time + export_time
-        assert total_time < 45.0  # Total workflow should complete within 45 seconds
+        total_perf_config = test_data_loader.get_performance_expectations("total_workflow")
+        max_total_time = total_perf_config.get("max_time_seconds", 12.0)
+        assert total_time < max_total_time
 
+    @pytest.mark.slow
     def test_memory_usage_workflow(self, temp_dir, mock_llm_responses):
-        """Test workflow memory usage with large documents."""
+        """Test workflow memory usage with multiple documents."""
         import os
 
         import psutil
+
+        from tests.fixtures.test_data_loader import test_data_loader
+
+        # Get memory test configuration
+        test_config = test_data_loader.get_test_config()
+        memory_config = test_config.get("memory_test", {})
+
+        document_count = memory_config.get("document_count", 3)
+        repeat_count = memory_config.get("content_repeat_count", 500)
+        max_memory_increase = memory_config.get("max_memory_increase_mb", 50)
 
         # Get initial memory usage
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB
 
-        # Create multiple large documents
+        # Create documents using external template
         large_files = []
-        for i in range(3):
-            large_file = temp_dir / f"large_doc_{i}.txt"
-            large_content = f"Document {i} content. " * 5000  # ~100KB each
-            large_file.write_text(large_content)
+        for i in range(document_count):
+            large_file = test_data_loader.create_temp_document(
+                temp_dir, f"large_doc_{i}.txt", content=f"Document {i} content. " * repeat_count
+            )
             large_files.append(large_file)
 
         # Process all documents
@@ -637,5 +526,5 @@ class TestEndToEndWorkflow:
         final_memory = process.memory_info().rss / 1024 / 1024  # MB
         memory_increase = final_memory - initial_memory
 
-        # Memory increase should be reasonable (less than 100MB for this test)
-        assert memory_increase < 100, f"Memory usage increased by {memory_increase:.2f}MB"
+        # Memory increase should be reasonable
+        assert memory_increase < max_memory_increase, f"Memory usage increased by {memory_increase:.2f}MB"

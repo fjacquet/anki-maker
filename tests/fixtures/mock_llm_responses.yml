@@ -1,0 +1,121 @@
+# Mock LLM responses for end-to-end testing
+# This file contains predefined responses for different document types
+# to ensure consistent and fast testing without real API calls
+
+responses:
+  python_programming:
+    trigger_keywords: ["Python", "programming"]
+    flashcards:
+      - question: "What is Python?"
+        answer: "A high-level, interpreted programming language created by Guido van Rossum"
+        card_type: "qa"
+      - question: "When was Python first released?"
+        answer: "1991"
+        card_type: "qa"
+      - question: "Python is known for its {{c1::simplicity}} and {{c2::readability}}"
+        answer: "simplicity and readability"
+        card_type: "cloze"
+      - question: "Name three key features of Python"
+        answer: "Easy to learn, interpreted language, object-oriented programming support"
+        card_type: "qa"
+
+  machine_learning:
+    trigger_keywords: ["Machine Learning", "ML"]
+    flashcards:
+      - question: "What is Machine Learning?"
+        answer: "A subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed"
+        card_type: "qa"
+      - question: "What are the three main types of Machine Learning?"
+        answer: "Supervised Learning, Unsupervised Learning, and Reinforcement Learning"
+        card_type: "qa"
+      - question: "Supervised learning uses {{c1::labeled training data}} to learn patterns"
+        answer: "labeled training data"
+        card_type: "cloze"
+      - question: "What is overfitting?"
+        answer: "When a model performs well on training data but poorly on new, unseen data"
+        card_type: "qa"
+
+  programming_concepts:
+    trigger_keywords: ["Variables", "Functions", "Loops"]
+    flashcards:
+      - question: "What do variables store?"
+        answer: "Data values"
+        card_type: "qa"
+      - question: "Variables store {{c1::data values}} in programming"
+        answer: "data values"
+        card_type: "cloze"
+      - question: "What are functions?"
+        answer: "Reusable blocks of code that help organize code and avoid repetition"
+        card_type: "qa"
+      - question: "{{c1::Loops}} allow you to repeat code multiple times"
+        answer: "Loops"
+        card_type: "cloze"
+
+  mixed_quality:
+    trigger_keywords: ["mixed", "quality", "validation"]
+    flashcards:
+      - question: "What is Python?"
+        answer: "A programming language"
+        card_type: "qa"
+      - question: ""  # Invalid: empty question
+        answer: "Some answer"
+        card_type: "qa"
+      - question: "Valid question"
+        answer: ""  # Invalid: empty answer
+        card_type: "qa"
+      - question: "Python is a {{c1::programming language}}"
+        answer: "programming language"
+        card_type: "cloze"
+      - question: "Invalid cloze without markers"
+        answer: "answer"
+        card_type: "cloze"  # Invalid: cloze without {{c1::}} markers
+
+  generic:
+    trigger_keywords: []  # Default fallback
+    flashcards:
+      - question: "Generic question about the content"
+        answer: "Generic answer based on the text"
+        card_type: "qa"
+
+  artificial_intelligence:
+    trigger_keywords: ["AI", "artificial intelligence"]
+    flashcards:
+      - question: "What is Artificial Intelligence?"
+        answer: "Creating systems that can perform tasks that typically require human intelligence"
+        card_type: "qa"
+      - question: "AI involves creating {{c1::systems}} that can perform {{c2::intelligent tasks}}"
+        answer: "systems and intelligent tasks"
+        card_type: "cloze"
+
+  software_engineering:
+    trigger_keywords: ["Software engineering", "development"]
+    flashcards:
+      - question: "What does software engineering involve?"
+        answer: "Systematic approaches to software development including analysis, design, implementation, testing, and maintenance"
+        card_type: "qa"
+      - question: "Software engineering includes {{c1::requirements analysis}}, {{c2::design}}, and {{c3::testing}}"
+        answer: "requirements analysis, design, and testing"
+        card_type: "cloze"
+
+# Configuration for mock behavior
+config:
+  default_response: "generic"
+  match_strategy: "keyword_contains"  # or "keyword_exact"
+  case_sensitive: false
+  
+# Test scenarios for error simulation
+error_scenarios:
+  llm_api_error:
+    trigger_keywords: ["error", "fail"]
+    error_type: "LLMAPIError"
+    error_message: "LLM API error"
+    
+  network_timeout:
+    trigger_keywords: ["timeout", "slow"]
+    error_type: "TimeoutError"
+    error_message: "Request timed out"
+    
+  rate_limit:
+    trigger_keywords: ["rate", "limit"]
+    error_type: "RateLimitError"
+    error_message: "Rate limit exceeded"

@@ -1,0 +1,5 @@
+Programming Concepts
+
+Variables store data values. In Python, you can create a variable by assigning a value to it.
+Functions are reusable blocks of code. They help organize code and avoid repetition.
+Loops allow you to repeat code multiple times. Common types include for loops and while loops.

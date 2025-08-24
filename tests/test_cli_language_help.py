@@ -79,6 +79,7 @@ class TestCLILanguageHelp:
         # Mock the configuration to avoid actual validation
         mocker.patch("document_to_anki.cli.main.ModelConfig.validate_and_get_model")
         mock_settings = mocker.patch("document_to_anki.config.settings")
+        mock_settings.cardlang = "english"  # Set the cardlang attribute properly
         mock_settings.get_language_info.return_value.name = "English"
         mock_settings.get_language_info.return_value.code = "en"
 
@@ -153,6 +154,7 @@ class TestCLILanguageHelp:
         # Mock both model and settings validation
         mocker.patch("document_to_anki.cli.main.ModelConfig.validate_and_get_model")
         mock_settings = mocker.patch("document_to_anki.config.settings")
+        mock_settings.cardlang = "english"  # Set the cardlang attribute properly
         mock_settings.get_language_info.return_value.name = "English"
         mock_settings.get_language_info.return_value.code = "en"
 

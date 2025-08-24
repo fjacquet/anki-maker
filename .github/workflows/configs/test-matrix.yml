@@ -1,0 +1,18 @@
+# Test matrix configuration
+strategy:
+  matrix:
+    os: [ubuntu-latest]
+    python-version: ["3.12", "3.13"]
+    include:
+      - os: ubuntu-latest
+        python-version: "3.12"
+        coverage: true
+      - os: ubuntu-latest  
+        python-version: "3.13"
+        coverage: false
+
+# Environment variables for testing
+env:
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  MOCK_LLM_RESPONSES: true
+  PYTHONPATH: ${{ github.workspace }}/src

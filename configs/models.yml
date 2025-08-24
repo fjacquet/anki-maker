@@ -1,0 +1,45 @@
+# Supported AI Models Configuration
+models:
+  gemini:
+    - name: "gemini/gemini-2.5-flash"
+      description: "Fast, efficient model for quick processing"
+      api_key_env: "GEMINI_API_KEY"
+      default: true
+      max_tokens: 8192
+      cost_tier: "low"
+    
+    - name: "gemini/gemini-2.5-pro"
+      description: "Advanced model for complex content"
+      api_key_env: "GEMINI_API_KEY"
+      default: false
+      max_tokens: 32768
+      cost_tier: "medium"
+  
+  openai:
+    - name: "openai/gpt-4o"
+      description: "Latest GPT-4 optimized model"
+      api_key_env: "OPENAI_API_KEY"
+      default: false
+      max_tokens: 128000
+      cost_tier: "high"
+    
+    - name: "openai/gpt-4"
+      description: "Standard GPT-4 model"
+      api_key_env: "OPENAI_API_KEY"
+      default: false
+      max_tokens: 8192
+      cost_tier: "high"
+    
+    - name: "openai/gpt-3.5-turbo"
+      description: "Fast and cost-effective model"
+      api_key_env: "OPENAI_API_KEY"
+      default: false
+      max_tokens: 4096
+      cost_tier: "low"
+
+# Model selection preferences
+preferences:
+  default_provider: "gemini"
+  fallback_model: "gemini/gemini-2.5-flash"
+  max_retries: 3
+  timeout_seconds: 30

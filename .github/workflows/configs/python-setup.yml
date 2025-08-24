@@ -1,0 +1,33 @@
+# Reusable Python setup configuration
+name: Python Setup
+description: Standard Python and uv setup steps
+
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.12'
+  install-dev:
+    description: 'Install development dependencies'
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+    
+    - name: Install dependencies
+      shell: bash
+      run: |
+        if [ "${{ inputs.install-dev }}" = "true" ]; then
+          make install-dev
+        else
+          make install
+        fi

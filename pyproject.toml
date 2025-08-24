@@ -31,7 +31,6 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.1.1",
     # Document processing
-    "pypdf2>=3.0.0",
     "python-docx>=1.1.0",
     # Web interface
     "Jinja2>=3.1.0",
@@ -69,10 +68,10 @@ anki-maker = "document_to_anki.cli.main:main"
 anki-maker-web = "document_to_anki.web.app:run_server"
 
 [project.urls]
-Homepage = "https://github.com/example/document-to-anki-cli"
-Documentation = "https://github.com/example/document-to-anki-cli#readme"
-Repository = "https://github.com/example/document-to-anki-cli"
-Issues = "https://github.com/example/document-to-anki-cli/issues"
+Homepage = "https://github.com/fjacquet/anki-maker"
+Documentation = "https://github.com/fjacquet/anki-maker#readme"
+Repository = "https://github.com/fjacquet/anki-maker"
+Issues = "https://github.com/fjacquet/anki-maker/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -176,7 +175,7 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-    "PyPDF2.*",
+    "pypdf.*",
     "docx.*",
     "litellm.*",
     "pandas.*",
@@ -202,9 +201,6 @@ package=true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 addopts = [
     "--cov=src/document_to_anki",
     "--cov-report=term-missing",
@@ -215,12 +211,17 @@ addopts = [
     "-ra",
     "--tb=short"
 ]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "web: marks tests for web interface",
     "cli: marks tests for CLI interface",
+    "performance: marks tests as performance tests (run separately)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -231,4 +232,6 @@ filterwarnings = [
 dev = [
     "mypy>=1.17.1",
     "pytest-mock>=3.14.1",
+    "pytest-timeout>=2.4.0",
+    "types-pyyaml>=6.0.12.20250822",
 ]

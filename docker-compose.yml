@@ -1,4 +1,10 @@
 # Docker Compose configuration for Document to Anki CLI
+# 
+# Usage:
+#   Development: docker-compose -f docker-compose.yml -f configs/docker/development.yml up
+#   Production:  docker-compose -f docker-compose.yml -f configs/docker/production.yml up
+#   Basic:       docker-compose up (uses this file only)
+#
 version: '3.8'
 
 services:
@@ -19,7 +25,7 @@ services:
       - ./.cache:/app/.cache
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

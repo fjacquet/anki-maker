@@ -29,6 +29,13 @@ This folder contains comprehensive documentation for Document to Anki CLI.
   - Batch processing scripts
   - Integration examples (GitHub Actions, Docker, Jupyter)
 
+- **[../examples/api_examples.md](../examples/api_examples.md)** - Interactive API documentation and examples
+  - Swagger/OpenAPI documentation guide
+  - REST API examples in Python, JavaScript, cURL
+  - Postman collection setup
+  - Error handling patterns
+  - Best practices for API integration
+
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Troubleshooting guide
   - Common installation issues
   - Configuration problems
