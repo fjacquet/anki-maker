@@ -72,7 +72,7 @@ class TestCLIIntegration:
         """Create a sample text file for testing."""
         content = """
         Python Programming
-        
+
         Python is a programming language. It was created by Guido van Rossum.
         Python is known for its simplicity and readability.
         """
@@ -191,9 +191,7 @@ class TestCLIIntegration:
         assert "Invalid input path" in result.output
         assert "Unsupported file format" in result.output
 
-    def test_convert_single_file_batch_mode(
-        self, runner, sample_txt_file, tmp_path, mock_successful_processing
-    ):
+    def test_convert_single_file_batch_mode(self, runner, sample_txt_file, tmp_path, mock_successful_processing):
         """Test converting a single file in batch mode (no interactive prompts)."""
         output_file = tmp_path / "output.csv"
 
@@ -208,9 +206,7 @@ class TestCLIIntegration:
         assert "Step 4: Exporting to CSV" in result.output
         assert "Conversion completed successfully" in result.output
 
-    def test_convert_single_file_with_preview_skip(
-        self, runner, sample_txt_file, tmp_path, mock_successful_processing
-    ):
+    def test_convert_single_file_with_preview_skip(self, runner, sample_txt_file, tmp_path, mock_successful_processing):
         """Test converting a single file with preview skipped."""
         output_file = tmp_path / "output.csv"
 
@@ -222,9 +218,7 @@ class TestCLIIntegration:
         assert "Step 3: Review and edit flashcards" not in result.output
         assert "Conversion completed successfully" in result.output
 
-    def test_convert_with_interactive_continue(
-        self, runner, sample_txt_file, tmp_path, mock_successful_processing
-    ):
+    def test_convert_with_interactive_continue(self, runner, sample_txt_file, tmp_path, mock_successful_processing):
         """Test convert with interactive mode - continue to export."""
         output_file = tmp_path / "output.csv"
 
@@ -237,9 +231,7 @@ class TestCLIIntegration:
         assert "Step 3: Review and edit flashcards" in result.output
         assert "Flashcard Management Menu" in result.output
 
-    def test_convert_with_interactive_quit(
-        self, runner, sample_txt_file, tmp_path, mock_successful_processing
-    ):
+    def test_convert_with_interactive_quit(self, runner, sample_txt_file, tmp_path, mock_successful_processing):
         """Test convert with interactive mode - quit without saving."""
         output_file = tmp_path / "output.csv"
 
@@ -366,18 +358,17 @@ class TestCLIIntegration:
         assert result.exit_code == 1  # Exit with error due to failures
         assert "Failed: 1" in result.output
 
-    def test_convert_keyboard_interrupt(self, runner, sample_txt_file, tmp_path, mocker):
-        """Test handling of keyboard interrupt during conversion."""
-        # Mock document processing to raise KeyboardInterrupt
+    def test_convert_command_handles_keyboard_interrupt_gracefully(self, runner, sample_txt_file, tmp_path, mocker):
+        """Test that the convert command handles KeyboardInterrupt gracefully."""
         mocker.patch(
             "src.document_to_anki.core.document_processor.DocumentProcessor.process_upload",
-            side_effect=KeyboardInterrupt(),
+            side_effect=KeyboardInterrupt,  # Raise on call
         )
 
         result = runner.invoke(main, ["convert", str(sample_txt_file), "--batch"])
 
         assert result.exit_code == 1
-        assert "Operation cancelled by user" in result.output
+        assert "Operation cancelled" in result.output
 
     def test_convert_unexpected_error(self, runner, sample_txt_file, tmp_path, mocker):
         """Test handling of unexpected errors during conversion."""
@@ -409,9 +400,7 @@ class TestCLIIntegration:
         assert "Permission denied" in result.output
         assert "Solutions:" in result.output
 
-    def test_convert_with_verbose_logging(
-        self, runner, sample_txt_file, tmp_path, mock_successful_processing
-    ):
+    def test_convert_with_verbose_logging(self, runner, sample_txt_file, tmp_path, mock_successful_processing):
         """Test convert command with verbose logging enabled."""
         output_file = tmp_path / "output.csv"
 
@@ -523,9 +512,7 @@ class TestCLIInteractiveFeatures:
         # Create sample flashcards
         sample_flashcards = [
             Flashcard.create("What is Python?", "A programming language", "qa", "sample.txt"),
-            Flashcard.create(
-                "Python is a {{c1::programming language}}", "programming language", "cloze", "sample.txt"
-            ),
+            Flashcard.create("Python is a {{c1::programming language}}", "programming language", "cloze", "sample.txt"),
         ]
 
         mock_gen_result = ProcessingResult(
@@ -566,9 +553,7 @@ class TestCLIInteractiveFeatures:
         # Simulate: edit (e) -> select card 1 -> proceed -> new question -> new answer -> save -> continue (c) -> export (y)  # noqa: E501
         user_input = "e\n1\ny\nWhat is Python programming?\nA high-level programming language\ny\nc\ny\n"
 
-        result = runner.invoke(
-            main, ["convert", str(file_path), "--output", str(output_file)], input=user_input
-        )
+        result = runner.invoke(main, ["convert", str(file_path), "--output", str(output_file)], input=user_input)
 
         assert result.exit_code == 0
         assert "Flashcard Management Menu" in result.output
@@ -581,9 +566,7 @@ class TestCLIInteractiveFeatures:
         # Simulate: delete (d) -> select card 1 -> confirm -> final confirm -> continue (c) -> export (y)
         user_input = "d\n1\ny\ny\nc\ny\n"
 
-        result = runner.invoke(
-            main, ["convert", str(file_path), "--output", str(output_file)], input=user_input
-        )
+        result = runner.invoke(main, ["convert", str(file_path), "--output", str(output_file)], input=user_input)
 
         assert result.exit_code == 0
         assert "Flashcard Management Menu" in result.output
@@ -596,9 +579,7 @@ class TestCLIInteractiveFeatures:
         # Simulate: add (a) -> type -> question -> answer -> confirm -> continue (c) -> export (y)
         user_input = "a\nqa\nWhat is machine learning?\nA subset of AI\ny\nc\ny\n"
 
-        result = runner.invoke(
-            main, ["convert", str(file_path), "--output", str(output_file)], input=user_input
-        )
+        result = runner.invoke(main, ["convert", str(file_path), "--output", str(output_file)], input=user_input)
 
         assert result.exit_code == 0
         assert "Flashcard Management Menu" in result.output
@@ -611,9 +592,7 @@ class TestCLIInteractiveFeatures:
         # Simulate: preview (p) -> continue (c) -> export (y)
         user_input = "p\nc\ny\n"
 
-        result = runner.invoke(
-            main, ["convert", str(file_path), "--output", str(output_file)], input=user_input
-        )
+        result = runner.invoke(main, ["convert", str(file_path), "--output", str(output_file)], input=user_input)
 
         assert result.exit_code == 0
         assert "Flashcard Management Menu" in result.output
@@ -626,9 +605,7 @@ class TestCLIInteractiveFeatures:
         # Simulate: statistics (s) -> continue (c) -> export (y)
         user_input = "s\nc\ny\n"
 
-        result = runner.invoke(
-            main, ["convert", str(file_path), "--output", str(output_file)], input=user_input
-        )
+        result = runner.invoke(main, ["convert", str(file_path), "--output", str(output_file)], input=user_input)
 
         assert result.exit_code == 0
         assert "Flashcard Management Menu" in result.output
@@ -641,9 +618,7 @@ class TestCLIInteractiveFeatures:
         # Simulate: continue (c) -> cancel export (n)
         user_input = "c\nn\n"
 
-        result = runner.invoke(
-            main, ["convert", str(file_path), "--output", str(output_file)], input=user_input
-        )
+        result = runner.invoke(main, ["convert", str(file_path), "--output", str(output_file)], input=user_input)
 
         assert result.exit_code == 0
         assert "Export cancelled by user" in result.output

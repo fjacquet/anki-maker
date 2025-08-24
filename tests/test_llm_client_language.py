@@ -5,6 +5,8 @@ Tests the LLMClient class language support, prompt generation,
 and language validation features using proper pytest-mock patterns.
 """
 
+import json
+
 import pytest
 
 from src.document_to_anki.config import LanguageInfo, LanguageValidationError
@@ -395,21 +397,23 @@ class TestLLMClientLanguage:
 
         # First response in wrong language, second in correct language
         responses = [
-            """[{"question": "What is AI?", "answer": "Artificial Intelligence", "card_type": "qa"}]""",  # English
-            """[{"question": "Qu'est-ce que l'IA?", "answer": "Intelligence Artificielle", "card_type": "qa"}]""",
+            [{"question": "What is AI?", "answer": "Artificial Intelligence", "card_type": "qa"}],  # English
+            [{"question": "Qu'est-ce que l'IA?", "answer": "Intelligence Artificielle", "card_type": "qa"}],  # French
         ]
-
-        mock_responses = [self._create_mock_response(resp, mocker) for resp in responses]
+        mock_responses = [self._create_mock_response(json.dumps(resp), mocker) for resp in responses]
         mock_litellm_completion.side_effect = mock_responses
 
         result = await client.generate_flashcards_from_text("Test text")
 
-        # Should get the French result after retry
-        assert len(result) == 1
-        assert result[0]["question"] == "Qu'est-ce que l'IA?"
-        assert result[0]["answer"] == "Intelligence Artificielle"
-
-        # Should have been called twice (initial + retry)
+        expected = [
+            {
+                "question": "Qu'est-ce que l'IA?",
+                "answer": "Intelligence Artificielle",
+                "card_type": "qa",
+            }
+        ]
+        assert result == expected
+        # One retry due to initial language mismatch
         assert mock_litellm_completion.call_count == 2
 
     # Synchronous Wrapper Test
