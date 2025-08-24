@@ -269,9 +269,7 @@ class TestLLMClientLanguage:
 
     # Async Flashcard Generation Tests
     @pytest.mark.asyncio
-    async def test_generate_flashcards_uses_instance_language(
-        self, mock_litellm_completion, mock_model_config, mocker
-    ):
+    async def test_generate_flashcards_uses_instance_language(self, mock_litellm_completion, mock_model_config, mocker):
         """Test that generate_flashcards_from_text uses instance language when no language specified."""
         client = LLMClient(language="german")
 
@@ -302,9 +300,7 @@ class TestLLMClientLanguage:
         assert "Sie sind ein Experte" in prompt
 
     @pytest.mark.asyncio
-    async def test_generate_flashcards_overrides_language(
-        self, mock_litellm_completion, mock_model_config, mocker
-    ):
+    async def test_generate_flashcards_overrides_language(self, mock_litellm_completion, mock_model_config, mocker):
         """Test that generate_flashcards_from_text can override instance language."""
         client = LLMClient(language="english")
 
@@ -334,9 +330,7 @@ class TestLLMClientLanguage:
         assert "Vous êtes un expert" in prompt
 
     @pytest.mark.asyncio
-    async def test_generate_flashcards_with_content_type(
-        self, mock_litellm_completion, mock_model_config, mocker
-    ):
+    async def test_generate_flashcards_with_content_type(self, mock_litellm_completion, mock_model_config, mocker):
         """Test generate_flashcards_from_text with different content types."""
         client = LLMClient(language="italian")
 
@@ -353,9 +347,7 @@ class TestLLMClientLanguage:
         mock_litellm_completion.return_value = mock_response
 
         # Explicitly specify language to override any Settings configuration
-        result = await client.generate_flashcards_from_text(
-            "Test text", language="italian", content_type="technical"
-        )
+        result = await client.generate_flashcards_from_text("Test text", language="italian", content_type="technical")
 
         # Verify the result
         assert len(result) == 1
@@ -438,9 +430,7 @@ class TestLLMClientLanguage:
         mock_response = self._create_mock_response(mock_response_content, mocker)
         mock_litellm_completion.return_value = mock_response
 
-        result = client.generate_flashcards_from_text_sync(
-            "Python is a programming language.", language="english"
-        )
+        result = client.generate_flashcards_from_text_sync("Python is a programming language.", language="english")
 
         assert len(result) == 1
         assert result[0]["question"] == "What is Python?"
