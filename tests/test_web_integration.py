@@ -5,12 +5,15 @@ Tests the complete web API workflow from file upload to CSV export.
 """
 
 import asyncio
+import os
+import tempfile
 
 # pytest-mock provides the mocker fixture
 import pytest
 from fastapi.testclient import TestClient
 
 from src.document_to_anki.core.document_processor import DocumentProcessingResult
+from src.document_to_anki.core.flashcard_generator import FlashcardGenerationError
 from src.document_to_anki.models.flashcard import Flashcard, ProcessingResult
 from src.document_to_anki.web.app import app, create_session, sessions
 
@@ -636,29 +639,63 @@ class TestWebErrorHandling:
 
     def test_flashcard_generation_error(self, client, mocker):
         """Test handling of flashcard generation errors."""
-        _ = create_session()
+        session_id = create_session()
 
-        # Mock flashcard generator to raise an error
-        from src.document_to_anki.core.flashcard_generator import FlashcardGenerationError
-
-        mocker.patch(
-            "src.document_to_anki.web.app.flashcard_generator.generate_flashcards",
-            side_effect=FlashcardGenerationError("Generation failed"),
+        # Mock the global document_processor instance
+        mock_processor_instance = mocker.MagicMock()
+        mock_processor_instance.process_upload.return_value = DocumentProcessingResult(
+            text_content="Test content",
+            source_files=["test.txt"],
+            file_count=1,
+            total_characters=12,
+            errors=[],
+            warnings=[],
         )
+        mocker.patch("src.document_to_anki.web.app.document_processor", mock_processor_instance)
 
-        # This would be tested through the background processing
-        # In a real scenario, you'd trigger background processing and check the session status
+        # Mock the global flashcard_generator instance
+        mock_generator_instance = mocker.MagicMock()
+        mock_generator_instance.generate_flashcards_async.side_effect = FlashcardGenerationError("Generation failed")
+        mocker.patch("src.document_to_anki.web.app.flashcard_generator", mock_generator_instance)
+
+        # Create a temporary file for testing
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            f.write("Test content")
+            temp_file_path = f.name
+
+        # Add the temp file to session data
+        sessions[session_id]["temp_files"] = [temp_file_path]
+        sessions[session_id]["status"] = "processing"
+        sessions[session_id]["message"] = "Processing uploaded files..."
+
+        # Simulate calling the background processing function
+        import asyncio
+
+        # This would normally be called in the background, but we'll call it directly for testing
+        from contextlib import suppress
+
+        from src.document_to_anki.web.app import process_files_background
+
+        with suppress(Exception):
+            asyncio.run(process_files_background(session_id, [temp_file_path]))
+
+        # Check that the session status was updated to error
+        session_data = sessions[session_id]
+        assert session_data["status"] == "error"
+        assert "Generation failed" in session_data["message"]
+
+        # Clean up temp file
+        os.unlink(temp_file_path)
 
     def test_export_error_handling(self, client, mocker):
         """Test export error handling."""
         session_id = create_session()
         sessions[session_id]["flashcards"] = [Flashcard.create("Test", "Test", "qa", "test.txt")]
 
-        # Mock export to fail
-        mocker.patch(
-            "src.document_to_anki.web.app.flashcard_generator.export_to_csv",
-            return_value=(False, {"errors": ["Export failed"]}),
-        )
+        # Mock the global flashcard_generator instance
+        mock_generator_instance = mocker.MagicMock()
+        mock_generator_instance.export_to_csv.return_value = (False, {"errors": ["Export failed"]})
+        mocker.patch("src.document_to_anki.web.app.flashcard_generator", mock_generator_instance)
 
         response = client.post(f"/api/export/{session_id}", json={})
 
