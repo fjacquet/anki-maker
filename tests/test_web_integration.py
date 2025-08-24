@@ -50,9 +50,7 @@ class TestWebIntegration:
         mock_instance = mock_generator.return_value
 
         # Mock the generate_flashcards method to return a ProcessingResult
-        sample_flashcard = Flashcard(
-            id="test-1", question="Test question", answer="Test answer", card_type="qa"
-        )
+        sample_flashcard = Flashcard(id="test-1", question="Test question", answer="Test answer", card_type="qa")
         mock_result = ProcessingResult(
             flashcards=[sample_flashcard],
             source_files=["test.txt"],
@@ -297,9 +295,7 @@ It enables computers to learn from data without explicit programming.
         assert response_data["session_id"] == session_id
 
     @pytest.mark.asyncio
-    async def test_background_processing_success(
-        self, client, sample_txt_content, mock_successful_processing
-    ):
+    async def test_background_processing_success(self, client, sample_txt_content, mock_successful_processing):
         """Test that background processing completes successfully."""
         files = {"files": ("test.txt", sample_txt_content, "text/plain")}
 
@@ -591,9 +587,7 @@ It enables computers to learn from data without explicit programming.
 
         # 3. Get flashcards (after processing would complete)
         # In a real scenario, you'd wait for processing to complete
-        sessions[session_id]["flashcards"] = [
-            Flashcard.create("Test question", "Test answer", "qa", "test.txt")
-        ]
+        sessions[session_id]["flashcards"] = [Flashcard.create("Test question", "Test answer", "qa", "test.txt")]
 
         flashcards_response = client.get(f"/api/flashcards/{session_id}")
         assert flashcards_response.status_code == 200
