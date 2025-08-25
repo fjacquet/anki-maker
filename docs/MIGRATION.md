@@ -220,7 +220,7 @@ Issue: Some flashcards in correct language, others in different language
 
 **Solutions**:
 1. **Regenerate flashcards**: The system has built-in retry logic
-2. **Use more specific model**: Switch from `gemini-flash` to `gemini-pro`
+2. **Use more specific model**: Switch from `gemini-flash` to `gemini-2.5-flash`
 3. **Check source document**: Ensure source isn't mixing languages
 4. **Manual editing**: Use the interactive editor to fix individual cards
 
@@ -319,7 +319,7 @@ echo "Migration test complete!"
 ### Performance Considerations
 
 - **Language Complexity**: Some languages may take slightly longer to process
-- **Model Selection**: `gemini-pro` generally provides better quality for non-English languages
+- **Model Selection**: `gemini-2.5-flash` generally provides better quality for non-English languages
 - **Batch Size**: Process smaller batches for better quality control
 
 ### Quality Assurance

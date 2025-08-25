@@ -19,7 +19,7 @@ This guide covers all configuration options for Document to Anki CLI.
 #### GEMINI_API_KEY
 **Required**: Yes  
 **Description**: Your Google Gemini API key for AI-powered flashcard generation  
-**Example**: `GEMINI_API_KEY=AIzaSyDNDotML-zAnf9KXwcIdwiarwdgPCn8qmc`
+**Example**: `GEMINI_API_KEY=AIxxxxxxxxx`
 
 **How to get an API key:**
 1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)

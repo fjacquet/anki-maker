@@ -8,14 +8,14 @@ Convert documents to Anki flashcards using AI-powered content analysis.
 
 ## Overview
 
-Document to Anki CLI is a comprehensive tool that transforms various document formats (PDF, DOCX, PPTX, TXT, MD) into high-quality Anki flashcards using Google's Gemini Pro AI model. The application provides both CLI and web interfaces, allowing users to upload documents, preview and edit generated flashcards, and export them as Anki-compatible CSV files.
+Document to Anki CLI is a comprehensive tool that transforms various document formats (PDF, DOCX, PPTX, TXT, MD) into high-quality Anki flashcards using Google's Gemini AI models. The application provides both CLI and web interfaces, allowing users to upload documents, preview and edit generated flashcards, and export them as Anki-compatible CSV files.
 
 ## Features
 
 ### ✅ Fully Implemented
 - **Multi-Format Document Processing**: Support for PDF, DOCX, PPTX, TXT, MD files, folders, and ZIP archives
 - **Enhanced PDF Processing**: Robust handling of malformed, corrupted, or partially damaged PDFs with graceful error recovery
-- **AI-Powered Flashcard Generation**: Gemini Pro model integration via litellm for intelligent content analysis
+- **AI-Powered Flashcard Generation**: Google Gemini AI integration via litellm for intelligent content analysis
 - **Dual Interface Support**: Both command-line and web interfaces available
 - **Interactive Flashcard Management**: Preview, edit, delete, and add flashcards with rich formatting
 - **Smart Text Processing**: Automatic text chunking to handle large documents within token limits
@@ -769,7 +769,7 @@ Error: Language validation failed for generated content
 **Solutions:**
 - The AI occasionally generates content in the wrong language
 - The application will automatically retry
-- If persistent, try a different AI model (e.g., switch from gemini-flash to gemini-pro)
+- If persistent, try a different AI model (e.g., switch from gemini-flash to gemini-2.5-flash)
 
 For complete troubleshooting information, see **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 
@@ -843,7 +843,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
   - **Intelligent Presentation Content Detection**: Automatically detects presentation content and applies specialized processing
   - **Context-aware flashcard generation**: Optimized prompts for presentation content with slide-specific instructions
   - **Multi-language presentation support**: Presentation-specific instructions available in English, French, Italian, and German
-- ✅ Gemini Pro AI integration for intelligent flashcard generation
+- ✅ Google Gemini AI integration for intelligent flashcard generation
 - ✅ **Multi-Language Configuration**: Configurable language support for flashcard generation
   - Support for English, French, Italian, and German languages
   - Environment variable configuration via CARDLANG

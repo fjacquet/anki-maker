@@ -162,7 +162,7 @@ class CLIContext:
                 self.console.print("• Get your API key from the appropriate provider")
 
             self.console.print("\n[yellow]Example:[/yellow]")
-            self.console.print("export MODEL=gemini/gemini-pro")
+            self.console.print("export MODEL=gemini/gemini-2.5-flash")
             self.console.print("export GEMINI_API_KEY=your_api_key_here")
             raise
 

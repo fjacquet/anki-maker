@@ -50,7 +50,7 @@ document-to-anki input.pdf --verbose --output flashcards.csv
 
 #### Specify custom model
 ```bash
-document-to-anki input.pdf --model gemini/gemini-pro --output flashcards.csv
+document-to-anki input.pdf --model gemini/gemini-2.5-flash --output flashcards.csv
 ```
 
 #### Set maximum number of flashcards
@@ -141,7 +141,7 @@ FLASHCARDS_PER_CHUNK=15
 #### Advanced configuration
 ```bash
 # LLM Settings
-MODEL=gemini/gemini-pro
+MODEL=gemini/gemini-2.5-flash
 LLM_MAX_RETRIES=5
 LLM_TIMEOUT=60
 
