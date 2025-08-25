@@ -22,6 +22,7 @@ class LocalCIComparator:
     def run_in_local_env(self, target: str) -> tuple[int, str, str]:
         """Run Makefile target in local environment."""
         env = os.environ.copy()
+        # deepcode ignore HardcodedNonCryptoSecret/test: testing dummy secret
         env.update({"MOCK_LLM_RESPONSES": "true", "GEMINI_API_KEY": "mock-key-for-testing"})
 
         result = subprocess.run(["make", target], capture_output=True, text=True, env=env, cwd=self.project_root)
@@ -35,6 +36,7 @@ class LocalCIComparator:
             {
                 "GITHUB_ACTIONS": "true",
                 "MOCK_LLM_RESPONSES": "true",
+                # deepcode ignore HardcodedNonCryptoSecret/test: testing dummy secret
                 "GEMINI_API_KEY": "mock-key-for-testing",
                 "CI": "true",
             }

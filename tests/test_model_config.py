@@ -63,9 +63,11 @@ class TestModelConfig:
     def test_get_required_api_key_valid_model(self):
         """Test getting required API key for valid model."""
         api_key = ModelConfig.get_required_api_key("gemini/gemini-2.5-flash")
+        # deepcode ignore NoHardcodedCredentials/test: testing dummy secret
         assert api_key == "GEMINI_API_KEY"
 
         api_key = ModelConfig.get_required_api_key("openai/gpt-4")
+        # deepcode ignore NoHardcodedCredentials/test: testing dummy secret
         assert api_key == "OPENAI_API_KEY"
 
     def test_get_required_api_key_invalid_model(self):

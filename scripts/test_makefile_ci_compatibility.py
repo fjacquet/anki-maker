@@ -82,6 +82,7 @@ class CIMakefileValidator:
         env.update(
             {
                 "MOCK_LLM_RESPONSES": "true",
+                # deepcode ignore HardcodedNonCryptoSecret/test: testing dummy secret
                 "GEMINI_API_KEY": "mock-key-for-testing",
                 "GITHUB_ACTIONS": "true",  # Simulate CI environment
             }
@@ -351,6 +352,7 @@ def main():
     if args.report:
         report = validator.generate_report()
         with open(args.report, "w") as f:
+            # deepcode ignore PT/test: test script
             json.dump(report, f, indent=2)
         print(f"Detailed report saved to {args.report}")
 
