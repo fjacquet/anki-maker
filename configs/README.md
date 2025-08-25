@@ -8,7 +8,7 @@ This directory contains externalized YAML configuration files that make the Docu
 
 #### `models.yml`
 Defines supported AI models and their configurations:
-- **Gemini models**: Google's Gemini Pro and Flash models
+- **Gemini models**: Google's Gemini 2.5 Flash and Pro models
 - **OpenAI models**: GPT-4, GPT-3.5-turbo variants
 - **Model metadata**: API keys, token limits, cost tiers
 - **Default preferences**: Fallback models, retry settings

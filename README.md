@@ -769,7 +769,7 @@ Error: Language validation failed for generated content
 **Solutions:**
 - The AI occasionally generates content in the wrong language
 - The application will automatically retry
-- If persistent, try a different AI model (e.g., switch from gemini-flash to gemini-2.5-flash)
+- If persistent, try a different AI model (e.g., switch from gemini-2.5-flash to gemini-2.5-pro)
 
 For complete troubleshooting information, see **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 

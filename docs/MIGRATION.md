@@ -220,7 +220,7 @@ Issue: Some flashcards in correct language, others in different language
 
 **Solutions**:
 1. **Regenerate flashcards**: The system has built-in retry logic
-2. **Use more specific model**: Switch from `gemini-flash` to `gemini-2.5-flash`
+2. **Use higher quality model**: Switch from `gemini-2.5-flash` to `gemini-2.5-pro`
 3. **Check source document**: Ensure source isn't mixing languages
 4. **Manual editing**: Use the interactive editor to fix individual cards
 

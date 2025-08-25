@@ -2,12 +2,12 @@
 Document to Anki CLI - Convert documents to Anki flashcards using LLM.
 
 A comprehensive tool that transforms various document formats (PDF, DOCX, TXT, MD)
-into high-quality Anki flashcards using Google's Gemini Pro AI model. The application
+into high-quality Anki flashcards using Google's Gemini AI models. The application
 provides both CLI and web interfaces for flexible usage.
 
 Key Features:
 - Multi-format document processing (PDF, DOCX, TXT, MD, ZIP)
-- AI-powered flashcard generation using Gemini Pro
+- AI-powered flashcard generation using Google Gemini AI
 - Interactive flashcard management (preview, edit, delete, add)
 - Both command-line and web interfaces
 - Batch processing capabilities

@@ -8,7 +8,7 @@ inclusion: always
 - **Python 3.12+** with `uv` package manager (use `uv run` for all commands)
 - **CLI**: Click framework with Rich formatting
 - **Web**: FastAPI with Uvicorn ASGI server
-- **AI**: litellm client with Google Gemini Pro (default: `gemini/gemini-2.5-flash`)
+- **AI**: litellm client with Google Gemini AI (default: `gemini/gemini-2.5-flash`)
 - **Data**: Pydantic models for validation, pandas for CSV export
 - **Config**: pydantic-settings with `.env` support
 
