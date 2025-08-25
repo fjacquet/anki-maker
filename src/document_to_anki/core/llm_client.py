@@ -177,7 +177,7 @@ class LLMClient:
         Args:
             text: The text content to generate flashcards from
             language: Target language for flashcards (uses instance language if None)
-            content_type: Type of content ("academic", "technical", "general")
+            content_type: Type of content ("academic", "technical", "general", "presentation")
 
         Returns:
             The formatted prompt string
@@ -189,18 +189,148 @@ class LLMClient:
         if language is None:
             language = self.language
 
-        # Validate parameters
-        if not PromptTemplates.validate_template_parameters(language, content_type):
+        # Detect presentation content automatically if not explicitly set
+        detected_content_type = self._detect_content_type(text, content_type)
+
+        # Validate parameters - allow "presentation" as a valid content type
+        valid_content_types = PromptTemplates.get_supported_content_types() + ["presentation"]
+        if not PromptTemplates.validate_template_parameters(
+            language, detected_content_type if detected_content_type != "presentation" else "general"
+        ):
             supported_langs = ", ".join(PromptTemplates.get_supported_languages())
-            supported_types = ", ".join(PromptTemplates.get_supported_content_types())
             raise ValueError(
                 f"Invalid parameters. Supported languages: {supported_langs}. "
-                f"Supported content types: {supported_types}"
+                f"Supported content types: {', '.join(valid_content_types)}"
             )
 
-        # Get template and format with text
-        template = self.get_prompt_template(language, content_type)
+        # Get base template
+        base_content_type = detected_content_type if detected_content_type != "presentation" else "general"
+        template = self.get_prompt_template(language, base_content_type)
+
+        # Add presentation-specific instructions if needed
+        if detected_content_type == "presentation":
+            presentation_instructions = self._get_presentation_instructions(language)
+            # Handle different text markers for different languages
+            text_markers = {
+                "english": "TEXT TO PROCESS:",
+                "french": "TEXTE À TRAITER:",
+                "italian": "TESTO DA ELABORARE:",
+                "german": "ZU VERARBEITENDER TEXT:",
+            }
+
+            # Get the appropriate text marker for the language
+            try:
+                lang_info = LanguageConfig.get_language_info(language)
+                lang_key = lang_info.prompt_key
+            except Exception:
+                lang_key = "english"
+
+            text_marker = text_markers.get(lang_key, "TEXT TO PROCESS:")
+
+            template = template.replace(text_marker, f"{presentation_instructions}\n\n{text_marker}")
+
         return template.replace("{text}", text)
+
+    def _detect_content_type(self, text: str, explicit_content_type: str) -> str:
+        """
+        Detect if content is from a presentation based on text patterns.
+
+        Args:
+            text: The text content to analyze
+            explicit_content_type: Explicitly provided content type
+
+        Returns:
+            Detected content type ("presentation" if detected, otherwise explicit_content_type)
+        """
+        # If explicitly set to presentation, respect that
+        if explicit_content_type == "presentation":
+            return "presentation"
+
+        # Look for presentation-specific patterns
+        presentation_indicators = [
+            r"=== Slide \d+ ===",  # Slide markers from PowerPoint extraction
+            r"Slide \d+:",  # Alternative slide markers
+            r"^\s*•\s+",  # Bullet points at line start
+            r"^\s*-\s+",  # Dash bullet points
+            r"^\s*\d+\.\s+",  # Numbered lists
+        ]
+
+        # Count presentation indicators
+        indicator_count = 0
+        for pattern in presentation_indicators:
+            if re.search(pattern, text, re.MULTILINE):
+                indicator_count += 1
+
+        # If we find multiple presentation indicators, classify as presentation
+        if indicator_count >= 2:
+            logger.debug("Detected presentation content based on text patterns")
+            return "presentation"
+
+        return explicit_content_type
+
+    def _get_presentation_instructions(self, language: str) -> str:
+        """
+        Get presentation-specific instructions for flashcard generation in the specified language.
+
+        Args:
+            language: Target language for instructions
+
+        Returns:
+            Language-specific presentation instructions
+        """
+        # Normalize language to get the correct key
+        try:
+            lang_info = LanguageConfig.get_language_info(language)
+            lang_key = lang_info.prompt_key
+        except Exception:
+            lang_key = "english"  # Fallback to English
+
+        instructions = {
+            "english": """
+SPECIAL INSTRUCTIONS FOR PRESENTATION CONTENT:
+- Use slide titles and headers as context for questions
+- Convert bullet points into individual flashcards when they contain key concepts
+- Maintain the logical flow and hierarchy between slides
+- Focus on key concepts rather than slide formatting details
+- Create questions that test understanding of the main points from each slide
+- When multiple related points appear on a slide, create separate flashcards for each important concept
+- Use slide numbers or titles in questions when it helps provide context
+- Prioritize conceptual understanding over memorization of slide structure""",
+            "french": """
+INSTRUCTIONS SPÉCIALES POUR LE CONTENU DE PRÉSENTATION:
+- Utilisez les titres et en-têtes de diapositives comme contexte pour les questions
+- Convertissez les puces en cartes individuelles lorsqu'elles contiennent des concepts clés
+- Maintenez le flux logique et la hiérarchie entre les diapositives
+- Concentrez-vous sur les concepts clés plutôt que sur les détails de formatage des diapositives
+- Créez des questions qui testent la compréhension des points principaux de chaque diapositive
+- Lorsque plusieurs points liés apparaissent sur une diapositive, 
+  créez des cartes séparées pour chaque concept important
+- Utilisez les numéros ou titres de diapositives dans les questions quand cela aide à fournir du contexte
+- Privilégiez la compréhension conceptuelle plutôt que la mémorisation de la structure des diapositives""",
+            "italian": """
+ISTRUZIONI SPECIALI PER IL CONTENUTO DELLE PRESENTAZIONI:
+- Usa i titoli e le intestazioni delle diapositive come contesto per le domande
+- Converti i punti elenco in flashcard individuali quando contengono concetti chiave
+- Mantieni il flusso logico e la gerarchia tra le diapositive
+- Concentrati sui concetti chiave piuttosto che sui dettagli di formattazione delle diapositive
+- Crea domande che testano la comprensione dei punti principali di ogni diapositiva
+- Quando più punti correlati appaiono su una diapositiva, crea flashcard separate per ogni concetto importante
+- Usa i numeri o i titoli delle diapositive nelle domande quando aiuta a fornire contesto
+- Dai priorità alla comprensione concettuale piuttosto che alla memorizzazione della struttura delle diapositive""",
+            "german": """
+SPEZIELLE ANWEISUNGEN FÜR PRÄSENTATIONSINHALTE:
+- Verwenden Sie Folientitel und Überschriften als Kontext für Fragen
+- Wandeln Sie Aufzählungspunkte in einzelne Karteikarten um, wenn sie Schlüsselkonzepte enthalten
+- Behalten Sie den logischen Fluss und die Hierarchie zwischen den Folien bei
+- Konzentrieren Sie sich auf Schlüsselkonzepte statt auf Formatierungsdetails der Folien
+- Erstellen Sie Fragen, die das Verständnis der Hauptpunkte jeder Folie testen
+- Wenn mehrere verwandte Punkte auf einer Folie erscheinen, 
+  erstellen Sie separate Karteikarten für jedes wichtige Konzept
+- Verwenden Sie Foliennummern oder -titel in Fragen, wenn es hilft, Kontext zu bieten
+- Priorisieren Sie konzeptuelles Verständnis über das Auswendiglernen der Folienstruktur""",
+        }
+
+        return instructions.get(lang_key, instructions["english"])
 
     async def _make_api_call_with_retry(self, prompt: str) -> str:
         """

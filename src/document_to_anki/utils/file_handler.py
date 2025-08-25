@@ -18,7 +18,7 @@ class FileHandler:
     """Handles file uploads, validation, and processing."""
 
     # Supported file extensions
-    SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
+    SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
 
     # Maximum file size in bytes (50MB)
     MAX_FILE_SIZE = 50 * 1024 * 1024

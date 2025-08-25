@@ -234,7 +234,7 @@ print(f"Total: {stats['total_count']}, Valid: {stats['valid_count']}")
 
 #### LLMClient
 
-Handles communication with Gemini LLM through litellm.
+Handles communication with Gemini LLM through litellm with intelligent content type detection.
 
 ```python
 from document_to_anki.core.llm_client import LLMClient
@@ -242,17 +242,25 @@ from document_to_anki.core.llm_client import LLMClient
 client = LLMClient(model="gemini/gemini-2.5-flash", max_tokens=4000)
 ```
 
+**Enhanced Features:**
+- **Automatic Presentation Detection**: Detects presentation content based on slide markers, bullet points, and formatting patterns
+- **Content-Type Specific Processing**: Applies specialized prompts for different content types (academic, technical, general, presentation)
+- **Multi-Language Presentation Support**: Presentation-specific instructions available in English, French, Italian, and German
+
 **Methods:**
 
-##### `generate_flashcards_from_text(text)`
+##### `generate_flashcards_from_text(text, content_type="general")`
 
 Generate flashcards from text content (async).
 
 **Parameters:**
 - `text` (str): Input text to process
+- `content_type` (str, optional): Type of content ("academic", "technical", "general", "presentation")
 
 **Returns:**
 - `list[dict[str, str]]`: List of flashcard data dictionaries
+
+**Note:** The system automatically detects presentation content based on text patterns (slide markers, bullet points, etc.) and applies presentation-specific processing even when `content_type` is not explicitly set to "presentation".
 
 **Example:**
 ```python
@@ -265,15 +273,18 @@ async def generate():
 flashcards = asyncio.run(generate())
 ```
 
-##### `generate_flashcards_from_text_sync(text)`
+##### `generate_flashcards_from_text_sync(text, content_type="general")`
 
 Generate flashcards from text content (synchronous).
 
 **Parameters:**
 - `text` (str): Input text to process
+- `content_type` (str, optional): Type of content ("academic", "technical", "general", "presentation")
 
 **Returns:**
 - `list[dict[str, str]]`: List of flashcard data dictionaries
+
+**Note:** The system automatically detects presentation content based on text patterns (slide markers, bullet points, etc.) and applies presentation-specific processing even when `content_type` is not explicitly set to "presentation".
 
 **Example:**
 ```python
@@ -293,6 +304,63 @@ Split large text into manageable chunks.
 
 **Returns:**
 - `list[str]`: List of text chunks
+
+### Presentation Content Detection
+
+The LLMClient includes intelligent presentation content detection that automatically identifies when text comes from PowerPoint presentations and applies specialized processing:
+
+#### Automatic Detection Patterns
+
+The system looks for these presentation indicators:
+- Slide markers: `=== Slide 1 ===`, `Slide 2:`
+- Bullet points: Lines starting with `•`, `-`, or numbered lists
+- Presentation structure patterns
+
+#### Presentation-Specific Processing
+
+When presentation content is detected, the system:
+- Uses slide titles and headers as context for questions
+- Converts bullet points into individual flashcards for key concepts
+- Maintains logical flow and hierarchy between slides
+- Focuses on conceptual understanding rather than slide formatting
+- Provides slide-specific instructions in the target language
+
+#### Multi-Language Presentation Instructions
+
+Presentation-specific instructions are available in all supported languages:
+- **English**: Focus on key concepts and slide hierarchy
+- **French**: Instructions adapted for French educational conventions
+- **Italian**: Culturally appropriate Italian presentation processing
+- **German**: Optimized for German technical and academic presentations
+
+#### Example Usage
+
+```python
+from document_to_anki.core.llm_client import LLMClient
+
+# Create client with language support
+client = LLMClient(language="french")
+
+# Process presentation content (automatically detected)
+presentation_text = """
+=== Slide 1: Introduction ===
+• Key concept 1
+• Key concept 2
+
+=== Slide 2: Details ===
+• Detailed explanation
+• Supporting evidence
+"""
+
+# System automatically detects presentation content and applies French presentation instructions
+flashcards = client.generate_flashcards_from_text_sync(presentation_text)
+
+# Alternatively, explicitly specify content type
+flashcards = client.generate_flashcards_from_text_sync(
+    presentation_text, 
+    content_type="presentation"
+)
+```
 
 #### TextExtractor
 
@@ -705,7 +773,7 @@ Check API health and status.
   "status": "healthy",
   "message": "Document to Anki API is running",
   "active_sessions": 3,
-  "supported_formats": [".pdf", ".docx", ".txt", ".md"]
+  "supported_formats": [".pdf", ".docx", ".pptx", ".txt", ".md"]
 }
 ```
 
@@ -766,6 +834,9 @@ document-to-anki [OPTIONS] INPUT_PATH
 # Basic usage
 document-to-anki document.pdf
 
+# PowerPoint presentation
+document-to-anki lecture-slides.pptx --output lecture-cards.csv
+
 # Specify output
 document-to-anki document.pdf --output flashcards.csv
 
@@ -794,7 +865,7 @@ document-to-anki batch-convert [OPTIONS] INPUT_PATHS...
 
 **Example:**
 ```bash
-document-to-anki batch-convert file1.pdf file2.docx folder/ \
+document-to-anki batch-convert file1.pdf file2.docx lecture.pptx folder/ \
   --output-dir ./flashcards/
 ```
 

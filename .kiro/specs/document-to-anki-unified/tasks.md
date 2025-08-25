@@ -9,30 +9,32 @@
   - _Requirements: 2.1, 2.2_
 
 - [x] 2. Implement core data models
-  - Create Flashcard Pydantic v2 model with id, question, answer, card_type, source_file, and created_at fields
+  - Create Flashcard Pydantic v2 model with id, question, answer, card_type, source_file, source_context, and created_at fields
+  - Add source_context field to track slide numbers, page numbers, or other source location information
   - Implement field validators for content validation using @field_validator and @model_validator
-  - Implement to_csv_row() method for Anki-compatible CSV export format
+  - Implement to_csv_row() method for Anki-compatible CSV export format with source context
   - Implement validate() method for flashcard content validation
   - Create ProcessingResult Pydantic v2 model for handling processing outcomes
-  - _Requirements: 1.6, 3.1, 3.2, 3.3, 3.4_
+  - _Requirements: 1.6, 3.1, 3.2, 3.3, 3.4, 22.3_
 
 ## Document Processing Core
 
 - [x] 3. Implement text extraction utilities
-  - Create TextExtractor class with methods for PDF, DOCX, TXT, and MD file processing
+  - Create TextExtractor class with methods for PDF, DOCX, PPTX, TXT, and MD file processing
   - Implement extract_text_from_pdf() using PyPDF2
   - Implement extract_text_from_docx() using python-docx
+  - Implement extract_text_from_pptx() using python-pptx with slide structure preservation
   - Implement extract_text_from_txt() and extract_text_from_md() for plain text files
   - Add comprehensive error handling for corrupted or unsupported files
-  - _Requirements: 1.1, 1.2, 4.2_
+  - _Requirements: 1.1, 1.2, 4.2, 22.1, 22.3, 22.4, 22.5_
 
 - [x] 4. Implement file handling utilities
   - Create FileHandler class for managing file uploads and validation
-  - Implement validate_file_type() to check supported formats (PDF, DOCX, TXT, MD)
+  - Implement validate_file_type() to check supported formats (PDF, DOCX, PPTX, TXT, MD)
   - Implement process_zip_archive() to extract and process ZIP contents
   - Implement process_folder() to handle directory uploads with multiple files
   - Add file size validation and security checks
-  - _Requirements: 1.1, 1.3_
+  - _Requirements: 1.1, 1.3, 22.1_
 
 - [x] 5. Implement document processor
   - Create DocumentProcessor class as main orchestrator for document handling
@@ -64,10 +66,11 @@
 - [x] 8. Implement multi-language, multi-model LLM client
   - Create enhanced LLMClient class supporting configurable models and languages
   - Implement language-specific prompt templates for English, French, Italian, and German
+  - Add content-type specific prompt handling for presentations vs general documents
   - Integrate ModelConfig for dynamic model selection and API key validation
   - Implement language validation and retry logic for incorrect language output
   - Add comprehensive error handling for both model and language configuration issues
-  - _Requirements: 1.4, 1.5, 9.1, 9.2, 9.3, 9.4, 9.5, 10.1, 10.2, 10.3, 12.1, 12.2, 12.3, 12.4, 12.5, 14.1, 14.2, 14.3, 14.4, 14.5_
+  - _Requirements: 1.4, 1.5, 9.1, 9.2, 9.3, 9.4, 9.5, 10.1, 10.2, 10.3, 12.1, 12.2, 12.3, 12.4, 12.5, 14.1, 14.2, 14.3, 14.4, 14.5, 22.2_
 
 - [x] 9. Implement enhanced flashcard generation with language support
   - Update FlashcardGenerator class to use unified Settings for model and language configuration
@@ -188,6 +191,40 @@
   - Verify language consistency across CLI and web interfaces
   - _Requirements: 18.3, 14.4, 14.5_
 
+## PowerPoint Processing Implementation
+
+- [x] 31. Implement PowerPoint text extraction functionality
+  - Add python-pptx dependency to project configuration
+  - Implement extract_text_from_pptx() method in TextExtractor class
+  - Add slide structure preservation with slide numbers and context
+  - Implement _clean_slide_text() helper method for text formatting
+  - Add comprehensive error handling for corrupted or password-protected presentations
+  - Create unit tests for PPTX text extraction using pytest-mock to mock python-pptx components
+  - _Requirements: 22.1, 22.3, 22.4, 22.5_
+
+- [x] 32. Enhance LLM client for presentation-specific processing
+  - Add presentation content type detection and handling in LLMClient
+  - Implement _get_presentation_instructions() method for content-type specific prompts
+  - Update _create_flashcard_prompt() to handle presentation content differently
+  - Add language-specific presentation instructions for all supported languages
+  - Create tests for presentation-specific flashcard generation using pytest-mock
+  - _Requirements: 22.2, 22.3_
+
+- [x] 33. Update data models for presentation context tracking
+  - Add source_context field to Flashcard model for slide number tracking
+  - Update to_csv_row() method to include slide context in source information
+  - Implement validation for presentation-specific flashcard metadata
+  - Create tests for enhanced Flashcard model with presentation context
+  - _Requirements: 22.3_
+
+- [x] 34. Integrate PowerPoint support across interfaces
+  - Update FileHandler to recognize and validate PPTX file extensions
+  - Update CLI help text and documentation to include PPTX support
+  - Update web interface file upload validation to accept PPTX files
+  - Add PPTX examples to documentation and usage guides
+  - Create end-to-end integration tests for PPTX processing workflow
+  - _Requirements: 22.1, 22.5_
+
 ## Code Quality and Final Polish
 
 - [x] 22. Fix code quality issues and ensure standards compliance
@@ -217,12 +254,12 @@
 
 - [x] 25. Finalize project configuration
   - Update pyproject.toml with proper entry points for CLI and web interfaces
-  - Add missing dependencies (PyPDF2, python-docx, Jinja2, python-multipart)
+  - Add missing dependencies (PyPDF2, python-docx, python-pptx, Jinja2, python-multipart)
   - Configure development scripts for testing, linting, and running the application
   - Add environment variable configuration for API keys, MODEL, and CARDLANG settings
   - Create sample configuration files and usage examples with comprehensive configuration
-  - Document all supported models, languages, and required API keys
-  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 10.1, 10.2, 10.3, 10.4, 10.5, 11.1, 11.2, 11.3, 11.4, 11.5_
+  - Document all supported models, languages, file formats (including PPTX), and required API keys
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 10.1, 10.2, 10.3, 10.4, 10.5, 11.1, 11.2, 11.3, 11.4, 11.5, 22.1_
 
 ## CI/CD and Build System Alignment
 

@@ -18,13 +18,14 @@ class TestTextExtractor:
     def test_init(self):
         """Test TextExtractor initialization."""
         extractor = TextExtractor()
-        assert extractor.SUPPORTED_FORMATS == {".pdf", ".docx", ".txt", ".md"}
+        assert extractor.SUPPORTED_FORMATS == {".pdf", ".docx", ".pptx", ".txt", ".md"}
         assert hasattr(extractor, "logger")
 
     def test_is_supported_format(self):
         """Test format support checking."""
         assert self.extractor.is_supported_format(Path("test.pdf"))
         assert self.extractor.is_supported_format(Path("test.docx"))
+        assert self.extractor.is_supported_format(Path("test.pptx"))
         assert self.extractor.is_supported_format(Path("test.txt"))
         assert self.extractor.is_supported_format(Path("test.md"))
         assert not self.extractor.is_supported_format(Path("test.doc"))
@@ -33,7 +34,7 @@ class TestTextExtractor:
     def test_get_supported_formats(self):
         """Test getting supported formats."""
         formats = self.extractor.get_supported_formats()
-        assert formats == {".pdf", ".docx", ".txt", ".md"}
+        assert formats == {".pdf", ".docx", ".pptx", ".txt", ".md"}
         # Ensure it returns a copy
         formats.add(".test")
         assert ".test" not in self.extractor.get_supported_formats()
@@ -583,5 +584,270 @@ class TestTextExtractor:
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
             with pytest.raises(TextExtractionError, match="DOCX file not found"):
                 self.extractor.extract_text_from_docx(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_success(self, mocker):
+        """Test successful PPTX text extraction."""
+        # Mock python-pptx components using pytest-mock
+        mock_presentation = mocker.MagicMock()
+
+        # Mock slides with shapes containing text
+        mock_shape1 = mocker.MagicMock()
+        mock_shape1.text = "Slide 1 Title"
+        mock_shape2 = mocker.MagicMock()
+        mock_shape2.text = "Slide 1 Content\nBullet point 1\nBullet point 2"
+
+        mock_slide1 = mocker.MagicMock()
+        mock_slide1.shapes = [mock_shape1, mock_shape2]
+
+        mock_shape3 = mocker.MagicMock()
+        mock_shape3.text = "Slide 2 Title"
+        mock_shape4 = mocker.MagicMock()
+        mock_shape4.text = "Slide 2 Content"
+
+        mock_slide2 = mocker.MagicMock()
+        mock_slide2.shapes = [mock_shape3, mock_shape4]
+
+        mock_presentation.slides = [mock_slide1, mock_slide2]
+
+        # Mock the Presentation class
+        mock_presentation_class = mocker.patch("src.document_to_anki.utils.text_extractor.Presentation")
+        mock_presentation_class.return_value = mock_presentation
+
+        # Mock HAS_PPTX to True
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            result = self.extractor.extract_text_from_pptx(Path(tmp.name))
+
+            # Verify the structure is preserved
+            assert "=== Slide 1 ===" in result
+            assert "=== Slide 2 ===" in result
+            assert "Slide 1 Title" in result
+            assert "Slide 1 Content" in result
+            assert "Bullet point 1" in result
+            assert "Slide 2 Title" in result
+            assert "Slide 2 Content" in result
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_not_available(self, mocker):
+        """Test PPTX extraction when python-pptx is not available."""
+        # Mock HAS_PPTX to False
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", False)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            with pytest.raises(TextExtractionError, match="python-pptx is not available"):
+                self.extractor.extract_text_from_pptx(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_no_slides(self, mocker):
+        """Test PPTX extraction from presentation with no slides."""
+        mock_presentation = mocker.MagicMock()
+        mock_presentation.slides = []  # No slides
+
+        mock_presentation_class = mocker.patch("src.document_to_anki.utils.text_extractor.Presentation")
+        mock_presentation_class.return_value = mock_presentation
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            result = self.extractor.extract_text_from_pptx(Path(tmp.name))
+            assert result == ""
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_empty_slides(self, mocker):
+        """Test PPTX extraction from slides with no text content."""
+        mock_presentation = mocker.MagicMock()
+
+        # Mock slide with empty shapes
+        mock_shape1 = mocker.MagicMock()
+        mock_shape1.text = "   "  # Only whitespace
+        mock_shape2 = mocker.MagicMock()
+        mock_shape2.text = ""  # Empty
+
+        mock_slide = mocker.MagicMock()
+        mock_slide.shapes = [mock_shape1, mock_shape2]
+        mock_presentation.slides = [mock_slide]
+
+        mock_presentation_class = mocker.patch("src.document_to_anki.utils.text_extractor.Presentation")
+        mock_presentation_class.return_value = mock_presentation
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            with pytest.raises(TextExtractionError, match="No text content could be extracted from PowerPoint"):
+                self.extractor.extract_text_from_pptx(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_shapes_without_text(self, mocker):
+        """Test PPTX extraction from slides with shapes that don't have text attribute."""
+        mock_presentation = mocker.MagicMock()
+
+        # Mock shapes - some with text, some without text attribute
+        mock_shape_with_text = mocker.MagicMock()
+        mock_shape_with_text.text = "Valid text content"
+
+        mock_shape_without_text = mocker.MagicMock()
+        # Remove text attribute to simulate shapes like images
+        del mock_shape_without_text.text
+
+        mock_slide = mocker.MagicMock()
+        mock_slide.shapes = [mock_shape_with_text, mock_shape_without_text]
+        mock_presentation.slides = [mock_slide]
+
+        mock_presentation_class = mocker.patch("src.document_to_anki.utils.text_extractor.Presentation")
+        mock_presentation_class.return_value = mock_presentation
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            result = self.extractor.extract_text_from_pptx(Path(tmp.name))
+            assert "=== Slide 1 ===" in result
+            assert "Valid text content" in result
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_slide_processing_error(self, mocker):
+        """Test PPTX extraction with some slide processing errors."""
+        mock_presentation = mocker.MagicMock()
+
+        # Mock first slide that works
+        mock_shape1 = mocker.MagicMock()
+        mock_shape1.text = "Good slide content"
+        mock_slide1 = mocker.MagicMock()
+        mock_slide1.shapes = [mock_shape1]
+
+        # Mock second slide that raises an error
+        mock_slide2 = mocker.MagicMock()
+        mock_slide2.shapes = mocker.PropertyMock(side_effect=Exception("Slide processing error"))
+
+        # Mock third slide that works
+        mock_shape3 = mocker.MagicMock()
+        mock_shape3.text = "Another good slide"
+        mock_slide3 = mocker.MagicMock()
+        mock_slide3.shapes = [mock_shape3]
+
+        mock_presentation.slides = [mock_slide1, mock_slide2, mock_slide3]
+
+        mock_presentation_class = mocker.patch("src.document_to_anki.utils.text_extractor.Presentation")
+        mock_presentation_class.return_value = mock_presentation
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            result = self.extractor.extract_text_from_pptx(Path(tmp.name))
+            assert "Good slide content" in result
+            assert "Another good slide" in result
+            # Slide 2 should be skipped due to error
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_file_not_found(self):
+        """Test PPTX extraction from non-existent file."""
+        with pytest.raises(TextExtractionError, match="PowerPoint file not found"):
+            self.extractor.extract_text_from_pptx(Path("nonexistent.pptx"))
+
+    def test_extract_text_from_pptx_permission_error(self, mocker):
+        """Test PPTX extraction with permission error."""
+        mocker.patch(
+            "src.document_to_anki.utils.text_extractor.Presentation", side_effect=PermissionError("Access denied")
+        )
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            with pytest.raises(TextExtractionError, match="Permission denied accessing PowerPoint file"):
+                self.extractor.extract_text_from_pptx(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_corrupted_file(self, mocker):
+        """Test PPTX extraction from corrupted file."""
+        mocker.patch("src.document_to_anki.utils.text_extractor.Presentation", side_effect=Exception("not a zip file"))
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            with pytest.raises(TextExtractionError, match="Invalid or corrupted PowerPoint file"):
+                self.extractor.extract_text_from_pptx(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_password_protected(self, mocker):
+        """Test PPTX extraction from password-protected file."""
+        mocker.patch(
+            "src.document_to_anki.utils.text_extractor.Presentation", side_effect=Exception("password protected")
+        )
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            with pytest.raises(TextExtractionError, match="Password-protected PowerPoint file"):
+                self.extractor.extract_text_from_pptx(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pptx_unexpected_error(self, mocker):
+        """Test PPTX extraction with unexpected error."""
+        mocker.patch(
+            "src.document_to_anki.utils.text_extractor.Presentation", side_effect=Exception("Unexpected error")
+        )
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            with pytest.raises(TextExtractionError, match="Unexpected error extracting from PowerPoint"):
+                self.extractor.extract_text_from_pptx(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_clean_slide_text_success(self):
+        """Test _clean_slide_text helper method."""
+        # Test with normal text
+        text = "Title\n\nContent line 1\nContent line 2\n\n\n"
+        result = self.extractor._clean_slide_text(text)
+        assert result == "Title\n\nContent line 1\nContent line 2"
+
+        # Test with excessive whitespace
+        text = "  Title  \n\n  \n  Content  \n  \n\n\n"
+        result = self.extractor._clean_slide_text(text)
+        assert result == "Title\n\nContent"
+
+        # Test with bullet points
+        text = "• Bullet 1\n• Bullet 2\n\n• Bullet 3"
+        result = self.extractor._clean_slide_text(text)
+        assert result == "• Bullet 1\n• Bullet 2\n\n• Bullet 3"
+
+    def test_clean_slide_text_empty_input(self):
+        """Test _clean_slide_text with empty or whitespace-only input."""
+        # Test with empty string
+        assert self.extractor._clean_slide_text("") == ""
+
+        # Test with None
+        assert self.extractor._clean_slide_text(None) == ""
+
+        # Test with only whitespace
+        assert self.extractor._clean_slide_text("   \n\n   ") == ""
+
+    def test_clean_slide_text_multiple_newlines(self):
+        """Test _clean_slide_text removes excessive newlines."""
+        text = "Line 1\n\n\n\n\nLine 2\n\n\n\nLine 3"
+        result = self.extractor._clean_slide_text(text)
+        assert result == "Line 1\n\nLine 2\n\nLine 3"
+
+    def test_extract_text_integration_pptx(self, mocker):
+        """Test integration of extract_text method with PPTX file."""
+        # Mock PPTX extraction
+        mock_presentation = mocker.MagicMock()
+        mock_shape = mocker.MagicMock()
+        mock_shape.text = "PPTX integration test"
+        mock_slide = mocker.MagicMock()
+        mock_slide.shapes = [mock_shape]
+        mock_presentation.slides = [mock_slide]
+
+        mocker.patch("src.document_to_anki.utils.text_extractor.Presentation", return_value=mock_presentation)
+        mocker.patch("src.document_to_anki.utils.text_extractor.HAS_PPTX", True)
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            result = self.extractor.extract_text(Path(tmp.name))
+            assert "=== Slide 1 ===" in result
+            assert "PPTX integration test" in result
 
         Path(tmp.name).unlink()

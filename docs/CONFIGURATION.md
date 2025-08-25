@@ -239,7 +239,7 @@ SESSION_CLEANUP_INTERVAL=600  # 10 minutes
 # File upload limits
 MAX_UPLOAD_SIZE=52428800  # 50MB
 MAX_FILES_PER_UPLOAD=10
-ALLOWED_EXTENSIONS=.pdf,.docx,.txt,.md,.zip
+ALLOWED_EXTENSIONS=.pdf,.docx,.pptx,.txt,.md,.zip
 ```
 
 ### CORS Configuration
@@ -613,6 +613,11 @@ CARDLANG=german
 # General education in French
 CARDLANG=french
 # French educational content uses specific pedagogical structures
+
+# PowerPoint presentations (automatically detected)
+CARDLANG=german
+# German presentation content uses specialized instructions for slide-based learning
+# System automatically detects presentation patterns and applies appropriate processing
 ```
 
 ### Language Configuration Best Practices

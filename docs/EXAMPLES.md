@@ -48,11 +48,45 @@ This shows the application successfully processed 18 out of 20 pages, skipping 2
 # Word document
 document-to-anki research-paper.docx --output research-cards.csv
 
+# PowerPoint presentation (with automatic presentation content detection)
+document-to-anki lecture-slides.pptx --output lecture-cards.csv
+
 # Text file
 document-to-anki study-notes.txt --output study-cards.csv
 
 # Markdown file
 document-to-anki README.md --output readme-cards.csv
+```
+
+### PowerPoint Presentation Processing
+
+The application includes intelligent presentation content detection and specialized processing:
+
+```bash
+# Basic PowerPoint processing
+document-to-anki business-presentation.pptx --output business-cards.csv
+
+# PowerPoint with verbose logging to see presentation detection
+document-to-anki technical-slides.pptx --verbose --output tech-cards.csv
+
+# Multi-language PowerPoint processing
+CARDLANG=french document-to-anki french-lecture.pptx --output french-lecture-cards.csv
+CARDLANG=german document-to-anki german-training.pptx --output german-training-cards.csv
+```
+
+**What happens during PowerPoint processing:**
+1. **Slide Structure Extraction**: Each slide is processed individually with slide numbers preserved
+2. **Automatic Content Detection**: System detects presentation patterns (bullet points, slide markers)
+3. **Specialized Processing**: Applies presentation-specific instructions for better flashcard quality
+4. **Multi-Language Support**: Uses language-appropriate presentation processing instructions
+
+**Example output for a presentation:**
+```
+INFO: Processing document: lecture-slides.pptx
+INFO: Detected presentation content based on text patterns
+INFO: Applying presentation-specific processing instructions
+INFO: Successfully extracted text from PowerPoint: lecture-slides.pptx (12/12 slides processed)
+INFO: Generated 28 flashcards optimized for presentation content
 ```
 
 ### Process Multiple Files
@@ -159,11 +193,12 @@ document-to-anki scanned-document.pdf --verbose
 
 ```bash
 # Process multiple specific files
-document-to-anki batch-convert file1.pdf file2.docx folder/ --output-dir ./outputs/
+document-to-anki batch-convert file1.pdf file2.docx lecture.pptx folder/ --output-dir ./outputs/
 
 # This creates:
 # - ./outputs/file1_flashcards.csv
 # - ./outputs/file2_flashcards.csv
+# - ./outputs/lecture_flashcards.csv
 # - ./outputs/folder_flashcards.csv
 ```
 
@@ -362,6 +397,133 @@ for data in flashcard_data:
     flashcards.append(flashcard)
 
 print(f"Generated {len(flashcards)} flashcards from text")
+```
+
+### Presentation Content Processing
+
+```python
+from document_to_anki.core.llm_client import LLMClient
+from document_to_anki.core.document_processor import DocumentProcessor
+from document_to_anki.core.flashcard_generator import FlashcardGenerator
+
+def process_presentation_with_detection(presentation_path: str, language: str = "english"):
+    """Example of processing PowerPoint presentations with automatic content detection."""
+    
+    # Initialize components with language support
+    doc_processor = DocumentProcessor()
+    llm_client = LLMClient(
+        model="gemini/gemini-2.5-pro",  # Better for presentation content
+        language=language
+    )
+    flashcard_gen = FlashcardGenerator(llm_client=llm_client)
+    
+    print(f"Processing presentation: {presentation_path}")
+    print(f"Target language: {language}")
+    
+    # Process the presentation
+    doc_result = doc_processor.process_upload(presentation_path)
+    
+    if not doc_result.success:
+        print("❌ Failed to process presentation")
+        return
+    
+    print(f"✅ Extracted content from {doc_result.slide_count} slides")
+    
+    # Generate flashcards (automatic presentation detection)
+    flashcard_result = flashcard_gen.generate_flashcards(
+        [doc_result.text_content],
+        doc_result.source_files
+    )
+    
+    if flashcard_result.success:
+        print(f"✅ Generated {flashcard_result.flashcard_count} flashcards")
+        print("📊 Presentation-specific processing applied:")
+        print("   • Slide structure preserved")
+        print("   • Bullet points converted to individual cards")
+        print("   • Slide context maintained in questions")
+        print(f"   • {language} presentation instructions used")
+        
+        # Export results
+        output_file = f"presentation_{language}_flashcards.csv"
+        success, summary = flashcard_gen.export_to_csv(output_file)
+        
+        if success:
+            print(f"📁 Exported to: {output_file}")
+            print(f"📈 Export summary: {summary['exported_flashcards']} cards")
+    else:
+        print("❌ Failed to generate flashcards")
+
+# Example usage
+process_presentation_with_detection("business-training.pptx", "english")
+process_presentation_with_detection("formation-entreprise.pptx", "french")
+process_presentation_with_detection("schulung-unternehmen.pptx", "german")
+```
+
+### Advanced Presentation Processing
+
+```python
+from document_to_anki.core.llm_client import LLMClient
+
+def demonstrate_presentation_detection():
+    """Demonstrate automatic presentation content detection."""
+    
+    # Sample presentation content
+    presentation_text = """
+=== Slide 1: Introduction to Machine Learning ===
+• Definition: AI systems that learn from data
+• Key components: algorithms, data, computing power
+• Applications: image recognition, natural language processing
+
+=== Slide 2: Types of Machine Learning ===
+• Supervised Learning
+  - Uses labeled training data
+  - Examples: classification, regression
+• Unsupervised Learning
+  - Finds patterns in unlabeled data
+  - Examples: clustering, dimensionality reduction
+• Reinforcement Learning
+  - Learns through interaction and rewards
+  - Examples: game playing, robotics
+
+=== Slide 3: Popular Algorithms ===
+1. Linear Regression
+2. Decision Trees
+3. Neural Networks
+4. Support Vector Machines
+"""
+    
+    # Create LLM client with different languages
+    languages = ["english", "french", "italian", "german"]
+    
+    for language in languages:
+        print(f"\n🌍 Processing in {language.upper()}:")
+        print("-" * 40)
+        
+        client = LLMClient(
+            model="gemini/gemini-2.5-pro",
+            language=language
+        )
+        
+        # Generate flashcards (automatic presentation detection)
+        flashcards = client.generate_flashcards_from_text_sync(presentation_text)
+        
+        print(f"✅ Generated {len(flashcards)} flashcards")
+        print("🎯 Presentation features detected:")
+        print("   • Slide markers (=== Slide X ===)")
+        print("   • Bullet points and numbered lists")
+        print("   • Hierarchical structure")
+        print(f"   • Applied {language} presentation instructions")
+        
+        # Show first flashcard as example
+        if flashcards:
+            first_card = flashcards[0]
+            print(f"\n📝 Sample flashcard:")
+            print(f"   Q: {first_card['question']}")
+            print(f"   A: {first_card['answer'][:100]}...")
+            print(f"   Type: {first_card['card_type']}")
+
+# Run the demonstration
+demonstrate_presentation_detection()
 ```
 
 ### Error Handling and Validation

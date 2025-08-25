@@ -20,7 +20,7 @@ class TestFileHandler:
         """Test FileHandler initialization."""
         handler = FileHandler()
         assert handler.processed_files == []
-        assert handler.SUPPORTED_EXTENSIONS == {".pdf", ".docx", ".txt", ".md"}
+        assert handler.SUPPORTED_EXTENSIONS == {".pdf", ".docx", ".pptx", ".txt", ".md"}
         assert handler.MAX_FILE_SIZE == 50 * 1024 * 1024
         assert handler.MAX_FILES_COUNT == 100
 
@@ -30,7 +30,7 @@ class TestFileHandler:
             temp_path = Path(temp_dir)
 
             # Test supported extensions
-            for ext in [".pdf", ".docx", ".txt", ".md"]:
+            for ext in [".pdf", ".docx", ".pptx", ".txt", ".md"]:
                 test_file = temp_path / f"test{ext}"
                 test_file.write_text("test content")
 
@@ -42,7 +42,7 @@ class TestFileHandler:
             temp_path = Path(temp_dir)
 
             # Test unsupported extensions
-            for ext in [".jpg", ".png", ".xlsx", ".pptx"]:
+            for ext in [".jpg", ".png", ".xlsx", ".doc"]:
                 test_file = temp_path / f"test{ext}"
                 test_file.write_text("test content")
 

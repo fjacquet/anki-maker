@@ -12,7 +12,7 @@ This feature involves creating a modern Python application that converts digital
 
 #### Acceptance Criteria
 
-1. WHEN a user uploads content THEN the system SHALL accept single files (PDF, DOCX, TXT, MD), folders containing multiple files, or ZIP archives
+1. WHEN a user uploads content THEN the system SHALL accept single files (PDF, DOCX, PPTX, TXT, MD), folders containing multiple files, or ZIP archives
 2. WHEN processing uploads THEN the system SHALL extract readable text content from all supported files
 3. WHEN multiple files are provided THEN the system SHALL process all files and consolidate flashcards into a single output
 4. WHEN text is extracted THEN the system SHALL send the content to Gemini LLM with carefully crafted prompts to generate high-quality flashcard pairs
@@ -257,3 +257,16 @@ This feature involves creating a modern Python application that converts digital
 3. WHEN editing flashcards through the web interface THEN the interface SHALL maintain the language consistency
 4. WHEN errors occur in the web interface THEN error messages SHALL be displayed appropriately (though UI language may remain English)
 5. WHEN processing files through the web interface THEN the same language configuration SHALL apply as in CLI mode
+
+
+### Requirement 22
+
+**User Story:** As a user, I want to process PowerPoint presentations, so that I can generate flashcards from slide content.
+
+#### Acceptance Criteria
+
+1. WHEN processing a pptx file THEN the system SHALL extract text from slides and instruct the LLM to generate flashcards
+2. WHEN generating flashcards from pptx THEN the system SHALL use the configured language for the LLM prompts
+3. WHEN extracting text from slides THEN the system SHALL preserve slide structure and context for better flashcard generation
+4. WHEN processing presentations THEN the system SHALL handle slide titles, bullet points, and text boxes appropriately
+5. WHEN errors occur during pptx processing THEN the system SHALL provide clear error messages and continue with other files if processing multiple documents

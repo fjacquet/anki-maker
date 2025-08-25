@@ -1,10 +1,10 @@
 # Product Overview
 
-Document to Anki CLI is a comprehensive tool that transforms various document formats (PDF, DOCX, TXT, MD) into high-quality Anki flashcards using Google's Gemini Pro AI model.
+Document to Anki CLI is a comprehensive tool that transforms various document formats (PDF, DOCX, PPTX, TXT, MD) into high-quality Anki flashcards using Google's Gemini Pro AI model.
 
 ## Core Features
 
-- **Multi-Format Document Processing**: Supports PDF, DOCX, TXT, MD files, folders, and ZIP archives
+- **Multi-Format Document Processing**: Supports PDF, DOCX, PPTX, TXT, MD files, folders, and ZIP archives
 - **AI-Powered Flashcard Generation**: Uses Gemini Pro via litellm for intelligent content analysis
 - **Dual Interface**: Both command-line and web interfaces available
 - **Interactive Management**: Preview, edit, delete, and add flashcards with rich formatting

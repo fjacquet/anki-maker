@@ -335,6 +335,257 @@ class TestLLMClient:
         assert result[0]["card_type"] == "qa"
 
 
+class TestPresentationProcessing:
+    """Test cases for presentation-specific processing in LLMClient."""
+
+    @pytest.fixture(autouse=True)
+    def setup_client(self, mocker):
+        """Set up test fixtures."""
+        # Mock ModelConfig to avoid environment dependencies
+        mock_config = mocker.patch("src.document_to_anki.core.llm_client.ModelConfig")
+        mock_config.validate_and_get_model.return_value = "gemini/gemini-2.5-flash"
+        mock_config.validate_model_config.return_value = True
+        self.client = LLMClient()
+
+    def test_detect_content_type_presentation_slide_markers(self):
+        """Test detection of presentation content with slide markers."""
+        presentation_text = """
+        === Slide 1 ===
+        Introduction to Python
+        • Python is a programming language
+        • It's easy to learn
+        
+        === Slide 2 ===
+        Python Features
+        • Object-oriented
+        • Interpreted
+        """
+
+        result = self.client._detect_content_type(presentation_text, "general")
+        assert result == "presentation"
+
+    def test_detect_content_type_presentation_bullet_points(self):
+        """Test detection of presentation content with bullet points."""
+        presentation_text = """
+        Python Programming
+        • Easy to learn
+        • Powerful libraries
+        • Cross-platform
+        
+        1. Installation steps
+        2. Basic syntax
+        3. Advanced features
+        """
+
+        result = self.client._detect_content_type(presentation_text, "general")
+        assert result == "presentation"
+
+    def test_detect_content_type_regular_text(self):
+        """Test that regular text is not detected as presentation."""
+        regular_text = """
+        Python is a high-level programming language. It was created by Guido van Rossum
+        and first released in 1991. Python's design philosophy emphasizes code readability
+        with its notable use of significant whitespace.
+        """
+
+        result = self.client._detect_content_type(regular_text, "general")
+        assert result == "general"
+
+    def test_detect_content_type_explicit_presentation(self):
+        """Test that explicit presentation type is respected."""
+        regular_text = "This is just regular text without presentation markers."
+
+        result = self.client._detect_content_type(regular_text, "presentation")
+        assert result == "presentation"
+
+    def test_get_presentation_instructions_english(self):
+        """Test getting presentation instructions in English."""
+        instructions = self.client._get_presentation_instructions("english")
+
+        assert "SPECIAL INSTRUCTIONS FOR PRESENTATION CONTENT" in instructions
+        assert "slide titles" in instructions.lower()
+        assert "bullet points" in instructions.lower()
+        assert "logical flow" in instructions.lower()
+
+    def test_get_presentation_instructions_french(self):
+        """Test getting presentation instructions in French."""
+        instructions = self.client._get_presentation_instructions("french")
+
+        assert "INSTRUCTIONS SPÉCIALES POUR LE CONTENU DE PRÉSENTATION" in instructions
+        assert "diapositives" in instructions.lower()
+        assert "puces" in instructions.lower()
+        assert "flux logique" in instructions.lower()
+
+    def test_get_presentation_instructions_italian(self):
+        """Test getting presentation instructions in Italian."""
+        instructions = self.client._get_presentation_instructions("italian")
+
+        assert "ISTRUZIONI SPECIALI PER IL CONTENUTO DELLE PRESENTAZIONI" in instructions
+        assert "diapositive" in instructions.lower()
+        assert "punti elenco" in instructions.lower()
+        assert "flusso logico" in instructions.lower()
+
+    def test_get_presentation_instructions_german(self):
+        """Test getting presentation instructions in German."""
+        instructions = self.client._get_presentation_instructions("german")
+
+        assert "SPEZIELLE ANWEISUNGEN FÜR PRÄSENTATIONSINHALTE" in instructions
+        assert "folien" in instructions.lower()
+        assert "aufzählungspunkte" in instructions.lower()
+        assert "logischen fluss" in instructions.lower()
+
+    def test_get_presentation_instructions_unsupported_language(self):
+        """Test that unsupported languages fall back to English."""
+        instructions = self.client._get_presentation_instructions("unsupported")
+
+        # Should fall back to English
+        assert "SPECIAL INSTRUCTIONS FOR PRESENTATION CONTENT" in instructions
+        assert "slide titles" in instructions.lower()
+
+    def test_create_flashcard_prompt_with_presentation_detection(self):
+        """Test prompt creation with automatic presentation detection."""
+        presentation_text = """
+        === Slide 1 ===
+        Python Basics
+        • Variables and data types
+        • Control structures
+        
+        === Slide 2 ===
+        Functions
+        • Defining functions
+        • Parameters and return values
+        """
+
+        prompt = self.client._create_flashcard_prompt(presentation_text, language="english")
+
+        # Should contain both the base template and presentation instructions
+        assert "Python Basics" in prompt
+        assert "SPECIAL INSTRUCTIONS FOR PRESENTATION CONTENT" in prompt
+        assert "slide titles" in prompt.lower()
+        assert "bullet points" in prompt.lower()
+
+    def test_create_flashcard_prompt_explicit_presentation_type(self):
+        """Test prompt creation with explicit presentation content type."""
+        regular_text = "This is regular text about Python programming concepts."
+
+        prompt = self.client._create_flashcard_prompt(regular_text, language="english", content_type="presentation")
+
+        # Should include presentation instructions even for regular text
+        assert "SPECIAL INSTRUCTIONS FOR PRESENTATION CONTENT" in prompt
+        assert "slide titles" in prompt.lower()
+
+    def test_create_flashcard_prompt_presentation_french(self):
+        """Test presentation prompt creation in French."""
+        presentation_text = """
+        === Slide 1 ===
+        Introduction à Python
+        • Langage de programmation
+        • Facile à apprendre
+        """
+
+        prompt = self.client._create_flashcard_prompt(presentation_text, language="french")
+
+        assert "Introduction à Python" in prompt
+        # Check for the actual French presentation instructions text
+        assert "INSTRUCTIONS SPÉCIALES POUR LE CONTENU DE PRÉSENTATION" in prompt
+        assert "diapositives" in prompt.lower()
+
+    @pytest.mark.asyncio
+    async def test_generate_flashcards_presentation_content(self, mocker):
+        """Test flashcard generation from presentation content."""
+        presentation_text = """
+        === Slide 1 ===
+        Python Programming
+        • High-level language
+        • Easy to learn
+        • Versatile applications
+        
+        === Slide 2 ===
+        Python Features
+        • Object-oriented
+        • Interpreted
+        • Cross-platform
+        """
+
+        # Mock the LLM response
+        mock_response = mocker.MagicMock()
+        mock_response.choices = [mocker.MagicMock()]
+        mock_response.choices[0].message.content = """[
+            {
+                "question": "What type of programming language is Python according to Slide 1?",
+                "answer": "High-level language",
+                "card_type": "qa"
+            },
+            {
+                "question": "Python is a {{c1::high-level}} programming language",
+                "answer": "high-level",
+                "card_type": "cloze"
+            },
+            {
+                "question": "What are the three key characteristics of Python mentioned in Slide 1?",
+                "answer": "High-level language, easy to learn, versatile applications",
+                "card_type": "qa"
+            }
+        ]"""
+
+        mocker.patch("litellm.completion", return_value=mock_response)
+
+        result = await self.client.generate_flashcards_from_text(presentation_text, language="english")
+
+        assert len(result) == 3
+        assert "Slide 1" in result[0]["question"]
+        assert result[0]["answer"] == "High-level language"
+        assert result[1]["card_type"] == "cloze"
+        assert "{{c1::high-level}}" in result[1]["question"]
+
+    @pytest.mark.asyncio
+    async def test_generate_flashcards_presentation_multilingual(self, mocker):
+        """Test presentation flashcard generation in multiple languages."""
+        presentation_text = """
+        === Slide 1 ===
+        Programmation Python
+        • Langage de haut niveau
+        • Facile à apprendre
+        """
+
+        # Mock French response
+        mock_response = mocker.MagicMock()
+        mock_response.choices = [mocker.MagicMock()]
+        mock_response.choices[0].message.content = """[
+            {
+                "question": "Quel type de langage est Python selon la diapositive 1 ?",
+                "answer": "Langage de haut niveau",
+                "card_type": "qa"
+            },
+            {
+                "question": "Python est un langage {{c1::de haut niveau}}",
+                "answer": "de haut niveau",
+                "card_type": "cloze"
+            }
+        ]"""
+
+        mocker.patch("litellm.completion", return_value=mock_response)
+
+        result = await self.client.generate_flashcards_from_text(presentation_text, language="french")
+
+        assert len(result) == 2
+        assert "diapositive" in result[0]["question"].lower()
+        assert result[0]["answer"] == "Langage de haut niveau"
+        assert "{{c1::de haut niveau}}" in result[1]["question"]
+
+    def test_create_flashcard_prompt_invalid_content_type(self):
+        """Test prompt creation with invalid content type."""
+        text = "Sample text"
+
+        # Should not raise error for "presentation" even though it's not in PromptTemplates
+        prompt = self.client._create_flashcard_prompt(text, content_type="presentation")
+        assert "SPECIAL INSTRUCTIONS FOR PRESENTATION CONTENT" in prompt
+
+        # Should raise error for truly invalid content type
+        with pytest.raises(ValueError, match="Invalid parameters"):
+            self.client._create_flashcard_prompt(text, content_type="invalid_type")
+
+
 class TestFlashcardData:
     """Test cases for FlashcardData dataclass."""
 

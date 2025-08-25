@@ -109,7 +109,7 @@ Error: Unsupported file type: .xyz
 ```
 
 **Solutions:**
-1. Convert files to supported formats: PDF, DOCX, TXT, MD
+1. Convert files to supported formats: PDF, DOCX, PPTX, TXT, MD
 2. Check file extensions are correct
 3. For images with text, use OCR tools first
 4. For other formats, copy text manually to a .txt file
@@ -141,6 +141,97 @@ Error: No text content could be extracted from PDF
 3. **For image-based PDFs**: Use OCR software to convert images to text first
 4. **For severely corrupted files**: Try re-saving or converting the file using different PDF software
 5. **Check processing logs**: Enable verbose mode (`--verbose`) to see detailed page-by-page processing status
+
+### Problem: PowerPoint presentation issues
+```
+Error: Invalid or corrupted PowerPoint file
+Error: Password-protected PowerPoint file
+Error: No text content could be extracted from PowerPoint
+Warning: Failed to extract text from slide X in filename.pptx
+```
+
+**Solutions:**
+1. **For password-protected presentations**: Remove password protection using PowerPoint or other presentation software
+2. **For corrupted presentations**: The application handles malformed slides gracefully with:
+   - Slide-by-slide error recovery (skips problematic slides)
+   - Enhanced error reporting showing successful vs failed slides
+   - Continues processing remaining slides even when some fail
+3. **For image-heavy presentations**: Slides containing only images or graphics won't produce text
+   - Add text descriptions or speaker notes to image-heavy slides
+   - Use OCR software if the images contain readable text
+4. **For severely corrupted files**: Try re-saving the presentation in PowerPoint or converting to PDF first
+5. **Check processing logs**: Enable verbose mode (`--verbose`) to see detailed slide-by-slide processing status
+
+### Problem: Presentation content not detected properly
+```
+Issue: PowerPoint content processed as general text instead of presentation
+Warning: Presentation patterns not detected in slide content
+```
+
+**What this means:**
+- The automatic presentation detection didn't identify slide-specific patterns
+- Content is being processed with general instructions instead of presentation-specific ones
+
+**Solutions:**
+1. **Check slide structure**: Ensure slides have clear markers that the system can detect:
+   ```
+   Expected patterns:
+   • Slide titles and headers
+   • Bullet points (•, -, numbered lists)
+   • Slide markers (=== Slide 1 ===)
+   ```
+
+2. **Manually specify content type** in Python API:
+   ```python
+   flashcards = client.generate_flashcards_from_text_sync(
+       text, 
+       content_type="presentation"
+   )
+   ```
+
+3. **Enable verbose logging** to see detection details:
+   ```bash
+   document-to-anki presentation.pptx --verbose
+   # Look for: "Detected presentation content based on text patterns"
+   ```
+
+4. **Verify slide extraction quality**:
+   - Check that slide titles and bullet points are properly extracted
+   - Ensure slide structure is preserved during text extraction
+
+### Problem: Poor presentation flashcard quality
+```
+Issue: Flashcards from presentations lack context or miss key concepts
+```
+
+**Solutions:**
+1. **Ensure presentation detection is working**:
+   ```bash
+   # Check logs for presentation detection
+   document-to-anki slides.pptx --verbose | grep -i "presentation"
+   ```
+
+2. **Use higher-quality AI model** for presentations:
+   ```bash
+   MODEL=gemini/gemini-2.5-pro document-to-anki slides.pptx
+   ```
+
+3. **Check slide content quality**:
+   - Ensure slides have meaningful text content
+   - Add speaker notes if slides are mostly visual
+   - Use clear, descriptive slide titles
+
+4. **Language-specific presentation processing**:
+   ```bash
+   # Use language-specific presentation instructions
+   CARDLANG=french document-to-anki french-slides.pptx
+   CARDLANG=german document-to-anki german-slides.pptx
+   ```
+
+5. **Review generated flashcards** using interactive mode:
+   - Edit questions to include slide context
+   - Combine related bullet points into comprehensive answers
+   - Add slide numbers or titles for better context
 
 ### Problem: No text extracted
 ```
@@ -1000,6 +1091,9 @@ ls -la input-file.pdf
 # Test with minimal example
 echo "Test content for flashcard generation." > test.txt
 document-to-anki test.txt --verbose
+
+# Test PowerPoint processing (if you have a sample presentation)
+document-to-anki sample-presentation.pptx --verbose
 
 # Run code quality checks (includes automatic formatting)
 make quality

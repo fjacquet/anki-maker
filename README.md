@@ -8,12 +8,12 @@ Convert documents to Anki flashcards using AI-powered content analysis.
 
 ## Overview
 
-Document to Anki CLI is a comprehensive tool that transforms various document formats (PDF, DOCX, TXT, MD) into high-quality Anki flashcards using Google's Gemini Pro AI model. The application provides both CLI and web interfaces, allowing users to upload documents, preview and edit generated flashcards, and export them as Anki-compatible CSV files.
+Document to Anki CLI is a comprehensive tool that transforms various document formats (PDF, DOCX, PPTX, TXT, MD) into high-quality Anki flashcards using Google's Gemini Pro AI model. The application provides both CLI and web interfaces, allowing users to upload documents, preview and edit generated flashcards, and export them as Anki-compatible CSV files.
 
 ## Features
 
 ### ✅ Fully Implemented
-- **Multi-Format Document Processing**: Support for PDF, DOCX, TXT, MD files, folders, and ZIP archives
+- **Multi-Format Document Processing**: Support for PDF, DOCX, PPTX, TXT, MD files, folders, and ZIP archives
 - **Enhanced PDF Processing**: Robust handling of malformed, corrupted, or partially damaged PDFs with graceful error recovery
 - **AI-Powered Flashcard Generation**: Gemini Pro model integration via litellm for intelligent content analysis
 - **Dual Interface Support**: Both command-line and web interfaces available
@@ -177,6 +177,9 @@ document-to-anki input.pdf --output my-flashcards.csv
 # Process a folder of documents
 document-to-anki documents/ --output folder-flashcards.csv
 
+# Process a PowerPoint presentation
+document-to-anki lecture-slides.pptx --output lecture-flashcards.csv
+
 # Process a ZIP archive
 document-to-anki archive.zip --output archive-flashcards.csv
 ```
@@ -209,7 +212,7 @@ document-to-anki input.pdf --no-preview --batch
 document-to-anki input.pdf --verbose
 
 # Batch process multiple files
-document-to-anki batch-convert file1.pdf file2.docx folder/ --output-dir ./outputs/
+document-to-anki batch-convert file1.pdf file2.docx lecture.pptx folder/ --output-dir ./outputs/
 
 # Show help
 document-to-anki --help
@@ -369,6 +372,7 @@ for lang in languages:
 |--------|-----------|-------------|
 | PDF | `.pdf` | Portable Document Format files (with enhanced malformed PDF support) |
 | Word Document | `.docx` | Microsoft Word documents |
+| PowerPoint | `.pptx` | Microsoft PowerPoint presentations |
 | Text File | `.txt` | Plain text files |
 | Markdown | `.md` | Markdown formatted files |
 | ZIP Archive | `.zip` | Archives containing supported formats |
@@ -826,12 +830,19 @@ This project is licensed under the MIT License. See the LICENSE file for details
 ### Version 0.1.0 (Current)
 - ✅ Complete CLI interface with interactive flashcard management
 - ✅ Full-featured web interface with drag-and-drop uploads
-- ✅ Support for PDF, DOCX, TXT, MD files and ZIP archives
+- ✅ Support for PDF, DOCX, PPTX, TXT, MD files and ZIP archives
 - ✅ **Enhanced PDF Processing**: Robust handling of malformed and corrupted PDFs
   - Graceful error recovery with page-by-page processing
   - Automatic fallback to lenient parsing mode
   - Detailed logging of successful vs. failed page processing
   - Continues processing even when individual pages fail
+- ✅ **PowerPoint Support**: Full support for Microsoft PowerPoint presentations (.pptx)
+  - Slide-by-slide text extraction with structure preservation
+  - Automatic handling of slide titles, bullet points, and text boxes
+  - Robust error handling for corrupted or password-protected presentations
+  - **Intelligent Presentation Content Detection**: Automatically detects presentation content and applies specialized processing
+  - **Context-aware flashcard generation**: Optimized prompts for presentation content with slide-specific instructions
+  - **Multi-language presentation support**: Presentation-specific instructions available in English, French, Italian, and German
 - ✅ Gemini Pro AI integration for intelligent flashcard generation
 - ✅ **Multi-Language Configuration**: Configurable language support for flashcard generation
   - Support for English, French, Italian, and German languages

@@ -7,6 +7,13 @@ from loguru import logger
 from pypdf import PdfReader
 
 try:
+    from pptx import Presentation
+
+    HAS_PPTX = True
+except ImportError:
+    HAS_PPTX = False
+
+try:
     import pdfplumber
 
     HAS_PDFPLUMBER = True
@@ -23,7 +30,7 @@ class TextExtractionError(Exception):
 class TextExtractor:
     """Handles text extraction from various document formats."""
 
-    SUPPORTED_FORMATS = {".pdf", ".docx", ".txt", ".md"}
+    SUPPORTED_FORMATS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
 
     def __init__(self) -> None:
         """Initialize the TextExtractor."""
@@ -60,6 +67,8 @@ class TextExtractor:
                 return self.extract_text_from_pdf(file_path)
             elif file_extension == ".docx":
                 return self.extract_text_from_docx(file_path)
+            elif file_extension == ".pptx":
+                return self.extract_text_from_pptx(file_path)
             elif file_extension in {".txt", ".md"}:
                 return self.extract_text_from_txt(file_path)
             else:
@@ -319,6 +328,124 @@ class TextExtractor:
             raise TextExtractionError(f"Permission denied accessing text file: {file_path}") from e
         except Exception as e:
             raise TextExtractionError(f"Unexpected error extracting from text file {file_path}: {str(e)}") from e
+
+    def extract_text_from_pptx(self, file_path: Path) -> str:
+        """
+        Extract text from a PowerPoint presentation using python-pptx.
+
+        Args:
+            file_path: Path to the PPTX file
+
+        Returns:
+            Extracted text content as a string with slide structure preserved
+
+        Raises:
+            TextExtractionError: If PPTX extraction fails
+        """
+        if not HAS_PPTX:
+            raise TextExtractionError("python-pptx is not available. Install it with: pip install python-pptx")
+
+        try:
+            presentation = Presentation(str(file_path))
+            extracted_text = []
+
+            # Check if presentation has slides
+            if len(presentation.slides) == 0:
+                self.logger.warning(f"PowerPoint presentation has no slides: {file_path}")
+                return ""
+
+            successful_slides = 0
+            for slide_num, slide in enumerate(presentation.slides, 1):
+                try:
+                    slide_content = [f"=== Slide {slide_num} ==="]
+
+                    # Extract text from all shapes in the slide
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text") and shape.text.strip():
+                            # Clean and preserve structure with bullet points and formatting
+                            text = self._clean_slide_text(shape.text)
+                            if text:
+                                slide_content.append(text)
+
+                    # Only add slides that have content beyond the header
+                    if len(slide_content) > 1:
+                        extracted_text.extend(slide_content)
+                        extracted_text.append("")  # Add spacing between slides
+                        successful_slides += 1
+
+                except Exception as e:
+                    self.logger.warning(f"Failed to extract text from slide {slide_num} in {file_path}: {e}")
+                    continue
+
+            final_text = "\n".join(extracted_text).strip()
+
+            if not final_text:
+                if successful_slides == 0:
+                    raise TextExtractionError(
+                        f"No text content could be extracted from PowerPoint: {file_path}. "
+                        f"The presentation may contain only images or unsupported content."
+                    )
+                else:
+                    self.logger.warning(f"No text content extracted from PowerPoint: {file_path}")
+                    return ""
+
+            self.logger.info(
+                f"Successfully extracted text from PowerPoint: {file_path} "
+                f"({successful_slides}/{len(presentation.slides)} slides processed)"
+            )
+            return final_text
+
+        except FileNotFoundError as e:
+            raise TextExtractionError(f"PowerPoint file not found: {file_path}") from e
+        except PermissionError as e:
+            raise TextExtractionError(f"Permission denied accessing PowerPoint file: {file_path}") from e
+        except Exception as e:
+            # Handle various pptx-related errors
+            error_msg = str(e).lower()
+            if "not a zip file" in error_msg or "bad zipfile" in error_msg:
+                raise TextExtractionError(f"Invalid or corrupted PowerPoint file: {file_path}") from e
+            elif "password" in error_msg or "encrypted" in error_msg:
+                raise TextExtractionError(f"Password-protected PowerPoint file: {file_path}") from e
+            elif "no such file" in error_msg or "package not found" in error_msg:
+                raise TextExtractionError(f"PowerPoint file not found: {file_path}") from e
+            else:
+                raise TextExtractionError(f"Unexpected error extracting from PowerPoint {file_path}: {str(e)}") from e
+
+    def _clean_slide_text(self, text: str) -> str:
+        """
+        Clean and format slide text while preserving structure.
+
+        Args:
+            text: Raw text from a slide shape
+
+        Returns:
+            Cleaned text with preserved structure
+
+        """
+        if not text or not text.strip():
+            return ""
+
+        # Split into lines and process each line
+        lines = text.split("\n")
+        cleaned_lines = []
+
+        for line in lines:
+            cleaned_line = line.strip()
+            # Keep both empty and non-empty lines to preserve structure
+            cleaned_lines.append(cleaned_line)
+
+        # Join lines back together
+        cleaned_text = "\n".join(cleaned_lines)
+
+        # Remove multiple consecutive newlines but preserve intentional line breaks
+        import re
+
+        cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
+
+        # Remove leading and trailing whitespace from the entire text
+        cleaned_text = cleaned_text.strip()
+
+        return cleaned_text
 
     def extract_text_from_md(self, file_path: Path) -> str:
         """

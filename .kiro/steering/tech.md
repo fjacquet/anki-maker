@@ -15,7 +15,7 @@ inclusion: always
 ## Critical Dependencies
 - **Testing**: `pytest` with `pytest-mock` (NEVER use `unittest.mock`)
 - **Quality**: `ruff` (linting/formatting), `mypy` (type checking), `bandit` (security)
-- **Document Processing**: `pypdf`, `python-docx`, support for PDF/DOCX/TXT/MD
+- **Document Processing**: `pypdf`, `python-docx`, `python-pptx`, support for PDF/DOCX/PPTX/TXT/MD
 - **Logging**: `loguru` for structured logging
 
 ## Development Commands

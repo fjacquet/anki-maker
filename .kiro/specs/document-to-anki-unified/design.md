@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Document-to-Anki CLI application is a modern Python tool that converts various document formats into Anki flashcards using configurable Large Language Models. The system provides both CLI and web interfaces with multi-language support, allowing users to upload documents, preview/edit generated flashcards in their preferred language, and export them as Anki-compatible CSV files.
+The Document-to-Anki CLI application is a modern Python tool that converts various document formats (PDF, DOCX, PPTX, TXT, MD) into Anki flashcards using configurable Large Language Models. The system provides both CLI and web interfaces with multi-language support, allowing users to upload documents, preview/edit generated flashcards in their preferred language, and export them as Anki-compatible CSV files.
 
 The application follows modern Python development practices using Python 3.12+, uv for package management, and incorporates best-in-class tools for development, testing, and user experience.
 
@@ -156,6 +156,63 @@ class LanguageConfig:
         return language
 ```
 
+### Document Processing Components
+
+#### Text Extraction Strategy
+
+The application supports multiple document formats through a unified text extraction interface:
+
+```python
+class TextExtractor:
+    """Unified text extraction for multiple document formats."""
+    
+    SUPPORTED_FORMATS = {
+        '.pdf': 'extract_text_from_pdf',
+        '.docx': 'extract_text_from_docx', 
+        '.pptx': 'extract_text_from_pptx',
+        '.txt': 'extract_text_from_txt',
+        '.md': 'extract_text_from_md'
+    }
+    
+    def extract_text_from_pptx(self, file_path: str) -> str:
+        """Extract text from PowerPoint presentations."""
+        from pptx import Presentation
+        
+        presentation = Presentation(file_path)
+        extracted_text = []
+        
+        for slide_num, slide in enumerate(presentation.slides, 1):
+            slide_content = [f"=== Slide {slide_num} ==="]
+            
+            # Extract text from all shapes in the slide
+            for shape in slide.shapes:
+                if hasattr(shape, "text") and shape.text.strip():
+                    # Preserve structure with bullet points and formatting
+                    text = self._clean_slide_text(shape.text)
+                    if text:
+                        slide_content.append(text)
+            
+            if len(slide_content) > 1:  # More than just the slide header
+                extracted_text.extend(slide_content)
+                extracted_text.append("")  # Add spacing between slides
+        
+        return "\n".join(extracted_text)
+    
+    def _clean_slide_text(self, text: str) -> str:
+        """Clean and format slide text while preserving structure."""
+        # Remove excessive whitespace while preserving line breaks
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        return '\n'.join(lines)
+```
+
+#### PowerPoint Processing Design
+
+**Slide Structure Preservation**: The system maintains slide boundaries and hierarchy to provide context for flashcard generation.
+
+**Content Type Detection**: Different slide elements (titles, bullet points, text boxes) are processed appropriately to maintain semantic meaning.
+
+**Error Handling**: Robust error handling for corrupted presentations, password-protected files, and unsupported slide elements.
+
 ### Core Components
 
 #### Enhanced LLM Client Component
@@ -193,6 +250,8 @@ class LLMClient:
     ) -> list[dict[str, str]]:
         """Generate flashcards with configurable language support."""
         target_language = language or self.language
+        
+        # Adapt prompt based on content type (presentation slides need special handling)
         prompt = self._create_flashcard_prompt(text, target_language, content_type)
         
         # Generate flashcards using litellm
@@ -203,6 +262,38 @@ class LLMClient:
         validated_flashcards = self._validate_language_output(flashcards, target_language)
         
         return validated_flashcards
+    
+    def _create_flashcard_prompt(self, text: str, language: str, content_type: str) -> str:
+        """Create language and content-type specific prompts."""
+        base_template = self._get_prompt_template(language, content_type)
+        
+        # Add content-type specific instructions
+        if content_type == "presentation":
+            additional_instructions = self._get_presentation_instructions(language)
+            base_template += "\n\n" + additional_instructions
+        
+        return base_template.format(text=text)
+    
+    def _get_presentation_instructions(self, language: str) -> str:
+        """Get presentation-specific instructions for flashcard generation."""
+        instructions = {
+            "en": """
+            Special instructions for presentation content:
+            - Use slide titles as context for questions
+            - Convert bullet points into individual flashcards when appropriate
+            - Maintain the logical flow between slides
+            - Focus on key concepts rather than slide formatting
+            """,
+            "fr": """
+            Instructions spéciales pour le contenu de présentation:
+            - Utilisez les titres de diapositives comme contexte pour les questions
+            - Convertissez les puces en cartes individuelles si approprié
+            - Maintenez le flux logique entre les diapositives
+            - Concentrez-vous sur les concepts clés plutôt que sur le formatage
+            """,
+            # Add other languages as needed
+        }
+        return instructions.get(language, instructions["en"])
     
     def _validate_language_output(self, flashcards: list[dict], target_language: str) -> list[dict]:
         """Validate that flashcards are in the correct language."""
@@ -467,4 +558,100 @@ class LanguageValidator:
 - Preserves all existing model configuration features
 - Aligns with international software standards
 
-This unified design ensures that both model and language configuration work seamlessly together while maintaining the high-quality flashcard generation and comprehensive testing that the application requires.
+### 6. PowerPoint Processing Strategy
+
+**Decision**: Preserve slide structure and context during text extraction
+**Rationale**:
+- Slide boundaries provide natural content segmentation
+- Titles and bullet points contain hierarchical information
+- Context preservation improves flashcard quality
+- Maintains semantic relationships between slide elements
+
+## Data Models
+
+### Enhanced Flashcard Model
+
+```python
+class Flashcard(BaseModel):
+    """Enhanced flashcard model with source context."""
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    question: str = Field(..., min_length=1, max_length=500)
+    answer: str = Field(..., min_length=1, max_length=1000)
+    card_type: Literal["qa", "cloze"] = Field(default="qa")
+    source_file: str | None = Field(None)
+    source_context: str | None = Field(None)  # For slide numbers, page numbers, etc.
+    language: str = Field(default="en")
+    created_at: datetime = Field(default_factory=datetime.now)
+    
+    @field_validator("question", "answer")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        """Validate flashcard content."""
+        if not v.strip():
+            raise ValueError("Content cannot be empty")
+        return v.strip()
+    
+    def to_csv_row(self) -> dict[str, str]:
+        """Convert to Anki-compatible CSV format."""
+        return {
+            "Front": self.question,
+            "Back": self.answer,
+            "Type": self.card_type,
+            "Source": f"{self.source_file}:{self.source_context}" if self.source_context else self.source_file,
+            "Language": self.language
+        }
+```
+
+## Testing Strategy
+
+### PowerPoint Processing Tests
+
+```python
+class TestPowerPointProcessing:
+    def test_pptx_text_extraction(self, mocker):
+        """Test PowerPoint text extraction using pytest-mock."""
+        # Mock python-pptx components
+        mock_presentation = mocker.Mock()
+        mock_slide = mocker.Mock()
+        mock_shape = mocker.Mock()
+        
+        mock_shape.text = "Sample slide content"
+        mock_slide.shapes = [mock_shape]
+        mock_presentation.slides = [mock_slide]
+        
+        mocker.patch('pptx.Presentation', return_value=mock_presentation)
+        
+        extractor = TextExtractor()
+        result = extractor.extract_text_from_pptx("test.pptx")
+        
+        assert "=== Slide 1 ===" in result
+        assert "Sample slide content" in result
+    
+    def test_presentation_flashcard_generation(self, mocker):
+        """Test flashcard generation from presentation content."""
+        mock_llm_response = {
+            "flashcards": [
+                {
+                    "question": "What is the main topic of Slide 1?",
+                    "answer": "Sample slide content overview",
+                    "type": "qa"
+                }
+            ]
+        }
+        
+        mocker.patch('litellm.acompletion', return_value=AsyncMock(
+            choices=[Mock(message=Mock(content=json.dumps(mock_llm_response)))]
+        ))
+        
+        client = LLMClient()
+        result = await client.generate_flashcards_from_text(
+            "=== Slide 1 ===\nSample content", 
+            content_type="presentation"
+        )
+        
+        assert len(result) == 1
+        assert "Slide 1" in result[0]["question"]
+```
+
+This unified design ensures that both model and language configuration work seamlessly together while maintaining the high-quality flashcard generation and comprehensive testing that the application requires. The addition of PowerPoint support extends the application's capabilities while maintaining the same quality standards and architectural principles.
