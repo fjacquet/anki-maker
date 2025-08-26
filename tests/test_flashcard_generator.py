@@ -92,13 +92,9 @@ class TestFlashcardGenerator:
         assert flashcards[0].source_file == "test.txt"
 
     @pytest.mark.asyncio
-    async def test_generate_flashcards_async_success(
-        self, generator, mock_llm_client, sample_flashcard_data, mocker
-    ):
+    async def test_generate_flashcards_async_success(self, generator, mock_llm_client, sample_flashcard_data, mocker):
         """Test successful async flashcard generation."""
-        mock_llm_client.generate_flashcards_from_text = mocker.AsyncMock(
-            return_value=sample_flashcard_data
-        )
+        mock_llm_client.generate_flashcards_from_text = mocker.AsyncMock(return_value=sample_flashcard_data)
 
         text_content = ["Sample text content"]
         source_files = ["test.txt"]

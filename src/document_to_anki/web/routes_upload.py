@@ -12,7 +12,6 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from ..config import settings
 from ..core.document_processor import DocumentProcessingError
 from ..core.flashcard_generator import FlashcardGenerator
-from ..models.flashcard import Flashcard
 from .schemas import ProcessingStatusResponse
 from .session_manager import SessionManager, get_session_manager
 

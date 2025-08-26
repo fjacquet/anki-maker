@@ -37,17 +37,11 @@ def extract_text(file_path: Path) -> str:
     except FileNotFoundError as e:
         raise TextExtractionError(f"DOCX file not found: {file_path}") from e
     except PermissionError as e:
-        raise TextExtractionError(
-            f"Permission denied accessing DOCX file: {file_path}"
-        ) from e
+        raise TextExtractionError(f"Permission denied accessing DOCX file: {file_path}") from e
     except Exception as e:
         error_msg = str(e).lower()
         if "not a zip file" in error_msg or "bad zipfile" in error_msg:
-            raise TextExtractionError(
-                f"Invalid or corrupted DOCX file: {file_path}"
-            ) from e
+            raise TextExtractionError(f"Invalid or corrupted DOCX file: {file_path}") from e
         if "no such file" in error_msg:
             raise TextExtractionError(f"DOCX file not found: {file_path}") from e
-        raise TextExtractionError(
-            f"Unexpected error extracting from DOCX {file_path}: {str(e)}"
-        ) from e
+        raise TextExtractionError(f"Unexpected error extracting from DOCX {file_path}: {str(e)}") from e

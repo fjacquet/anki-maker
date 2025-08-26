@@ -2,7 +2,7 @@ import asyncio
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import HTTPException, status
 from loguru import logger
@@ -12,7 +12,7 @@ class SessionManager:
     """Manage in-memory sessions for web workflow."""
 
     def __init__(self, session_timeout: int = 3600) -> None:
-        self.sessions: Dict[str, Dict[str, Any]] = {}
+        self.sessions: dict[str, dict[str, Any]] = {}
         self.session_timeout = session_timeout
 
     def create_session(self) -> str:
@@ -32,12 +32,10 @@ class SessionManager:
         logger.info(f"Created new session: {session_id}")
         return session_id
 
-    def get_session(self, session_id: str) -> Dict[str, Any]:
+    def get_session(self, session_id: str) -> dict[str, Any]:
         """Return session data and update last accessed time."""
         if session_id not in self.sessions:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
         self.sessions[session_id]["last_accessed"] = time.time()
         return self.sessions[session_id]
 

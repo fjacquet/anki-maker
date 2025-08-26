@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from src.document_to_anki.utils import TextExtractionError, TextExtractor
-import src.document_to_anki.utils.pdf_extractor as pdf_extractor
 import src.document_to_anki.utils.docx_extractor as docx_extractor
+import src.document_to_anki.utils.pdf_extractor as pdf_extractor
 import src.document_to_anki.utils.pptx_extractor as pptx_extractor
 import src.document_to_anki.utils.text_extractor_common as text_extractor_common
+from src.document_to_anki.utils import TextExtractionError, TextExtractor
 
 
 class TestTextExtractor:
@@ -240,7 +240,9 @@ class TestTextExtractor:
     def test_extract_text_exception_handling(self, mocker):
         """Test exception handling in extract_text method."""
         # Mock extract_text_from_txt to raise a non-TextExtractionError
-        mocker.patch("src.document_to_anki.utils.text_extractor_common.extract_text", side_effect=ValueError("Unexpected error"))
+        mocker.patch(
+            "src.document_to_anki.utils.text_extractor_common.extract_text", side_effect=ValueError("Unexpected error")
+        )
 
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
             tmp.write(b"test content")
@@ -280,7 +282,9 @@ class TestTextExtractor:
         # Mock HAS_PDFPLUMBER to True
         mocker.patch("src.document_to_anki.utils.pdf_extractor.HAS_PDFPLUMBER", True)
         # Mock the pdfplumber fallback method
-        mock_fallback = mocker.patch("src.document_to_anki.utils.pdf_extractor._extract_with_pdfplumber", return_value="Fallback text")
+        mock_fallback = mocker.patch(
+            "src.document_to_anki.utils.pdf_extractor._extract_with_pdfplumber", return_value="Fallback text"
+        )
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             result = pdf_extractor.extract_text(Path(tmp.name))

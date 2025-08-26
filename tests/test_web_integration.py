@@ -590,7 +590,9 @@ It enables computers to learn from data without explicit programming.
 
         # 3. Get flashcards (after processing would complete)
         # In a real scenario, you'd wait for processing to complete
-        app.state.session_manager.sessions[session_id]["flashcards"] = [Flashcard.create("Test question", "Test answer", "qa", "test.txt")]
+        app.state.session_manager.sessions[session_id]["flashcards"] = [
+            Flashcard.create("Test question", "Test answer", "qa", "test.txt")
+        ]
 
         flashcards_response = client.get(f"/api/flashcards/{session_id}")
         assert flashcards_response.status_code == 200
@@ -690,7 +692,9 @@ class TestWebErrorHandling:
     def test_export_error_handling(self, client, mocker):
         """Test export error handling."""
         session_id = app.state.session_manager.create_session()
-        app.state.session_manager.sessions[session_id]["flashcards"] = [Flashcard.create("Test", "Test", "qa", "test.txt")]
+        app.state.session_manager.sessions[session_id]["flashcards"] = [
+            Flashcard.create("Test", "Test", "qa", "test.txt")
+        ]
 
         # Mock the global flashcard_generator instance
         mock_generator_instance = mocker.MagicMock()
@@ -727,7 +731,9 @@ class TestWebErrorHandling:
     def test_concurrent_session_access(self, client):
         """Test concurrent access to the same session."""
         session_id = app.state.session_manager.create_session()
-        app.state.session_manager.sessions[session_id]["flashcards"] = [Flashcard.create("Test", "Test", "qa", "test.txt")]
+        app.state.session_manager.sessions[session_id]["flashcards"] = [
+            Flashcard.create("Test", "Test", "qa", "test.txt")
+        ]
 
         # Simulate concurrent requests
         response1 = client.get(f"/api/flashcards/{session_id}")

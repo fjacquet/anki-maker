@@ -66,6 +66,7 @@ class FlashcardGenerator:
     def flashcards(self) -> list[Flashcard]:
         """Get the current list of flashcards."""
         return self._flashcards.copy()
+
     async def _generate_flashcards_common(
         self,
         text_content: str | list[str],
@@ -162,9 +163,7 @@ class FlashcardGenerator:
     ) -> ProcessingResult:
         """Generate flashcards from text content using LLM."""
         return asyncio.run(
-            self._generate_flashcards_common(
-                text_content, source_files, self._generate_flashcards_from_single_text
-            )
+            self._generate_flashcards_common(text_content, source_files, self._generate_flashcards_from_single_text)
         )
 
     async def _generate_flashcards_from_single_text_async(

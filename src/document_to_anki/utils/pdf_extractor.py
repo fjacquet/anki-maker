@@ -38,9 +38,7 @@ def extract_text(file_path: Path) -> str:
                     pdf_reader = PdfReader(file)
                 except Exception as fallback_error:
                     if HAS_PDFPLUMBER:
-                        logger.warning(
-                            f"PyPDF failed for {file_path}, trying pdfplumber..."
-                        )
+                        logger.warning(f"PyPDF failed for {file_path}, trying pdfplumber...")
                         return _extract_with_pdfplumber(file_path)
                     raise TextExtractionError(
                         f"Could not initialize PDF reader for {file_path}. "
@@ -62,14 +60,10 @@ def extract_text(file_path: Path) -> str:
                         text_content.append(page_text)
                         successful_pages += 1
                 except (AttributeError, TypeError) as e:
-                    logger.warning(
-                        f"Skipping malformed page {page_num + 1} in {file_path}: {e}"
-                    )
+                    logger.warning(f"Skipping malformed page {page_num + 1} in {file_path}: {e}")
                     continue
                 except Exception as e:  # pragma: no cover - defensive
-                    logger.warning(
-                        f"Failed to extract text from page {page_num + 1} in {file_path}: {e}"
-                    )
+                    logger.warning(f"Failed to extract text from page {page_num + 1} in {file_path}: {e}")
                     continue
 
             extracted_text = "\n\n".join(text_content)
@@ -90,18 +84,12 @@ def extract_text(file_path: Path) -> str:
     except FileNotFoundError as e:
         raise TextExtractionError(f"PDF file not found: {file_path}") from e
     except PermissionError as e:
-        raise TextExtractionError(
-            f"Permission denied accessing PDF file: {file_path}"
-        ) from e
+        raise TextExtractionError(f"Permission denied accessing PDF file: {file_path}") from e
     except Exception as e:
         error_msg = str(e)
         if "PdfReadError" in error_msg:
-            raise TextExtractionError(
-                f"Invalid or corrupted PDF file: {file_path} - {error_msg}"
-            ) from e
-        raise TextExtractionError(
-            f"Unexpected error extracting from PDF {file_path}: {error_msg}"
-        ) from e
+            raise TextExtractionError(f"Invalid or corrupted PDF file: {file_path} - {error_msg}") from e
+        raise TextExtractionError(f"Unexpected error extracting from PDF {file_path}: {error_msg}") from e
 
 
 def _extract_with_pdfplumber(file_path: Path) -> str:
@@ -122,9 +110,7 @@ def _extract_with_pdfplumber(file_path: Path) -> str:
                         text_content.append(page_text)
                         successful_pages += 1
                 except Exception as e:  # pragma: no cover - defensive
-                    logger.warning(
-                        f"pdfplumber failed to extract text from page {page_num + 1} in {file_path}: {e}"
-                    )
+                    logger.warning(f"pdfplumber failed to extract text from page {page_num + 1} in {file_path}: {e}")
                     continue
             extracted_text = "\n\n".join(text_content)
             if not extracted_text.strip():
@@ -133,9 +119,7 @@ def _extract_with_pdfplumber(file_path: Path) -> str:
                         f"No text content could be extracted from PDF using pdfplumber: {file_path}. "
                         f"The PDF may be image-based or use unsupported formatting."
                     )
-                logger.warning(
-                    f"No text content extracted from PDF using pdfplumber: {file_path}"
-                )
+                logger.warning(f"No text content extracted from PDF using pdfplumber: {file_path}")
                 return ""
             logger.info(
                 f"Successfully extracted text from PDF using pdfplumber: {file_path} "
@@ -143,6 +127,4 @@ def _extract_with_pdfplumber(file_path: Path) -> str:
             )
             return extracted_text
     except Exception as e:
-        raise TextExtractionError(
-            f"pdfplumber extraction failed for {file_path}: {str(e)}"
-        ) from e
+        raise TextExtractionError(f"pdfplumber extraction failed for {file_path}: {str(e)}") from e

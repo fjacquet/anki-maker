@@ -16,11 +16,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from ..config import ConfigurationError, LanguageValidationError, ModelConfig, settings
 from ..core.document_processor import DocumentProcessingError, DocumentProcessor
 from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
-from .session_manager import session_manager
-from .routes_upload import router as upload_router
-from .routes_flashcards import router as flashcards_router
 from .routes_export import router as export_router
-
+from .routes_flashcards import router as flashcards_router
+from .routes_upload import router as upload_router
+from .session_manager import session_manager
 
 auto_cleanup_task = None
 

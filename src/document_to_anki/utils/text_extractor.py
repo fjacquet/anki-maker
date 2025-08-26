@@ -42,9 +42,7 @@ class TextExtractor:
         except Exception as e:
             if isinstance(e, TextExtractionError):
                 raise
-            raise TextExtractionError(
-                f"Failed to extract text from {file_path}: {str(e)}"
-            ) from e
+            raise TextExtractionError(f"Failed to extract text from {file_path}: {str(e)}") from e
 
     def is_supported_format(self, file_path: Path) -> bool:
         """Check if a file format is supported for text extraction."""

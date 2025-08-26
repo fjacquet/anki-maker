@@ -41,16 +41,10 @@ def extract_text(file_path: Path) -> str:
                 return content
             except UnicodeDecodeError:
                 continue
-        raise TextExtractionError(
-            f"Could not decode text file with any supported encoding: {file_path}"
-        )
+        raise TextExtractionError(f"Could not decode text file with any supported encoding: {file_path}")
     except FileNotFoundError as e:
         raise TextExtractionError(f"Text file not found: {file_path}") from e
     except PermissionError as e:
-        raise TextExtractionError(
-            f"Permission denied accessing text file: {file_path}"
-        ) from e
+        raise TextExtractionError(f"Permission denied accessing text file: {file_path}") from e
     except Exception as e:
-        raise TextExtractionError(
-            f"Unexpected error extracting from text file {file_path}: {str(e)}"
-        ) from e
+        raise TextExtractionError(f"Unexpected error extracting from text file {file_path}: {str(e)}") from e
