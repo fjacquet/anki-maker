@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from src.document_to_anki.core.document_processor import DocumentProcessingResult
 from src.document_to_anki.core.flashcard_generator import FlashcardGenerationError
 from src.document_to_anki.models.flashcard import Flashcard, ProcessingResult
-from src.document_to_anki.web.app import app, create_session, sessions
+from src.document_to_anki.web.app import app
 
 
 class TestWebIntegration:
@@ -286,7 +286,7 @@ It enables computers to learn from data without explicit programming.
     def test_upload_with_existing_session(self, client, sample_txt_content, mock_successful_processing):
         """Test upload with existing session ID."""
         # Create a session first
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         files = {"files": ("test.txt", sample_txt_content, "text/plain")}
         data = {"session_id": session_id}
@@ -316,7 +316,7 @@ It enables computers to learn from data without explicit programming.
 
     def test_get_processing_status_success(self, client):
         """Test getting processing status for valid session."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         response = client.get(f"/api/status/{session_id}")
 
@@ -335,14 +335,14 @@ It enables computers to learn from data without explicit programming.
 
     def test_get_flashcards_success(self, client):
         """Test getting flashcards for a session."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         # Add some flashcards to the session
         sample_flashcards = [
             Flashcard.create("What is Python?", "A programming language", "qa", "test.txt"),
             Flashcard.create("Python is {{c1::interpreted}}", "interpreted", "cloze", "test.txt"),
         ]
-        sessions[session_id]["flashcards"] = sample_flashcards
+        app.state.session_manager.sessions[session_id]["flashcards"] = sample_flashcards
 
         response = client.get(f"/api/flashcards/{session_id}")
 
@@ -361,11 +361,11 @@ It enables computers to learn from data without explicit programming.
 
     def test_edit_flashcard_success(self, client, mocker):
         """Test successful flashcard editing."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         # Add a flashcard to the session
         flashcard = Flashcard.create("What is Python?", "A programming language", "qa", "test.txt")
-        sessions[session_id]["flashcards"] = [flashcard]
+        app.state.session_manager.sessions[session_id]["flashcards"] = [flashcard]
 
         # Mock validation
         mocker.patch(
@@ -383,14 +383,14 @@ It enables computers to learn from data without explicit programming.
         assert "updated successfully" in data["message"]
 
         # Verify the flashcard was actually updated
-        updated_flashcard = sessions[session_id]["flashcards"][0]
+        updated_flashcard = app.state.session_manager.sessions[session_id]["flashcards"][0]
         assert updated_flashcard.question == "What is Python programming?"
         assert updated_flashcard.answer == "A high-level programming language"
 
     def test_edit_flashcard_not_found(self, client):
         """Test editing non-existent flashcard."""
-        session_id = create_session()
-        sessions[session_id]["flashcards"] = []
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["flashcards"] = []
 
         edit_data = {"question": "New question", "answer": "New answer"}
 
@@ -401,10 +401,10 @@ It enables computers to learn from data without explicit programming.
 
     def test_edit_flashcard_validation_error(self, client, mocker):
         """Test editing flashcard with validation error."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         flashcard = Flashcard.create("What is Python?", "A programming language", "qa", "test.txt")
-        sessions[session_id]["flashcards"] = [flashcard]
+        app.state.session_manager.sessions[session_id]["flashcards"] = [flashcard]
 
         # Mock validation failure
         mocker.patch(
@@ -421,10 +421,10 @@ It enables computers to learn from data without explicit programming.
 
     def test_delete_flashcard_success(self, client):
         """Test successful flashcard deletion."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         flashcard = Flashcard.create("What is Python?", "A programming language", "qa", "test.txt")
-        sessions[session_id]["flashcards"] = [flashcard]
+        app.state.session_manager.sessions[session_id]["flashcards"] = [flashcard]
 
         response = client.delete(f"/api/flashcards/{session_id}/{flashcard.id}")
 
@@ -434,12 +434,12 @@ It enables computers to learn from data without explicit programming.
         assert "Deleted flashcard" in data["message"]
 
         # Verify the flashcard was actually deleted
-        assert len(sessions[session_id]["flashcards"]) == 0
+        assert len(app.state.session_manager.sessions[session_id]["flashcards"]) == 0
 
     def test_delete_flashcard_not_found(self, client):
         """Test deleting non-existent flashcard."""
-        session_id = create_session()
-        sessions[session_id]["flashcards"] = []
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["flashcards"] = []
 
         response = client.delete(f"/api/flashcards/{session_id}/nonexistent-id")
 
@@ -448,8 +448,8 @@ It enables computers to learn from data without explicit programming.
 
     def test_add_flashcard_success(self, client, mocker):
         """Test successful flashcard addition."""
-        session_id = create_session()
-        sessions[session_id]["flashcards"] = []
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["flashcards"] = []
 
         # Mock validation
         mocker.patch(
@@ -473,13 +473,13 @@ It enables computers to learn from data without explicit programming.
         assert "flashcard" in data
 
         # Verify the flashcard was actually added
-        assert len(sessions[session_id]["flashcards"]) == 1
-        added_flashcard = sessions[session_id]["flashcards"][0]
+        assert len(app.state.session_manager.sessions[session_id]["flashcards"]) == 1
+        added_flashcard = app.state.session_manager.sessions[session_id]["flashcards"][0]
         assert added_flashcard.question == "What is machine learning?"
 
     def test_add_flashcard_validation_error(self, client, mocker):
         """Test adding flashcard with validation error."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         # Mock validation failure
         mocker.patch(
@@ -496,14 +496,14 @@ It enables computers to learn from data without explicit programming.
 
     def test_export_flashcards_success(self, client, mock_successful_processing):
         """Test successful flashcard export."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         # Add flashcards to session
         flashcards = [
             Flashcard.create("What is Python?", "A programming language", "qa", "test.txt"),
             Flashcard.create("Python is {{c1::interpreted}}", "interpreted", "cloze", "test.txt"),
         ]
-        sessions[session_id]["flashcards"] = flashcards
+        app.state.session_manager.sessions[session_id]["flashcards"] = flashcards
 
         export_data = {"filename": "my_flashcards.csv"}
 
@@ -515,8 +515,8 @@ It enables computers to learn from data without explicit programming.
 
     def test_export_flashcards_no_flashcards(self, client):
         """Test export with no flashcards."""
-        session_id = create_session()
-        sessions[session_id]["flashcards"] = []
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["flashcards"] = []
 
         export_data = {"filename": "empty.csv"}
 
@@ -527,12 +527,12 @@ It enables computers to learn from data without explicit programming.
 
     def test_export_flashcards_default_filename(self, client, mock_successful_processing):
         """Test export with default filename."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         flashcards = [
             Flashcard.create("What is Python?", "A programming language", "qa", "test.txt"),
         ]
-        sessions[session_id]["flashcards"] = flashcards
+        app.state.session_manager.sessions[session_id]["flashcards"] = flashcards
 
         export_data = {}  # No filename specified
 
@@ -543,7 +543,7 @@ It enables computers to learn from data without explicit programming.
 
     def test_cleanup_session_success(self, client):
         """Test successful session cleanup."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         response = client.delete(f"/api/sessions/{session_id}")
 
@@ -553,7 +553,7 @@ It enables computers to learn from data without explicit programming.
         assert "cleaned up successfully" in data["message"]
 
         # Verify session was actually removed
-        assert session_id not in sessions
+        assert session_id not in app.state.session_manager.sessions
 
     def test_cleanup_session_not_found(self, client):
         """Test cleanup of non-existent session."""
@@ -590,7 +590,7 @@ It enables computers to learn from data without explicit programming.
 
         # 3. Get flashcards (after processing would complete)
         # In a real scenario, you'd wait for processing to complete
-        sessions[session_id]["flashcards"] = [Flashcard.create("Test question", "Test answer", "qa", "test.txt")]
+        app.state.session_manager.sessions[session_id]["flashcards"] = [Flashcard.create("Test question", "Test answer", "qa", "test.txt")]
 
         flashcards_response = client.get(f"/api/flashcards/{session_id}")
         assert flashcards_response.status_code == 200
@@ -639,7 +639,7 @@ class TestWebErrorHandling:
 
     def test_flashcard_generation_error(self, client, mocker):
         """Test handling of flashcard generation errors."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         # Mock the global document_processor instance
         mock_processor_instance = mocker.MagicMock()
@@ -664,9 +664,9 @@ class TestWebErrorHandling:
             temp_file_path = f.name
 
         # Add the temp file to session data
-        sessions[session_id]["temp_files"] = [temp_file_path]
-        sessions[session_id]["status"] = "processing"
-        sessions[session_id]["message"] = "Processing uploaded files..."
+        app.state.session_manager.sessions[session_id]["temp_files"] = [temp_file_path]
+        app.state.session_manager.sessions[session_id]["status"] = "processing"
+        app.state.session_manager.sessions[session_id]["message"] = "Processing uploaded files..."
 
         # Simulate calling the background processing function
         import asyncio
@@ -680,7 +680,7 @@ class TestWebErrorHandling:
             asyncio.run(process_files_background(session_id, [temp_file_path]))
 
         # Check that the session status was updated to error
-        session_data = sessions[session_id]
+        session_data = app.state.session_manager.sessions[session_id]
         assert session_data["status"] == "error"
         assert "Generation failed" in session_data["message"]
 
@@ -689,8 +689,8 @@ class TestWebErrorHandling:
 
     def test_export_error_handling(self, client, mocker):
         """Test export error handling."""
-        session_id = create_session()
-        sessions[session_id]["flashcards"] = [Flashcard.create("Test", "Test", "qa", "test.txt")]
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["flashcards"] = [Flashcard.create("Test", "Test", "qa", "test.txt")]
 
         # Mock the global flashcard_generator instance
         mock_generator_instance = mocker.MagicMock()
@@ -704,7 +704,7 @@ class TestWebErrorHandling:
 
     def test_invalid_json_request(self, client):
         """Test handling of invalid JSON in requests."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         # Send invalid JSON
         response = client.put(
@@ -717,7 +717,7 @@ class TestWebErrorHandling:
 
     def test_missing_required_fields(self, client):
         """Test handling of missing required fields in requests."""
-        session_id = create_session()
+        session_id = app.state.session_manager.create_session()
 
         # Send request with missing required fields
         response = client.post(f"/api/flashcards/{session_id}", json={"question": "Test"})
@@ -726,8 +726,8 @@ class TestWebErrorHandling:
 
     def test_concurrent_session_access(self, client):
         """Test concurrent access to the same session."""
-        session_id = create_session()
-        sessions[session_id]["flashcards"] = [Flashcard.create("Test", "Test", "qa", "test.txt")]
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["flashcards"] = [Flashcard.create("Test", "Test", "qa", "test.txt")]
 
         # Simulate concurrent requests
         response1 = client.get(f"/api/flashcards/{session_id}")
@@ -785,7 +785,7 @@ class TestWebPerformance:
         # Create multiple sessions
         session_ids = []
         for _ in range(10):
-            session_id = create_session()
+            session_id = app.state.session_manager.create_session()
             session_ids.append(session_id)
 
         # Cleanup all sessions
@@ -794,4 +794,4 @@ class TestWebPerformance:
             assert response.status_code == 200
 
         # Verify all sessions are cleaned up
-        assert len(sessions) == 0
+        assert len(app.state.session_manager.sessions) == 0
