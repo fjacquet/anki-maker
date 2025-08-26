@@ -178,7 +178,8 @@ class TestWebLanguageIntegration:
 
     def test_flashcard_operations_maintain_language_consistency(self, client, sample_flashcards, mocker):
         """Test that flashcard CRUD operations maintain language consistency."""
-        mock_sessions = mocker.patch("src.document_to_anki.web.app.sessions")
+        mock_session_manager = mocker.MagicMock()
+        mocker.patch("src.document_to_anki.web.session_manager.get_session_manager", return_value=mock_session_manager)
         mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
         mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
 
@@ -191,20 +192,17 @@ class TestWebLanguageIntegration:
 
         # Mock session data
         session_id = "test-session"
-        mock_sessions.__contains__ = mocker.MagicMock(return_value=True)
-        mock_sessions.__getitem__ = mocker.MagicMock(
-            return_value={
-                "status": "completed",
-                "progress": 100,
-                "message": "Completed",
-                "flashcards": sample_flashcards,
-                "errors": [],
-                "warnings": [],
-                "temp_files": [],
-                "created_at": 1234567890,
-                "last_accessed": 1234567890,
-            }
-        )
+        mock_session_manager.get_session.return_value = {
+            "status": "completed",
+            "progress": 100,
+            "message": "Completed",
+            "flashcards": sample_flashcards,
+            "errors": [],
+            "warnings": [],
+            "temp_files": [],
+            "created_at": 1234567890,
+            "last_accessed": 1234567890,
+        }
 
         # Mock flashcard validation
         mock_flashcard_gen.validate_flashcard_content.return_value = (True, "")
@@ -260,7 +258,8 @@ class TestWebLanguageIntegration:
     def test_web_interface_language_consistency_across_operations(self, client, sample_flashcards, mocker):
         """Test that all web interface operations use consistent language configuration."""
         mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
-        mock_sessions = mocker.patch("src.document_to_anki.web.app.sessions")
+        mock_session_manager = mocker.MagicMock()
+        mocker.patch("src.document_to_anki.web.session_manager.get_session_manager", return_value=mock_session_manager)
         mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
 
         # Mock consistent language configuration
@@ -273,20 +272,17 @@ class TestWebLanguageIntegration:
 
         # Mock session
         session_id = "test-session"
-        mock_sessions.__contains__ = mocker.MagicMock(return_value=True)
-        mock_sessions.__getitem__ = mocker.MagicMock(
-            return_value={
-                "status": "completed",
-                "progress": 100,
-                "message": "Completed",
-                "flashcards": sample_flashcards,
-                "errors": [],
-                "warnings": [],
-                "temp_files": [],
-                "created_at": 1234567890,
-                "last_accessed": 1234567890,
-            }
-        )
+        mock_session_manager.get_session.return_value = {
+            "status": "completed",
+            "progress": 100,
+            "message": "Completed",
+            "flashcards": sample_flashcards,
+            "errors": [],
+            "warnings": [],
+            "temp_files": [],
+            "created_at": 1234567890,
+            "last_accessed": 1234567890,
+        }
 
         # Test home page shows German
         response = client.get("/")
@@ -355,7 +351,8 @@ class TestWebLanguageIntegration:
 
     def test_export_functionality_with_language_configuration(self, client, sample_flashcards, mocker):
         """Test that CSV export works correctly with language configuration."""
-        mock_sessions = mocker.patch("src.document_to_anki.web.app.sessions")
+        mock_session_manager = mocker.MagicMock()
+        mocker.patch("src.document_to_anki.web.session_manager.get_session_manager", return_value=mock_session_manager)
         mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
         mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
 
@@ -368,10 +365,11 @@ class TestWebLanguageIntegration:
 
         # Mock session with flashcards
         session_id = "test-session"
-        mock_sessions.__contains__ = mocker.MagicMock(return_value=True)
-        mock_sessions.__getitem__ = mocker.MagicMock(
-            return_value={"status": "completed", "flashcards": sample_flashcards, "last_accessed": 1234567890}
-        )
+        mock_session_manager.get_session.return_value = {
+            "status": "completed",
+            "flashcards": sample_flashcards,
+            "last_accessed": 1234567890,
+        }
 
         # Mock successful export
         mock_flashcard_gen.export_to_csv.return_value = (True, {"exported": 2, "errors": []})

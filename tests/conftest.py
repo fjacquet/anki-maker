@@ -194,9 +194,9 @@ def cleanup_sessions():
     """Automatically cleanup web app sessions after each test."""
     yield
     # Clean up any sessions created during tests
-    from src.document_to_anki.web.app import sessions
+    from src.document_to_anki.web.session_manager import session_manager
 
-    sessions.clear()
+    session_manager.cleanup_all_sessions()
 
 
 @pytest.fixture
