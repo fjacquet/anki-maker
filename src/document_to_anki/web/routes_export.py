@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -21,8 +22,8 @@ def get_flashcard_generator(request: Request) -> FlashcardGenerator:
 async def export_flashcards(
     session_id: str,
     export_request: ExportRequest,
-    session_manager: SessionManager = Depends(get_session_manager),
-    flashcard_generator: FlashcardGenerator = Depends(get_flashcard_generator),
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
+    flashcard_generator: Annotated[FlashcardGenerator, Depends(get_flashcard_generator)],
 ) -> FileResponse:
     """Export flashcards as an Anki-compatible CSV file."""
     session_data = session_manager.get_session(session_id)

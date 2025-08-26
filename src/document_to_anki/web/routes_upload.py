@@ -1,7 +1,7 @@
 import asyncio
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -102,8 +102,8 @@ async def home(request: Request) -> HTMLResponse:
 @router.post("/api/upload", response_model=ProcessingStatusResponse)
 async def upload_files(
     request: Request,
-    session_id: str | None = Form(None),
-    session_manager: SessionManager = Depends(get_session_manager),
+    session_id: Annotated[str | None, Form(None)],
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
 ) -> ProcessingStatusResponse:
     """Upload files and start processing them into flashcards."""
     if not session_id:
@@ -163,7 +163,8 @@ async def upload_files(
 
 @router.get("/api/status/{session_id}", response_model=ProcessingStatusResponse)
 async def get_processing_status(
-    session_id: str, session_manager: SessionManager = Depends(get_session_manager)
+    session_id: str,
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
 ) -> ProcessingStatusResponse:
     """Get the current processing status for a session."""
     session_data = session_manager.get_session(session_id)
@@ -179,7 +180,8 @@ async def get_processing_status(
 
 @router.delete("/api/sessions/{session_id}")
 async def cleanup_session_endpoint(
-    session_id: str, session_manager: SessionManager = Depends(get_session_manager)
+    session_id: str,
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
 ) -> JSONResponse:
     """Clean up a session and its temporary files."""
     session_manager.get_session(session_id)  # Ensure session exists

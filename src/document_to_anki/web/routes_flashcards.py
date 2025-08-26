@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -28,7 +30,8 @@ def get_flashcard_generator(request: Request) -> FlashcardGenerator:
 
 @router.get("/api/flashcards/{session_id}", response_model=list[FlashcardResponse])
 async def get_flashcards(
-    session_id: str, session_manager: SessionManager = Depends(get_session_manager)
+    session_id: str,
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
 ) -> list[FlashcardResponse]:
     """Get all flashcards for a session."""
     session_data = session_manager.get_session(session_id)
@@ -41,8 +44,8 @@ async def edit_flashcard(
     session_id: str,
     flashcard_id: str,
     edit_request: FlashcardEditRequest,
-    session_manager: SessionManager = Depends(get_session_manager),
-    flashcard_generator: FlashcardGenerator = Depends(get_flashcard_generator),
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
+    flashcard_generator: Annotated[FlashcardGenerator, Depends(get_flashcard_generator)],
 ) -> JSONResponse:
     """Edit an existing flashcard."""
     session_data = session_manager.get_session(session_id)
@@ -75,7 +78,7 @@ async def edit_flashcard(
 async def delete_flashcard(
     session_id: str,
     flashcard_id: str,
-    session_manager: SessionManager = Depends(get_session_manager),
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
 ) -> JSONResponse:
     """Delete a flashcard from the session."""
     session_data = session_manager.get_session(session_id)
@@ -105,8 +108,8 @@ async def delete_flashcard(
 async def add_flashcard(
     session_id: str,
     create_request: FlashcardCreateRequest,
-    session_manager: SessionManager = Depends(get_session_manager),
-    flashcard_generator: FlashcardGenerator = Depends(get_flashcard_generator),
+    session_manager: Annotated[SessionManager, Depends(get_session_manager)],
+    flashcard_generator: Annotated[FlashcardGenerator, Depends(get_flashcard_generator)],
 ) -> JSONResponse:
     """Add a new flashcard to the session."""
     session_data = session_manager.get_session(session_id)

@@ -148,11 +148,6 @@ ignore = ["F841"]
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-[tool.ruff.lint.per-file-ignores]
-# In FastAPI, using Depends(...) in function defaults is the standard pattern for dependency injection.
-# Ignore B008 (function call in default argument) for web route modules only.
-"src/document_to_anki/web/*.py" = ["B008"]
-
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
 quote-style = "double"
