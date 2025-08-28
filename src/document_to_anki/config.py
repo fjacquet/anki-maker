@@ -262,6 +262,11 @@ class Settings(BaseSettings):
     max_file_size_mb: int = Field(50, alias="MAX_FILE_SIZE_MB")
     max_batch_size: int = Field(10, alias="MAX_BATCH_SIZE")
 
+    @property
+    def max_file_size_bytes(self) -> int:
+        """Get maximum file size in bytes."""
+        return self.max_file_size_mb * 1024 * 1024
+
     # Web Interface Settings
     web_host: str = Field("127.0.0.1", alias="WEB_HOST")  # nosec B104 - Default to localhost for security
     web_port: int = Field(8000, alias="WEB_PORT")
@@ -364,11 +369,6 @@ class Settings(BaseSettings):
         directories = [self.temp_dir, self.output_dir, self.cache_dir]
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
-
-    @property
-    def max_file_size_bytes(self) -> int:
-        """Get maximum file size in bytes."""
-        return self.max_file_size_mb * 1024 * 1024
 
     @property
     def memory_limit_bytes(self) -> int:

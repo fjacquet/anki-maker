@@ -11,6 +11,7 @@ This guide helps you resolve common issues when using Document to Anki CLI.
 - [Memory and Performance Issues](#memory-and-performance-issues)
 - [Web Interface Problems](#web-interface-problems)
 - [Export and Output Issues](#export-and-output-issues)
+- [Security and Host Issues](#security-and-host-issues)
 - [Getting Help](#getting-help)
 
 ## Installation Issues
@@ -137,6 +138,7 @@ Error: No text content could be extracted from PDF
 2. **For corrupted PDFs**: The application now handles malformed PDFs more gracefully with:
    - Automatic fallback to lenient parsing mode (`strict=False`)
    - Page-by-page error recovery (skips problematic pages)
+   - Enhanced error detection for both "PdfReadError" and "Invalid PDF" patterns
    - Enhanced error reporting showing successful vs failed pages
 3. **For image-based PDFs**: Use OCR software to convert images to text first
 4. **For severely corrupted files**: Try re-saving or converting the file using different PDF software
@@ -615,6 +617,11 @@ Issue: Web interface ignores CARDLANG setting
    LOG_LEVEL=DEBUG document-to-anki-web
    ```
 
+4. **Check for proper error handling:**
+   - Language validation errors now return HTTP 400 status codes with clear error messages
+   - Check browser developer tools for specific error details
+   - The web interface includes custom exception handlers for better error reporting
+
 ### Problem: Language codes vs full names confusion
 ```
 Issue: Unsure whether to use 'fr' or 'french'
@@ -1031,6 +1038,67 @@ ModuleNotFoundError during integration tests
    # Verify that failures propagate correctly
    make ci-quality; echo "Exit code: $?"
    ```
+
+## Security and Host Issues
+
+### Problem: Host validation errors in production
+```
+HTTP 400: Host header validation failed
+```
+
+**Solutions:**
+1. **Configure ALLOWED_HOSTS**: Set appropriate hosts in your configuration
+   ```bash
+   ALLOWED_HOSTS=["yourdomain.com", "www.yourdomain.com"]
+   ```
+
+2. **Enable TrustedHostMiddleware**: For production deployments
+   ```bash
+   TRUSTED_HOST_MIDDLEWARE_ENABLED=true
+   ```
+
+3. **Check reverse proxy configuration**: Ensure your reverse proxy passes correct host headers
+
+### Problem: CORS errors in web interface
+```
+Access to fetch at 'http://localhost:8000/api/upload' from origin 'http://localhost:3000' has been blocked by CORS policy
+```
+
+**Solutions:**
+1. **Check CORS configuration**: Verify allowed origins
+   ```bash
+   CORS_ORIGINS=["http://localhost:3000", "http://127.0.0.1:3000"]
+   ```
+
+2. **Development vs Production**: CORS settings may differ between environments
+
+3. **Browser cache**: Clear browser cache and cookies
+
+### Problem: File upload security errors
+```
+File validation failed: Security check failed
+```
+
+**Solutions:**
+1. **Check file type**: Ensure file is in supported format (.pdf, .docx, .pptx, .txt, .md)
+2. **File size**: Verify file is under 50MB limit
+3. **File permissions**: Ensure file is readable
+4. **Scan for malware**: Some security tools may flag files
+
+### Problem: API key security warnings
+```
+Warning: API key validation failed
+```
+
+**Solutions:**
+1. **Environment variables**: Ensure API keys are properly set
+   ```bash
+   GEMINI_API_KEY=your-api-key-here
+   ```
+
+2. **Key rotation**: If key was recently rotated, update configuration
+3. **Permissions**: Check API key has necessary permissions
+4. **Quotas**: Verify API key hasn't exceeded usage limits
 
 ## Getting Help
 

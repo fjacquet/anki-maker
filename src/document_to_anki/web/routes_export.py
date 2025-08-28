@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 def get_flashcard_generator(request: Request) -> FlashcardGenerator:
-    return request.app.state.flashcard_generator
+    return request.app.state.flashcard_generator  # type: ignore[no-any-return]
 
 
 @router.post("/api/export/{session_id}")

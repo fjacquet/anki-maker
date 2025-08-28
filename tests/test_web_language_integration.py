@@ -118,9 +118,12 @@ class TestWebLanguageIntegration:
         assert response.status_code == 400
         data = response.json()
 
-        assert data["status"] == "invalid"
-        assert "invalid" in data["error"]
-        assert "supported_languages" in data
+        # FastAPI converts HTTPException detail to this format
+        assert "detail" in data
+        detail = data["detail"]
+        assert detail["status"] == "invalid"
+        assert "invalid" in detail["error"]
+        assert "supported_languages" in detail
 
     @pytest.mark.asyncio
     async def test_flashcard_generation_uses_language_config(self, client, sample_flashcards, mocker):
@@ -178,8 +181,11 @@ class TestWebLanguageIntegration:
 
     def test_flashcard_operations_maintain_language_consistency(self, client, sample_flashcards, mocker):
         """Test that flashcard CRUD operations maintain language consistency."""
-        mock_session_manager = mocker.MagicMock()
-        mocker.patch("src.document_to_anki.web.session_manager.get_session_manager", return_value=mock_session_manager)
+        # Create a real session instead of mocking
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["status"] = "completed"
+        app.state.session_manager.sessions[session_id]["flashcards"] = sample_flashcards
+
         mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
         mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
 
@@ -189,20 +195,6 @@ class TestWebLanguageIntegration:
         mock_language_info.code = "fr"
         mock_settings.get_language_info.return_value = mock_language_info
         mock_settings.cardlang = "french"
-
-        # Mock session data
-        session_id = "test-session"
-        mock_session_manager.get_session.return_value = {
-            "status": "completed",
-            "progress": 100,
-            "message": "Completed",
-            "flashcards": sample_flashcards,
-            "errors": [],
-            "warnings": [],
-            "temp_files": [],
-            "created_at": 1234567890,
-            "last_accessed": 1234567890,
-        }
 
         # Mock flashcard validation
         mock_flashcard_gen.validate_flashcard_content.return_value = (True, "")
@@ -238,7 +230,9 @@ class TestWebLanguageIntegration:
         """Test that language validation errors are properly handled."""
         from src.document_to_anki.config import LanguageValidationError
 
+        # Mock settings in both locations where it's used
         mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
+        mocker.patch("src.document_to_anki.web.routes_upload.settings", mock_settings)
         # Mock language validation error
         mock_settings.get_language_info.side_effect = LanguageValidationError(
             "invalid_lang", ["English (en)", "French (fr)", "German (de)", "Italian (it)"]
@@ -248,16 +242,20 @@ class TestWebLanguageIntegration:
         response = client.get("/api/config/language")
         assert response.status_code == 400
         data = response.json()
-        assert "invalid_lang" in data["error"]
-        assert "supported_languages" in data
+        # FastAPI converts HTTPException detail to this format
+        assert "detail" in data
+        detail = data["detail"]
+        assert "invalid_lang" in detail["error"]
+        assert "supported_languages" in detail
 
         # Test home page (should handle gracefully)
         response = client.get("/")
-        assert response.status_code == 400  # Should show error page
+        assert response.status_code == 400  # Should show error page via exception handler
 
     def test_web_interface_language_consistency_across_operations(self, client, sample_flashcards, mocker):
         """Test that all web interface operations use consistent language configuration."""
-        mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
+        # Mock settings in the routes_upload module where it's imported
+        mock_settings = mocker.patch("src.document_to_anki.web.routes_upload.settings")
         mock_session_manager = mocker.MagicMock()
         mocker.patch("src.document_to_anki.web.session_manager.get_session_manager", return_value=mock_session_manager)
         mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
@@ -321,7 +319,8 @@ class TestWebLanguageIntegration:
         self, client, language, expected_name, expected_code, mocker
     ):
         """Test language configuration for all supported languages."""
-        mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
+        # Mock settings in the routes_upload module where it's imported
+        mock_settings = mocker.patch("src.document_to_anki.web.routes_upload.settings")
 
         # Mock language info for each supported language
         mock_language_info = mocker.MagicMock()
@@ -351,9 +350,16 @@ class TestWebLanguageIntegration:
 
     def test_export_functionality_with_language_configuration(self, client, sample_flashcards, mocker):
         """Test that CSV export works correctly with language configuration."""
-        mock_session_manager = mocker.MagicMock()
-        mocker.patch("src.document_to_anki.web.session_manager.get_session_manager", return_value=mock_session_manager)
-        mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
+        # Create a real session instead of mocking
+        session_id = app.state.session_manager.create_session()
+        app.state.session_manager.sessions[session_id]["status"] = "completed"
+        app.state.session_manager.sessions[session_id]["flashcards"] = sample_flashcards
+
+        # Mock the dependency injection for flashcard generator
+        mock_flashcard_gen = mocker.MagicMock()
+        mock_flashcard_gen.export_to_csv.return_value = (True, {"exported": 2, "errors": []})
+        mocker.patch("src.document_to_anki.web.dependencies.get_flashcard_generator", return_value=mock_flashcard_gen)
+
         mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
 
         # Mock language configuration
@@ -362,17 +368,6 @@ class TestWebLanguageIntegration:
         mock_language_info.code = "it"
         mock_settings.get_language_info.return_value = mock_language_info
         mock_settings.cardlang = "italian"
-
-        # Mock session with flashcards
-        session_id = "test-session"
-        mock_session_manager.get_session.return_value = {
-            "status": "completed",
-            "flashcards": sample_flashcards,
-            "last_accessed": 1234567890,
-        }
-
-        # Mock successful export
-        mock_flashcard_gen.export_to_csv.return_value = (True, {"exported": 2, "errors": []})
 
         # Test export
         response = client.post(f"/api/export/{session_id}", json={"filename": "italian_flashcards.csv"})

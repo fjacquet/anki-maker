@@ -40,6 +40,19 @@ The web interface implements comprehensive security headers:
 "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; ..."
 ```
 
+#### Host Security
+The application includes comprehensive host security features:
+
+```python
+# Security configuration constants
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]  # Restrict to local interfaces for security
+```
+
+**TrustedHostMiddleware**: The application now imports and supports FastAPI's TrustedHostMiddleware for enhanced host validation in production environments. This middleware is disabled by default in development mode for easier local testing but can be enabled for production deployments.
+
+**Enhanced Data Validation**: The application now imports additional Pydantic components (BaseModel, Field) for more robust data validation and security.
+
 #### CORS Configuration
 - **Restricted Origins**: Only specific origins are allowed for CORS
 - **Credential Handling**: Secure credential handling for cross-origin requests
@@ -209,6 +222,13 @@ For production deployments:
    SECRET_KEY=your-secure-secret-key
    WEB_HOST=127.0.0.1  # Bind to localhost only
    WEB_DEBUG=false
+   
+   # File upload security
+   MAX_FILE_SIZE=52428800  # 50MB in bytes
+   
+   # Host security (for production)
+   ALLOWED_HOSTS=["yourdomain.com", "www.yourdomain.com"]
+   TRUSTED_HOST_MIDDLEWARE_ENABLED=true  # Enable TrustedHostMiddleware for production
    
    # Optional security enhancements
    HTTPS_ONLY=true

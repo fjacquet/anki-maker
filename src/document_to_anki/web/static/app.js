@@ -252,7 +252,7 @@ class DocumentToAnkiApp {
         }
 
         // Validate files
-        const validation = this.validateFiles(files);
+        const validation = await this.validateFiles(files);
         if (!validation.valid) {
             this.showGlobalMessage(validation.message, 'error');
             return;
@@ -299,10 +299,12 @@ class DocumentToAnkiApp {
         }
     }
 
-    validateFiles(files) {
-        const maxSize = 50 * 1024 * 1024; // 50MB
-        const supportedTypes = ['.pdf', '.docx', '.txt', '.md', '.zip'];
-        const maxFiles = 10; // Reasonable limit
+    async validateFiles(files) {
+        // Get configuration from server
+        const config = await this.getAppConfig();
+        const maxSize = config.max_file_size_bytes;
+        const supportedTypes = config.supported_extensions.map(ext => ext.toLowerCase());
+        const maxFiles = config.max_batch_size;
 
         if (files.length > maxFiles) {
             return {
@@ -410,6 +412,24 @@ class DocumentToAnkiApp {
                 this.announceToScreenReader(`Status check failed: ${error.message}`);
             }
         }, 1000);
+    }
+
+    async getAppConfig() {
+        try {
+            const response = await fetch('/api/config/app');
+            if (!response.ok) {
+                throw new Error('Failed to get app configuration');
+            }
+            return await response.json();
+        } catch (error) {
+            console.warn('Failed to get app config, using defaults:', error);
+            // Fallback to defaults if config fetch fails
+            return {
+                max_file_size_bytes: 50 * 1024 * 1024,
+                max_batch_size: 10,
+                supported_extensions: ['.pdf', '.docx', '.txt', '.md', '.zip']
+            };
+        }
     }
 
     async loadFlashcards() {

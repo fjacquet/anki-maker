@@ -87,7 +87,7 @@ def extract_text(file_path: Path) -> str:
         raise TextExtractionError(f"Permission denied accessing PDF file: {file_path}") from e
     except Exception as e:
         error_msg = str(e)
-        if "PdfReadError" in error_msg:
+        if "PdfReadError" in error_msg or "Invalid PDF" in error_msg:
             raise TextExtractionError(f"Invalid or corrupted PDF file: {file_path} - {error_msg}") from e
         raise TextExtractionError(f"Unexpected error extracting from PDF {file_path}: {error_msg}") from e
 

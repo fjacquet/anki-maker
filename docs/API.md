@@ -391,6 +391,7 @@ Extract text from a file with enhanced error handling for PDFs.
 - **Malformed PDF Support**: Uses `strict=False` for lenient parsing
 - **Page-by-Page Processing**: Continues processing even if individual pages fail
 - **Error Recovery**: Automatically skips corrupted pages and processes remaining content
+- **Enhanced Error Detection**: Recognizes both "PdfReadError" and "Invalid PDF" error patterns for better error handling
 - **Detailed Logging**: Reports successful vs. failed page processing
 
 **Example:**
@@ -436,6 +437,24 @@ flashcard = Flashcard.create(
 - `card_type` (Literal["qa", "cloze"]): Card type
 - `source_file` (str | None): Original file name
 - `created_at` (datetime): Creation timestamp
+
+### Configuration Properties
+
+#### `max_file_size_bytes`
+
+The configuration includes a computed property that automatically converts the `MAX_FILE_SIZE_MB` setting to bytes:
+
+```python
+from document_to_anki.config import settings
+
+# Get file size limit in bytes
+max_size_bytes = settings.max_file_size_bytes  # Automatically converts MB to bytes
+max_size_mb = settings.max_file_size_mb       # Original MB setting
+
+print(f"File size limit: {max_size_mb} MB ({max_size_bytes:,} bytes)")
+```
+
+This property is used internally by file handlers and web routes for consistent file size validation across the application.
 
 **Methods:**
 
@@ -553,6 +572,29 @@ Currently, no authentication is required. API keys may be added in future versio
 
 - Request: `application/json` or `multipart/form-data` (for file uploads)
 - Response: `application/json`
+
+### Security
+
+The REST API implements several security measures:
+
+#### File Upload Security
+- **File Size Limits**: Maximum file size of 50MB (configurable via `MAX_FILE_SIZE_MB` environment variable)
+- **File Type Validation**: Only supported file types are accepted
+- **Host Restrictions**: Configurable allowed hosts for enhanced security (ALLOWED_HOSTS constant)
+- **Security Headers**: Comprehensive security headers on all responses
+- **CORS Configuration**: Restricted cross-origin access
+
+#### Security Constants
+The application defines security configuration constants:
+- `MAX_FILE_SIZE_MB = 50` (configurable in MB, automatically converted to bytes internally)
+- `ALLOWED_HOSTS = ["localhost", "127.0.0.1"]` (local interfaces only by default)
+
+**Note**: File size limits are configured in megabytes via `MAX_FILE_SIZE_MB` and automatically converted to bytes using the `max_file_size_bytes` property for internal validation.
+
+#### Enhanced Security Features
+- **TrustedHostMiddleware**: Available for production deployments with configurable host restrictions
+- **Enhanced Data Validation**: Improved Pydantic model validation with BaseModel and Field imports
+- **Security Headers**: Comprehensive security headers including CSP, HSTS, and XSS protection
 
 ### Endpoints
 
@@ -783,7 +825,7 @@ Check API health and status.
 
 Get current model configuration status.
 
-**Response:**
+**Response (Valid Configuration):**
 ```json
 {
   "current_model": "gemini/gemini-2.5-flash",
@@ -801,9 +843,140 @@ Get current model configuration status.
     "openai/gpt-5-mini",
     "openai/gpt-5-nano"
   ],
-  "required_api_key": "GEMINI_API_KEY"
+  "status": "valid",
+  "message": null,
+  "error": null
 }
 ```
+
+**Response (Invalid Configuration):**
+```json
+{
+  "current_model": "invalid/model",
+  "is_valid": false,
+  "supported_models": [
+    "gemini/gemini-2.5-flash",
+    "gemini/gemini-2.5-pro", 
+    "openai/gpt-4o",
+    "openai/gpt-4",
+    "openai/gpt-3.5-turbo",
+    "openai/gpt-4.1",
+    "openai/gpt-4.1-mini",
+    "openai/gpt-4.1-nano",
+    "openai/gpt-5",
+    "openai/gpt-5-mini",
+    "openai/gpt-5-nano"
+  ],
+  "status": "invalid",
+  "message": "Model 'invalid/model' is not supported. Supported models: gemini/gemini-2.5-flash, gemini/gemini-2.5-pro, ...",
+  "error": "Model 'invalid/model' is not supported. Supported models: gemini/gemini-2.5-flash, gemini/gemini-2.5-pro, ..."
+}
+```
+
+**Response (Missing API Key):**
+```json
+{
+  "current_model": "gemini/gemini-2.5-flash",
+  "is_valid": false,
+  "supported_models": [
+    "gemini/gemini-2.5-flash",
+    "gemini/gemini-2.5-pro", 
+    "openai/gpt-4o",
+    "openai/gpt-4",
+    "openai/gpt-3.5-turbo",
+    "openai/gpt-4.1",
+    "openai/gpt-4.1-mini",
+    "openai/gpt-4.1-nano",
+    "openai/gpt-5",
+    "openai/gpt-5-mini",
+    "openai/gpt-5-nano"
+  ],
+  "status": "invalid",
+  "message": "Missing API key for model 'gemini/gemini-2.5-flash'",
+  "error": "Missing API key for model 'gemini/gemini-2.5-flash'"
+}
+```
+
+**Response Fields:**
+- `current_model` (string): Currently configured model
+- `is_valid` (boolean): Whether the current configuration is valid
+- `supported_models` (array): List of all supported model names
+- `status` (string): "valid" or "invalid"
+- `message` (string|null): Human-readable status message (null for valid configurations)
+- `error` (string|null): Error message (null for valid configurations, same as message for invalid configurations)
+
+#### Get Language Configuration
+
+**GET** `/config/language`
+
+Get current language configuration status.
+
+**Response (Valid Configuration):**
+```json
+{
+  "current_language": "french",
+  "language_name": "French",
+  "language_code": "fr",
+  "prompt_key": "french",
+  "supported_languages": ["english", "en", "french", "fr", "italian", "it", "german", "de"],
+  "all_language_keys": ["english", "french", "italian", "german"],
+  "status": "valid",
+  "error": null
+}
+```
+
+**Response (Invalid Configuration):**
+```json
+{
+  "detail": {
+    "status": "invalid",
+    "error": "Unsupported language 'spanish'. Supported languages: english, en, french, fr, italian, it, german, de",
+    "supported_languages": ["english", "en", "french", "fr", "italian", "it", "german", "de"]
+  }
+}
+```
+
+**HTTP Status Codes:**
+- `200 OK`: Valid language configuration
+- `400 Bad Request`: Invalid language configuration (handled by custom exception handler)
+
+**Response Fields (Valid Configuration):**
+- `current_language` (string): Currently configured language setting
+- `language_name` (string): Full name of the language
+- `language_code` (string): ISO language code
+- `prompt_key` (string): Internal prompt key used for AI generation
+- `supported_languages` (array): List of all supported language identifiers
+- `all_language_keys` (array): List of primary language keys
+- `status` (string): "valid" or "invalid"
+- `error` (string|null): Error message (null for valid configurations)
+
+**Response Fields (Invalid Configuration):**
+- `detail` (object): Error details object containing:
+  - `status` (string): "invalid"
+  - `error` (string): Error message describing the validation failure
+  - `supported_languages` (array): List of all supported language identifiers
+
+#### Get Application Configuration
+
+**GET** `/config/app`
+
+Get application configuration for client-side validation.
+
+**Response:**
+```json
+{
+  "max_file_size_mb": 50,
+  "max_file_size_bytes": 52428800,
+  "max_batch_size": 100,
+  "supported_extensions": [".pdf", ".docx", ".pptx", ".txt", ".md"]
+}
+```
+
+**Response Fields:**
+- `max_file_size_mb` (integer): Maximum file size in megabytes
+- `max_file_size_bytes` (integer): Maximum file size in bytes (computed from MB setting)
+- `max_batch_size` (integer): Maximum number of files in batch processing
+- `supported_extensions` (array): List of supported file extensions
 
 ## CLI API
 
@@ -892,8 +1065,19 @@ Exception
 ├── DocumentProcessingError
 ├── FlashcardGenerationError
 ├── TextExtractionError
-└── FileHandlingError
+├── FileHandlingError
+└── LanguageValidationError
 ```
+
+### Custom Exception Handlers
+
+The web application includes custom exception handlers that provide proper HTTP status codes and user-friendly error messages:
+
+- **LanguageValidationError**: Returns 400 Bad Request with language configuration guidance
+- **DocumentProcessingError**: Returns 400 Bad Request with processing error details
+- **FlashcardGenerationError**: Returns 400 Bad Request with generation error information
+
+These handlers ensure that application errors are properly communicated to clients with appropriate HTTP status codes instead of generic 500 Internal Server Error responses.
 
 ### Error Response Format
 

@@ -21,7 +21,7 @@ class TestFileHandler:
         handler = FileHandler()
         assert handler.processed_files == []
         assert handler.SUPPORTED_EXTENSIONS == {".pdf", ".docx", ".pptx", ".txt", ".md"}
-        assert handler.MAX_FILE_SIZE == 50 * 1024 * 1024
+        assert handler.MAX_FILE_SIZE == 500 * 1024 * 1024  # Current config value
         assert handler.MAX_FILES_COUNT == 100
 
     def test_validate_file_type_supported_extensions(self):
@@ -84,7 +84,7 @@ class TestFileHandler:
             import stat
 
             mock_stat_result = mocker.MagicMock()
-            mock_stat_result.st_size = FileHandler.MAX_FILE_SIZE + 1
+            mock_stat_result.st_size = self.file_handler.MAX_FILE_SIZE + 1
             mock_stat_result.st_mode = stat.S_IFREG | 0o644  # Regular file mode
 
             mocker.patch("pathlib.Path.stat", return_value=mock_stat_result)

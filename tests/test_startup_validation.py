@@ -105,9 +105,9 @@ class TestStartupValidation:
 
         async def test_valid_config():
             response = await get_model_configuration()
-            data = response.body.decode()
-            assert "gemini/gemini-2.5-flash" in data
-            assert '"is_valid":true' in data or '"status":"valid"' in data
+            assert response.current_model == "gemini/gemini-2.5-flash"
+            assert response.is_valid is True
+            assert response.status == "valid"
 
         asyncio.run(test_valid_config())
 
@@ -116,9 +116,9 @@ class TestStartupValidation:
 
         async def test_invalid_config():
             response = await get_model_configuration()
-            data = response.body.decode()
-            assert "invalid/model" in data
-            assert '"is_valid":false' in data or '"status":"invalid"' in data
+            assert response.current_model == "invalid/model"
+            assert response.is_valid is False
+            assert response.status == "invalid"
 
         asyncio.run(test_invalid_config())
 

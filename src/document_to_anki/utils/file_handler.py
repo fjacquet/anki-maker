@@ -20,8 +20,13 @@ class FileHandler:
     # Supported file extensions
     SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
 
-    # Maximum file size in bytes (50MB)
-    MAX_FILE_SIZE = 50 * 1024 * 1024
+    # Maximum file size in bytes - loaded from configuration
+    @property
+    def MAX_FILE_SIZE(self) -> int:
+        """Get maximum file size from configuration."""
+        from ..config import settings
+
+        return settings.max_file_size_bytes
 
     # Maximum number of files to process from a ZIP or folder
     MAX_FILES_COUNT = 100
@@ -71,8 +76,9 @@ class FileHandler:
 
         # Check file size
         file_size = file_path.stat().st_size
-        if file_size > self.MAX_FILE_SIZE:
-            raise FileHandlingError(f"File too large: {file_size} bytes (max: {self.MAX_FILE_SIZE} bytes)")
+        max_size = self.MAX_FILE_SIZE
+        if file_size > max_size:
+            raise FileHandlingError(f"File too large: {file_size} bytes (max: {max_size} bytes)")
 
         if file_size == 0:
             raise FileHandlingError(f"File is empty: {file_path}")

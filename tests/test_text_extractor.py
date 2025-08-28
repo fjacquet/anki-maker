@@ -240,18 +240,22 @@ class TestTextExtractor:
     def test_extract_text_exception_handling(self, mocker):
         """Test exception handling in extract_text method."""
         # Mock extract_text_from_txt to raise a non-TextExtractionError
-        mocker.patch(
-            "src.document_to_anki.utils.text_extractor_common.extract_text", side_effect=ValueError("Unexpected error")
-        )
+        # Replace the function in the extractor's map
+        original_func = self.extractor._EXTRACTOR_MAP[".txt"]
+        self.extractor._EXTRACTOR_MAP[".txt"] = mocker.MagicMock(side_effect=ValueError("Unexpected error"))
 
-        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
-            tmp.write(b"test content")
-            tmp.flush()
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+                tmp.write(b"test content")
+                tmp.flush()
 
-            with pytest.raises(TextExtractionError, match="Failed to extract text"):
-                self.extractor.extract_text(Path(tmp.name))
+                with pytest.raises(TextExtractionError, match="Failed to extract text"):
+                    self.extractor.extract_text(Path(tmp.name))
 
-            Path(tmp.name).unlink()
+                Path(tmp.name).unlink()
+        finally:
+            # Restore the original function
+            self.extractor._EXTRACTOR_MAP[".txt"] = original_func
 
     def test_extract_text_path_not_file(self, tmp_path):
         """Test extraction when path is not a file."""
@@ -345,6 +349,22 @@ class TestTextExtractor:
         # Mock to raise a PDF-specific error
         pdf_error = Exception("PdfReadError: Invalid PDF")
         mocker.patch("src.document_to_anki.utils.pdf_extractor.PdfReader", side_effect=pdf_error)
+        # Mock pdfplumber to not be available so we don't use fallback
+        mocker.patch("src.document_to_anki.utils.pdf_extractor.HAS_PDFPLUMBER", False)
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            with pytest.raises(TextExtractionError, match="Invalid or corrupted PDF file"):
+                pdf_extractor.extract_text(Path(tmp.name))
+
+        Path(tmp.name).unlink()
+
+    def test_extract_text_from_pdf_invalid_pdf_error(self, mocker):
+        """Test PDF extraction with 'Invalid PDF' error pattern."""
+        # Mock to raise an error with just "Invalid PDF" pattern
+        pdf_error = Exception("Invalid PDF structure detected")
+        mocker.patch("src.document_to_anki.utils.pdf_extractor.PdfReader", side_effect=pdf_error)
+        # Mock pdfplumber to not be available so we don't use fallback
+        mocker.patch("src.document_to_anki.utils.pdf_extractor.HAS_PDFPLUMBER", False)
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             with pytest.raises(TextExtractionError, match="Invalid or corrupted PDF file"):

@@ -25,7 +25,7 @@ async def get_files_from_request(request: Request) -> list[UploadFile]:
     files = form.getlist("files")
     upload_files: list[UploadFile] = []
     for file in files:
-        if isinstance(file, StarletteUploadFile) and getattr(file, "filename", ""):
+        if isinstance(file, StarletteUploadFile) and getattr(file, "filename", None):
             upload_files.append(file)  # type: ignore[arg-type]
     return upload_files
 
@@ -102,8 +102,8 @@ async def home(request: Request) -> HTMLResponse:
 @router.post("/api/upload", response_model=ProcessingStatusResponse)
 async def upload_files(
     request: Request,
-    session_id: Annotated[str | None, Form(None)],
     session_manager: Annotated[SessionManager, Depends(get_session_manager)],
+    session_id: Annotated[str | None, Form()] = None,
 ) -> ProcessingStatusResponse:
     """Upload files and start processing them into flashcards."""
     if not session_id:
@@ -116,7 +116,7 @@ async def upload_files(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files provided")
 
         supported_extensions = {".pdf", ".docx", ".txt", ".md", ".zip"}
-        max_file_size = 50 * 1024 * 1024
+        max_file_size = settings.max_file_size_bytes
         temp_files: list[str] = []
         for file in files:
             if not file.filename:

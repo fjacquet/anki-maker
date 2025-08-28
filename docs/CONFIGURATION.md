@@ -80,6 +80,13 @@ This guide covers all configuration options for Document to Anki CLI.
 
 **Note**: This affects the language of generated flashcard content, not the UI language. The AI will read source documents in any language and generate flashcards in your configured target language.
 
+#### MAX_FILE_SIZE_MB
+**Default**: `50`  
+**Description**: Maximum file size for uploads in megabytes (automatically converted to bytes internally)  
+**Example**: `MAX_FILE_SIZE_MB=100`
+
+**Note**: This setting is automatically converted to bytes using the `max_file_size_bytes` property for internal file validation. The conversion is: `max_file_size_bytes = max_file_size_mb * 1024 * 1024`
+
 ### Advanced LLM Configuration
 
 #### GEMINI_TEMPERATURE
@@ -135,7 +142,7 @@ WEB_PORT=8000
 # Optional: Performance Configuration
 MAX_RETRIES=3
 RETRY_DELAY=1.0
-MAX_FILE_SIZE=52428800  # 50MB in bytes
+MAX_FILE_SIZE_MB=50  # Maximum file size in megabytes
 MAX_FILES_COUNT=100
 
 # Optional: Security Configuration
@@ -260,6 +267,13 @@ SECURITY_HEADERS_ENABLED=true
 CSP_POLICY="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
 FRAME_OPTIONS=DENY
 CONTENT_TYPE_OPTIONS=nosniff
+
+# Host security (for production environments)
+ALLOWED_HOSTS=["localhost", "127.0.0.1"]
+TRUSTED_HOST_MIDDLEWARE_ENABLED=false  # Set to true for production
+
+# Enhanced security features (available in latest version)
+ENHANCED_DATA_VALIDATION=true  # Uses improved Pydantic validation
 ```
 
 ### SSL/TLS Configuration
@@ -373,6 +387,10 @@ VALIDATE_FILE_SIGNATURES=true
 SCAN_FOR_MALWARE=false
 QUARANTINE_SUSPICIOUS_FILES=true
 
+# File size limits
+MAX_FILE_SIZE_MB=50  # Maximum file size in megabytes (converted to bytes internally)
+MAX_FILES_PER_UPLOAD=10
+
 # Path security
 ALLOW_PATH_TRAVERSAL=false
 SANITIZE_FILENAMES=true
@@ -382,6 +400,10 @@ MAX_PATH_LENGTH=255
 ### API Security
 
 ```bash
+# Host security
+ALLOWED_HOSTS=["localhost", "127.0.0.1"]  # Restrict to local interfaces for security
+TRUSTED_HOST_MIDDLEWARE_ENABLED=false    # Enable for production
+
 # Rate limiting
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_REQUESTS_PER_MINUTE=60

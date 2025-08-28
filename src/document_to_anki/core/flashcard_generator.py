@@ -5,7 +5,6 @@ This module provides the FlashcardGenerator class that orchestrates the creation
 editing, and management of flashcards using the LLMClient and Flashcard models.
 """
 
-import asyncio
 import inspect
 import time
 from pathlib import Path
@@ -241,7 +240,9 @@ class FlashcardGenerator:
         self, text_content: str | list[str], source_files: list[str] | None = None
     ) -> ProcessingResult:
         """Generate flashcards from text content using LLM."""
-        return self._generate_flashcards_common_sync(text_content, source_files, self._generate_flashcards_from_single_text)
+        return self._generate_flashcards_common_sync(
+            text_content, source_files, self._generate_flashcards_from_single_text
+        )
 
     async def _generate_flashcards_from_single_text_async(
         self, text: str, source_file: str | None, chunk_number: int, warnings: list[str] | None = None

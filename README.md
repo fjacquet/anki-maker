@@ -14,13 +14,13 @@ Document to Anki CLI is a comprehensive tool that transforms various document fo
 
 ### ✅ Fully Implemented
 - **Multi-Format Document Processing**: Support for PDF, DOCX, PPTX, TXT, MD files, folders, and ZIP archives
-- **Enhanced PDF Processing**: Robust handling of malformed, corrupted, or partially damaged PDFs with graceful error recovery
+- **Enhanced PDF Processing**: Robust handling of malformed, corrupted, or partially damaged PDFs with graceful error recovery and enhanced error detection
 - **AI-Powered Flashcard Generation**: Google Gemini AI integration via litellm for intelligent content analysis
 - **Dual Interface Support**: Both command-line and web interfaces available
 - **Interactive Flashcard Management**: Preview, edit, delete, and add flashcards with rich formatting
 - **Smart Text Processing**: Automatic text chunking to handle large documents within token limits
 - **Multiple Card Types**: Generates both question-answer pairs and cloze deletion cards
-- **Robust Error Handling**: Comprehensive error handling with actionable user guidance
+- **Robust Error Handling**: Comprehensive error handling with actionable user guidance and proper HTTP status codes
 - **CSV Export**: Anki-compatible CSV export with detailed statistics
 - **Progress Tracking**: Real-time progress indicators for long-running operations
 - **Session Management**: Web interface with session-based flashcard editing
@@ -389,9 +389,11 @@ The application includes advanced PDF processing capabilities:
 
 ### File Size Limits
 
-- **Individual files**: 50MB maximum
+- **Individual files**: 50MB maximum (configurable via `MAX_FILE_SIZE_MB`)
 - **ZIP archives**: 50MB maximum (total)
 - **Text content**: No specific limit (chunked for AI processing)
+
+**Configuration**: File size limits can be adjusted using the `MAX_FILE_SIZE_MB` environment variable, which is automatically converted to bytes internally for validation.
 
 ## Development
 
@@ -834,6 +836,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
 - ✅ **Enhanced PDF Processing**: Robust handling of malformed and corrupted PDFs
   - Graceful error recovery with page-by-page processing
   - Automatic fallback to lenient parsing mode
+  - Enhanced error detection for multiple PDF error patterns
   - Detailed logging of successful vs. failed page processing
   - Continues processing even when individual pages fail
 - ✅ **PowerPoint Support**: Full support for Microsoft PowerPoint presentations (.pptx)
@@ -861,12 +864,17 @@ This project is licensed under the MIT License. See the LICENSE file for details
   - `make quality`, `make format`, and `make lint` now automatically apply formatting fixes
   - Improves developer experience by eliminating manual formatting steps
   - Ensures consistent code style across the project
+- ✅ **Enhanced Error Handling**: Improved web application error handling with custom exception handlers
+  - Language validation errors now return proper HTTP 400 status codes instead of 500 errors
+  - Better error messages and user guidance for configuration issues
+  - Consistent error handling across all web API endpoints
 - ✅ **Improved Documentation Structure**: Organized all documentation into `docs/` folder
   - Moved API.md, CONFIGURATION.md, EXAMPLES.md, and TROUBLESHOOTING.md to docs/
   - Added comprehensive documentation index (docs/README.md)
   - Updated all cross-references and navigation links
   - Enhanced project organization and documentation discoverability
 - ✅ **CI-Makefile Integration**: Complete alignment between local development and CI pipeline
+- ✅ **Enhanced Security Features**: Improved security with TrustedHostMiddleware support and enhanced data validationeline
   - GitHub Actions workflow uses identical Makefile targets as local development
   - CI-specific targets (`ci-setup`, `ci-test`, `ci-quality`, `ci-validate`, `ci-build`) for optimized CI execution
   - Consistent `uv run` usage throughout all commands

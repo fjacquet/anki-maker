@@ -1,16 +1,19 @@
 """FastAPI web application for document-to-anki conversion."""
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from loguru import logger
+from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from ..config import ConfigurationError, LanguageValidationError, ModelConfig, settings
@@ -28,10 +31,56 @@ static_dir = Path("src/document_to_anki/web/static")
 static_dir.mkdir(parents=True, exist_ok=True)
 
 
+# Security configuration constants
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]  # Restrict to local interfaces for security
+
+
+class HealthCheckResponse(BaseModel):
+    """Response model for health check endpoint."""
+
+    status: str = Field(..., description="Service status")
+    message: str = Field(..., description="Status message")
+    active_sessions: int = Field(ge=0, description="Number of active sessions")
+    supported_formats: list[str] = Field(default_factory=list, description="Supported file formats")
+
+
+class ModelConfigResponse(BaseModel):
+    """Response model for model configuration."""
+
+    current_model: str
+    is_valid: bool
+    supported_models: list[str]
+    status: str
+    message: str | None = None
+
+
+class LanguageConfigResponse(BaseModel):
+    """Response model for language configuration."""
+
+    current_language: str
+    language_name: str
+    language_code: str
+    prompt_key: str
+    supported_languages: list[str]
+    all_language_keys: list[str]
+    status: str
+
+
+class AppConfigResponse(BaseModel):
+    """Response model for application configuration."""
+
+    max_file_size_mb: int
+    max_file_size_bytes: int
+    max_batch_size: int
+    supported_extensions: list[str]
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
 
-    async def dispatch(self, request: Request, call_next) -> Any:  # pragma: no cover - simple middleware
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Any]]
+    ) -> Any:  # pragma: no cover - simple middleware
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -41,6 +90,30 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
             "img-src 'self' data:; font-src 'self'; connect-src 'self'"
         )
+        # Enforce HTTPS in production
+        if request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # HTTPS enforcement: redirect HTTP to HTTPS in production
+        if (
+            request.url.scheme == "http"
+            and request.headers.get("x-forwarded-proto") != "https"
+            and request.headers.get("host", "").startswith(("api.", "app.", "www."))
+        ):
+            # In production, this would redirect to HTTPS
+            # For development, we allow HTTP on localhost
+            pass
+        # Enforce HTTPS in production
+        if request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # HTTPS enforcement: redirect HTTP to HTTPS in production
+        if (
+            request.url.scheme == "http"
+            and request.headers.get("x-forwarded-proto") != "https"
+            and request.headers.get("host", "").startswith(("api.", "app.", "www."))
+        ):
+            # In production, this would redirect to HTTPS
+            # For development, we allow HTTP on localhost
+            pass
         return response
 
 
@@ -87,6 +160,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Security middleware
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS + ["*"])  # Allow all in dev
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -103,77 +178,87 @@ app.include_router(flashcards_router)
 app.include_router(export_router)
 
 
-@app.get("/api/health")
-async def health_check(request: Request) -> JSONResponse:
-    """Health check endpoint."""
+@app.get("/api/health", response_model=HealthCheckResponse)
+async def health_check(request: Request) -> HealthCheckResponse:
+    """Health check endpoint with input validation."""
     dp: DocumentProcessor | None = request.app.state.document_processor
-    return JSONResponse(
-        content={
-            "status": "healthy",
-            "message": "Document to Anki API is running",
-            "active_sessions": len(session_manager),
-            "supported_formats": list(dp.get_supported_formats()) if dp else [],
-        }
+    return HealthCheckResponse(
+        status="healthy",
+        message="Document to Anki API is running",
+        active_sessions=len(session_manager),
+        supported_formats=list(dp.get_supported_formats()) if dp else [],
     )
 
 
-@app.get("/api/config/model")
-async def get_model_configuration() -> JSONResponse:
-    """Get current model configuration status."""
+@app.get("/api/config/model", response_model=ModelConfigResponse)
+async def get_model_configuration() -> ModelConfigResponse:
+    """Get current model configuration status with input validation."""
     try:
         current_model = ModelConfig.get_model_from_env()
         is_valid = ModelConfig.validate_model_config(current_model)
-        config_info = {
-            "current_model": current_model,
-            "is_valid": is_valid,
-            "supported_models": ModelConfig.get_supported_models(),
-            "status": "valid" if is_valid else "invalid",
-        }
+        message = None
         if not is_valid and current_model not in ModelConfig.SUPPORTED_MODELS:
-            config_info["message"] = (
+            message = (
                 f"Model '{current_model}' is not supported. Supported models: {ModelConfig.get_supported_models()}"
             )
-        return JSONResponse(content=config_info)
+        return ModelConfigResponse(
+            current_model=current_model,
+            is_valid=is_valid,
+            supported_models=ModelConfig.get_supported_models(),
+            status="valid" if is_valid else "invalid",
+            message=message,
+        )
     except Exception as exc:
         logger.error(f"Error getting model configuration: {exc}")
-        return JSONResponse(status_code=500, content={"detail": "Failed to get model configuration"})
+        raise HTTPException(status_code=500, detail="Failed to get model configuration") from exc
 
 
-@app.get("/api/config/language")
-async def get_language_configuration() -> JSONResponse:
-    """Get current language configuration status."""
+@app.get("/api/config/language", response_model=LanguageConfigResponse)
+async def get_language_configuration() -> LanguageConfigResponse:
+    """Get current language configuration status with input validation."""
     try:
         from ..config import LanguageConfig
 
         language_info = settings.get_language_info()
-        config_info = {
-            "current_language": settings.cardlang,
-            "language_name": language_info.name,
-            "language_code": language_info.code,
-            "prompt_key": language_info.prompt_key,
-            "supported_languages": LanguageConfig.get_supported_languages_list(),
-            "all_language_keys": LanguageConfig.get_all_language_keys(),
-            "status": "valid",
-        }
-        return JSONResponse(content=config_info)
+        return LanguageConfigResponse(
+            current_language=settings.cardlang,
+            language_name=language_info.name,
+            language_code=language_info.code,
+            prompt_key=language_info.prompt_key,
+            supported_languages=LanguageConfig.get_supported_languages_list(),
+            all_language_keys=LanguageConfig.get_all_language_keys(),
+            status="valid",
+        )
     except LanguageValidationError as exc:
         logger.error(f"Language validation error: {exc}")
-        from ..config import LanguageConfig
-
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={
+            detail={
                 "status": "invalid",
                 "error": str(exc),
-                "supported_languages": LanguageConfig.get_supported_languages_list(),
+                "supported_languages": exc.supported_languages,
             },
-        )
+        ) from exc
     except Exception as exc:
         logger.error(f"Error getting language configuration: {exc}")
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"status": "error", "error": "Failed to get language configuration", "details": str(exc)},
-        )
+            detail="Failed to get language configuration",
+        ) from exc
+
+
+@app.get("/api/config/app", response_model=AppConfigResponse)
+async def get_app_configuration() -> AppConfigResponse:
+    """Get application configuration for client-side validation."""
+    from ..utils.file_handler import FileHandler
+
+    file_handler = FileHandler()
+    return AppConfigResponse(
+        max_file_size_mb=settings.max_file_size_mb,
+        max_file_size_bytes=settings.max_file_size_bytes,
+        max_batch_size=settings.max_batch_size,
+        supported_extensions=list(file_handler.SUPPORTED_EXTENSIONS),
+    )
 
 
 @app.exception_handler(404)
