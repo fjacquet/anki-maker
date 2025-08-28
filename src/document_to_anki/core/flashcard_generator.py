@@ -150,6 +150,85 @@ class FlashcardGenerator:
         logger.info(f"Flashcard generation completed: {result.get_summary()}")
         return result
 
+    def _generate_flashcards_common_sync(
+        self,
+        text_content: str | list[str],
+        source_files: list[str] | None,
+        generator_func: Any,
+    ) -> ProcessingResult:
+        """
+        Shared implementation for generating flashcards (synchronous version).
+
+        Args:
+            text_content: List of text strings to process.
+            source_files: Optional list of source file names corresponding to text_content.
+            generator_func: Function used to generate flashcards for a single text chunk.
+                This should be a synchronous callable.
+        """
+        start_time = time.time()
+        all_flashcards: list[Flashcard] = []
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        # Normalize input: accept a single string or a list of strings
+        if isinstance(text_content, str):
+            text_chunks: list[str] = [text_content]
+        else:
+            text_chunks = text_content
+
+        if not text_chunks:
+            errors.append("No text content provided for flashcard generation")
+            return ProcessingResult(
+                flashcards=[],
+                source_files=source_files or [],
+                processing_time=time.time() - start_time,
+                errors=errors,
+                warnings=warnings,
+            )
+
+        logger.info(f"Starting flashcard generation for {len(text_chunks)} text chunks")
+
+        # Process each text chunk
+        for i, text in enumerate(text_chunks):
+            if not text or not text.strip():
+                warnings.append(f"Skipping empty text chunk {i + 1}")
+                continue
+
+            try:
+                source_file = source_files[i] if source_files and i < len(source_files) else None
+                chunk_flashcards = generator_func(text, source_file, i + 1, warnings)
+                all_flashcards.extend(chunk_flashcards)
+
+            except Exception as e:
+                error_msg = f"Failed to generate flashcards from text chunk {i + 1}: {str(e)}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                continue
+
+        # Validate generated flashcards
+        valid_flashcards = []
+        for flashcard in all_flashcards:
+            if flashcard.validate_content():
+                valid_flashcards.append(flashcard)
+            else:
+                warnings.append(f"Invalid flashcard generated: {flashcard.question[:50]}...")
+
+        # Update internal flashcard list
+        self._flashcards = valid_flashcards
+
+        processing_time = time.time() - start_time
+
+        result = ProcessingResult(
+            flashcards=valid_flashcards,
+            source_files=source_files or [],
+            processing_time=processing_time,
+            errors=errors,
+            warnings=warnings,
+        )
+
+        logger.info(f"Flashcard generation completed: {result.get_summary()}")
+        return result
+
     async def generate_flashcards_async(
         self, text_content: str | list[str], source_files: list[str] | None = None
     ) -> ProcessingResult:
@@ -162,9 +241,7 @@ class FlashcardGenerator:
         self, text_content: str | list[str], source_files: list[str] | None = None
     ) -> ProcessingResult:
         """Generate flashcards from text content using LLM."""
-        return asyncio.run(
-            self._generate_flashcards_common(text_content, source_files, self._generate_flashcards_from_single_text)
-        )
+        return self._generate_flashcards_common_sync(text_content, source_files, self._generate_flashcards_from_single_text)
 
     async def _generate_flashcards_from_single_text_async(
         self, text: str, source_file: str | None, chunk_number: int, warnings: list[str] | None = None
