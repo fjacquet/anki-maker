@@ -962,4 +962,32 @@ make test-integration
 
 **Important**: The `make quality` command now automatically formats your code files using `ruff format`. This ensures consistent code style but will modify your files. The change improves development workflow by automatically applying formatting fixes rather than just reporting formatting issues.
 
+### Testing Configuration
+
+#### Web Integration Testing
+
+The project includes enhanced testing infrastructure for web integration tests:
+
+```python
+# tests/conftest.py includes a web_client fixture
+@pytest.fixture
+def web_client():
+    """Create a properly initialized test client for the FastAPI app."""
+    # Manually initializes app state for testing
+    # since TestClient doesn't run lifespan events
+```
+
+**Usage in tests:**
+```python
+def test_web_endpoint(web_client):
+    """Test using the properly initialized web client."""
+    response = web_client.get("/api/health")
+    assert response.status_code == 200
+```
+
+**Benefits:**
+- Ensures FastAPI app state is properly initialized during testing
+- Prevents test failures due to missing `DocumentProcessor`, `FlashcardGenerator`, or `SessionManager`
+- Provides consistent test environment matching production app initialization
+
 This comprehensive configuration guide covers all aspects of setting up and tuning Document to Anki CLI for your specific needs.

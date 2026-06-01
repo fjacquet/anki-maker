@@ -974,6 +974,66 @@ ModuleNotFoundError during integration tests
    python test_integration_check.py
    ```
 
+### Problem: Web integration test failures
+
+**Symptoms:**
+```
+AttributeError: 'Starlette' object has no attribute 'document_processor'
+AttributeError: 'Starlette' object has no attribute 'session_manager'
+ERROR: Web API tests failing with missing app state
+```
+
+**Cause:**
+- FastAPI `TestClient` doesn't automatically run lifespan events
+- App state (document_processor, flashcard_generator, session_manager) isn't initialized
+- Tests try to access uninitialized app dependencies
+
+**Solutions:**
+1. **Use the web_client fixture for web integration tests:**
+   ```python
+   def test_api_endpoint(web_client):
+       """Use web_client fixture instead of creating TestClient directly."""
+       response = web_client.get("/api/health")
+       assert response.status_code == 200
+   ```
+
+2. **Avoid creating TestClient directly in web tests:**
+   ```python
+   # ❌ Don't do this - app state won't be initialized
+   def test_endpoint():
+       client = TestClient(app)
+       response = client.get("/api/health")
+   
+   # ✅ Do this instead - use the fixture
+   def test_endpoint(web_client):
+       response = web_client.get("/api/health")
+   ```
+
+3. **For custom test clients, manually initialize app state:**
+   ```python
+   def create_test_client():
+       from src.document_to_anki.web.app import app
+       from src.document_to_anki.core.document_processor import DocumentProcessor
+       from src.document_to_anki.core.flashcard_generator import FlashcardGenerator
+       from src.document_to_anki.web.session_manager import SessionManager
+       
+       # Initialize app state manually
+       app.state.document_processor = DocumentProcessor()
+       app.state.flashcard_generator = FlashcardGenerator()
+       app.state.session_manager = SessionManager()
+       
+       return TestClient(app)
+   ```
+
+4. **Check that web_client fixture is available:**
+   ```bash
+   # Verify the fixture exists in conftest.py
+   grep -n "def web_client" tests/conftest.py
+   ```
+
+**Background:**
+The web application uses FastAPI lifespan events to initialize core components during startup. In production, these components are automatically created when the server starts. However, during testing with `TestClient`, lifespan events don't run automatically, so the app state remains uninitialized. The `web_client` fixture solves this by manually initializing the required components before creating the test client.
+
 ### Best Practices for CI-Makefile Consistency
 
 1. **Always use Makefile targets:**

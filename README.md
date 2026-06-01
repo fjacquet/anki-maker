@@ -511,6 +511,16 @@ python test_startup_validation.py
 
 **Note**: All test commands use the `uv run` prefix internally for consistent virtual environment handling.
 
+#### Testing Infrastructure Improvements
+
+The project includes enhanced testing infrastructure for reliable web integration testing:
+
+- **Web Client Fixture**: A specialized `web_client` pytest fixture that properly initializes the FastAPI app state for testing
+- **Automatic App State Setup**: Ensures `DocumentProcessor`, `FlashcardGenerator`, and `SessionManager` are available during tests
+- **Lifespan Event Simulation**: Manually handles FastAPI lifespan initialization that `TestClient` doesn't run automatically
+
+This ensures web integration tests run reliably with properly initialized dependencies, preventing common test failures related to missing app state.
+
 ### Code Quality
 
 The project uses Makefile targets that match the CI pipeline for consistent code quality checks:
