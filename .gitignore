@@ -228,3 +228,5 @@ examples/Excel++.pdf
 .DS_Store
 
 examples/
+# Serena MCP local project cache
+.serena/
