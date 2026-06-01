@@ -10,12 +10,12 @@ import tempfile
 
 # pytest-mock provides the mocker fixture
 import pytest
-from fastapi.testclient import TestClient
 
 from src.document_to_anki.core.document_processor import DocumentProcessingResult
 from src.document_to_anki.core.flashcard_generator import FlashcardGenerationError
 from src.document_to_anki.models.flashcard import Flashcard, ProcessingResult
 from src.document_to_anki.web.app import app
+from src.document_to_anki.web.dependencies import get_flashcard_generator
 
 
 class TestWebIntegration:
@@ -80,9 +80,9 @@ class TestWebIntegration:
         return mock_instance
 
     @pytest.fixture
-    def client(self):
-        """Create a test client for the FastAPI app."""
-        return TestClient(app)
+    def client(self, web_client):
+        """Use the shared web client fixture."""
+        return web_client
 
     @pytest.fixture
     def sample_txt_content(self):
@@ -621,9 +621,9 @@ class TestWebErrorHandling:
     """Test error handling in web application."""
 
     @pytest.fixture
-    def client(self):
-        """Create a test client for the FastAPI app."""
-        return TestClient(app)
+    def client(self, web_client):
+        """Use the shared web client fixture."""
+        return web_client
 
     def test_upload_processing_error(self, client, mocker):
         """Test handling of processing errors during upload."""
@@ -649,22 +649,20 @@ class TestWebErrorHandling:
         """Test handling of flashcard generation errors."""
         session_id = app.state.session_manager.create_session()
 
-        # Mock the global document_processor instance
-        mock_processor_instance = mocker.MagicMock()
-        mock_processor_instance.process_upload.return_value = DocumentProcessingResult(
-            text_content="Test content",
-            source_files=["test.txt"],
-            file_count=1,
-            total_characters=12,
-            errors=[],
-            warnings=[],
+        # Configure the offline doubles held in app.state (the single source of truth).
+        app.state.document_processor.process_upload = mocker.MagicMock(
+            return_value=DocumentProcessingResult(
+                text_content="Test content",
+                source_files=["test.txt"],
+                file_count=1,
+                total_characters=12,
+                errors=[],
+                warnings=[],
+            )
         )
-        mocker.patch("src.document_to_anki.web.app.document_processor", mock_processor_instance)
-
-        # Mock the global flashcard_generator instance
-        mock_generator_instance = mocker.MagicMock()
-        mock_generator_instance.generate_flashcards_async.side_effect = FlashcardGenerationError("Generation failed")
-        mocker.patch("src.document_to_anki.web.app.flashcard_generator", mock_generator_instance)
+        app.state.flashcard_generator.generate_flashcards_async = mocker.AsyncMock(
+            side_effect=FlashcardGenerationError("Generation failed")
+        )
 
         # Create a temporary file for testing
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -700,12 +698,10 @@ class TestWebErrorHandling:
             Flashcard.create("Test", "Test", "qa", "test.txt")
         ]
 
-        # Mock the dependency injection for flashcard generator
+        # Inject a generator double via the FastAPI dependency-override seam.
         mock_generator_instance = mocker.MagicMock()
         mock_generator_instance.export_to_csv.return_value = (False, {"errors": ["Export failed"]})
-        mocker.patch(
-            "src.document_to_anki.web.dependencies.get_flashcard_generator", return_value=mock_generator_instance
-        )
+        client.app.dependency_overrides[get_flashcard_generator] = lambda: mock_generator_instance
 
         response = client.post(f"/api/export/{session_id}", json={})
 
@@ -754,9 +750,9 @@ class TestWebPerformance:
     """Test performance aspects of web application."""
 
     @pytest.fixture
-    def client(self):
-        """Create a test client for the FastAPI app."""
-        return TestClient(app)
+    def client(self, web_client):
+        """Use the shared web client fixture."""
+        return web_client
 
     @pytest.mark.slow
     def test_large_file_upload_handling(self, client):

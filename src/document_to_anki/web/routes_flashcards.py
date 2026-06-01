@@ -1,13 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from loguru import logger
 
 from ..core.flashcard_generator import FlashcardGenerator
 from ..models.flashcard import Flashcard
+from .dependencies import get_flashcard_generator, get_session_manager
 from .schemas import FlashcardCreateRequest, FlashcardEditRequest, FlashcardResponse
-from .session_manager import SessionManager, get_session_manager
+from .session_manager import SessionManager
 
 router = APIRouter()
 
@@ -22,10 +23,6 @@ def flashcard_to_response(flashcard: Flashcard) -> FlashcardResponse:
         source_file=flashcard.source_file,
         created_at=flashcard.created_at.isoformat(),
     )
-
-
-def get_flashcard_generator(request: Request) -> FlashcardGenerator:
-    return request.app.state.flashcard_generator  # type: ignore[no-any-return]
 
 
 @router.get("/api/flashcards/{session_id}", response_model=list[FlashcardResponse])

@@ -9,20 +9,20 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 from src.document_to_anki.config import Settings
-from src.document_to_anki.models.flashcard import Flashcard
+from src.document_to_anki.models.flashcard import Flashcard, ProcessingResult
 from src.document_to_anki.web.app import app
+from src.document_to_anki.web.dependencies import get_flashcard_generator
 
 
 class TestWebLanguageIntegration:
     """Test web interface language configuration integration."""
 
     @pytest.fixture
-    def client(self):
-        """Create test client."""
-        return TestClient(app)
+    def client(self, web_client):
+        """Use the shared web client fixture."""
+        return web_client
 
     @pytest.fixture
     def mock_settings(self, mocker):
@@ -127,32 +127,16 @@ class TestWebLanguageIntegration:
 
     @pytest.mark.asyncio
     async def test_flashcard_generation_uses_language_config(self, client, sample_flashcards, mocker):
-        """Test that flashcard generation uses the configured language."""
-        mock_doc_processor = mocker.patch("src.document_to_anki.web.app.document_processor")
-        mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
-        mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
+        """Background processing invokes the configured flashcard generator."""
+        from src.document_to_anki.web.routes_upload import process_files_background
 
-        # Mock language configuration
-        mock_language_info = mocker.MagicMock()
-        mock_language_info.name = "Italian"
-        mock_language_info.code = "it"
-        mock_settings.get_language_info.return_value = mock_language_info
-        mock_settings.cardlang = "italian"
-
-        # Mock document processing
-        mock_result = mocker.MagicMock()
-        mock_result.success = True
-        mock_result.text_content = "Sample text content"
-        mock_result.source_files = ["test.txt"]
-        mock_result.errors = []
-        mock_doc_processor.process_upload.return_value = mock_result
-
-        # Mock flashcard generation
-        mock_processing_result = mocker.MagicMock()
-        mock_processing_result.flashcards = sample_flashcards
-        mock_processing_result.errors = []
-        mock_processing_result.warnings = []
-        mock_flashcard_gen.generate_flashcards_async = mocker.AsyncMock(return_value=mock_processing_result)
+        # Configure the offline generator double held in app.state (the single source of truth).
+        processing_result = ProcessingResult(
+            flashcards=sample_flashcards, source_files=["test.txt"], processing_time=0.0, errors=[], warnings=[]
+        )
+        client.app.state.flashcard_generator.generate_flashcards_async = mocker.AsyncMock(
+            return_value=processing_result
+        )
 
         # Create a test file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as temp_file:
@@ -160,20 +144,13 @@ class TestWebLanguageIntegration:
             temp_file_path = temp_file.name
 
         try:
-            # Upload file
-            with open(temp_file_path, "rb") as f:
-                response = client.post("/api/upload", files={"files": ("test.txt", f, "text/plain")})
+            session_id = client.app.state.session_manager.create_session()
 
-            assert response.status_code == 200
-            data = response.json()
-            session_id = data["session_id"]  # noqa: F841
-
-            # Wait for processing to complete (in real scenario)
-            # For test, we'll check that the flashcard generator was called
-            # The language configuration should be used by the LLMClient within FlashcardGenerator
+            # Run the background task deterministically (no create_task timing race).
+            await process_files_background(session_id, [temp_file_path], client.app)
 
             # Verify flashcard generation was called
-            assert mock_flashcard_gen.generate_flashcards_async.called
+            assert client.app.state.flashcard_generator.generate_flashcards_async.called
 
         finally:
             # Clean up
@@ -254,11 +231,10 @@ class TestWebLanguageIntegration:
 
     def test_web_interface_language_consistency_across_operations(self, client, sample_flashcards, mocker):
         """Test that all web interface operations use consistent language configuration."""
-        # Mock settings in the routes_upload module where it's imported
+        # Mock settings in both modules that read it: the home page (routes_upload)
+        # and the /api/config/language endpoint (web.app).
         mock_settings = mocker.patch("src.document_to_anki.web.routes_upload.settings")
-        mock_session_manager = mocker.MagicMock()
-        mocker.patch("src.document_to_anki.web.session_manager.get_session_manager", return_value=mock_session_manager)
-        mock_flashcard_gen = mocker.patch("src.document_to_anki.web.app.flashcard_generator")
+        mocker.patch("src.document_to_anki.web.app.settings", mock_settings)
 
         # Mock consistent language configuration
         mock_language_info = mocker.MagicMock()
@@ -268,19 +244,9 @@ class TestWebLanguageIntegration:
         mock_settings.get_language_info.return_value = mock_language_info
         mock_settings.cardlang = "german"
 
-        # Mock session
-        session_id = "test-session"
-        mock_session_manager.get_session.return_value = {
-            "status": "completed",
-            "progress": 100,
-            "message": "Completed",
-            "flashcards": sample_flashcards,
-            "errors": [],
-            "warnings": [],
-            "temp_files": [],
-            "created_at": 1234567890,
-            "last_accessed": 1234567890,
-        }
+        # Real session in app.state (the single source of truth for the dependency).
+        session_id = client.app.state.session_manager.create_session()
+        client.app.state.session_manager.sessions[session_id]["flashcards"] = sample_flashcards
 
         # Test home page shows German
         response = client.get("/")
@@ -319,8 +285,10 @@ class TestWebLanguageIntegration:
         self, client, language, expected_name, expected_code, mocker
     ):
         """Test language configuration for all supported languages."""
-        # Mock settings in the routes_upload module where it's imported
+        # Mock settings in both modules that read it: the home page (routes_upload)
+        # and the /api/config/language endpoint (web.app).
         mock_settings = mocker.patch("src.document_to_anki.web.routes_upload.settings")
+        mocker.patch("src.document_to_anki.web.app.settings", mock_settings)
 
         # Mock language info for each supported language
         mock_language_info = mocker.MagicMock()
@@ -355,10 +323,10 @@ class TestWebLanguageIntegration:
         app.state.session_manager.sessions[session_id]["status"] = "completed"
         app.state.session_manager.sessions[session_id]["flashcards"] = sample_flashcards
 
-        # Mock the dependency injection for flashcard generator
+        # Inject a generator double via the FastAPI dependency-override seam.
         mock_flashcard_gen = mocker.MagicMock()
         mock_flashcard_gen.export_to_csv.return_value = (True, {"exported": 2, "errors": []})
-        mocker.patch("src.document_to_anki.web.dependencies.get_flashcard_generator", return_value=mock_flashcard_gen)
+        client.app.dependency_overrides[get_flashcard_generator] = lambda: mock_flashcard_gen
 
         mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
 

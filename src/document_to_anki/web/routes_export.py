@@ -2,20 +2,17 @@ import tempfile
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from loguru import logger
 from starlette.background import BackgroundTask
 
 from ..core.flashcard_generator import FlashcardGenerator
+from .dependencies import get_flashcard_generator, get_session_manager
 from .schemas import ExportRequest
-from .session_manager import SessionManager, get_session_manager
+from .session_manager import SessionManager
 
 router = APIRouter()
-
-
-def get_flashcard_generator(request: Request) -> FlashcardGenerator:
-    return request.app.state.flashcard_generator  # type: ignore[no-any-return]
 
 
 @router.post("/api/export/{session_id}")
