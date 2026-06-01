@@ -1158,6 +1158,54 @@ All FlashcardGenerator ModelConfig integration tests passed! ✓
 python test_startup_validation.py
 ```
 
+This test validates that the web application properly handles configuration validation during startup and that all required dependencies are properly initialized.
+
+### Testing Infrastructure
+
+#### Web Client Test Fixture
+
+The project includes a specialized test fixture for web integration testing:
+
+```python
+@pytest.fixture
+def web_client():
+    """Create a properly initialized test client for the FastAPI app."""
+    from starlette.testclient import TestClient
+    from src.document_to_anki.web.app import app
+    from src.document_to_anki.core.document_processor import DocumentProcessor
+    from src.document_to_anki.core.flashcard_generator import FlashcardGenerator
+    from src.document_to_anki.web.session_manager import SessionManager
+    
+    # Initialize app state manually since TestClient doesn't run lifespan
+    app.state.document_processor = DocumentProcessor()
+    app.state.flashcard_generator = FlashcardGenerator()
+    app.state.session_manager = SessionManager()
+    
+    return TestClient(app)
+```
+
+**Purpose**: This fixture ensures that web integration tests have a properly initialized FastAPI application with all required dependencies. The FastAPI app uses lifespan events to initialize its state, but `TestClient` doesn't automatically run these events, so manual initialization is required for testing.
+
+**Usage in Tests**:
+```python
+def test_api_endpoint(web_client):
+    """Test API endpoint with properly initialized app."""
+    response = web_client.get("/api/health")
+    assert response.status_code == 200
+    
+def test_file_upload(web_client):
+    """Test file upload with initialized session manager."""
+    with open("test.txt", "rb") as f:
+        response = web_client.post("/api/upload", files={"files": f})
+    assert response.status_code == 200
+```
+
+**Benefits**:
+- **Reliable Testing**: Ensures all app dependencies are available during tests
+- **Consistent State**: Provides the same initialization as the production app
+- **Error Prevention**: Prevents test failures due to missing app state
+- **Simplified Test Writing**: Tests can focus on functionality rather than setup
+
 This test validates:
 - Web application startup with valid configuration
 - Proper error handling for invalid models during startup

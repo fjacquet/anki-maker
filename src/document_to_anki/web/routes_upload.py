@@ -12,8 +12,9 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from ..config import settings
 from ..core.document_processor import DocumentProcessingError
 from ..core.flashcard_generator import FlashcardGenerator
+from .dependencies import get_session_manager
 from .schemas import ProcessingStatusResponse
-from .session_manager import SessionManager, get_session_manager
+from .session_manager import SessionManager
 
 router = APIRouter()
 templates = Jinja2Templates(directory="src/document_to_anki/web/templates")

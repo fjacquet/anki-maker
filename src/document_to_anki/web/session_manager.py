@@ -78,8 +78,3 @@ class SessionManager:
 
 
 session_manager = SessionManager()
-
-
-def get_session_manager() -> SessionManager:
-    """FastAPI dependency to access the global session manager."""
-    return session_manager

@@ -7,8 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from src.document_to_anki.core.document_processor import DocumentProcessingResult
+from src.document_to_anki.core.document_processor import DocumentProcessingResult, DocumentProcessor
+from src.document_to_anki.core.flashcard_generator import FlashcardGenerator
 from src.document_to_anki.models.flashcard import Flashcard, ProcessingResult
+from src.document_to_anki.web.session_manager import SessionManager
 
 
 @pytest.fixture
@@ -89,6 +91,35 @@ def sample_markdown_file(temp_directory):
     file_path = temp_directory / "sample_datascience.md"
     file_path.write_text(content.strip())
     return file_path
+
+
+@pytest.fixture
+def web_client(mocker):
+    """Test client whose ``app.state`` holds deterministic, offline component doubles.
+
+    ``app.state`` is the single source of truth for the web dependency providers
+    (``get_session_manager``/``get_document_processor``/``get_flashcard_generator``),
+    so tests configure behaviour by mutating these objects or via
+    ``app.dependency_overrides``. The generator is real (genuine ``validate``/``export``
+    logic) but its LLM client is mocked, and ``generate_flashcards_async`` is stubbed,
+    so no network calls happen.
+    """
+    from starlette.testclient import TestClient
+
+    from src.document_to_anki.web.app import app
+
+    flashcard_generator = FlashcardGenerator(llm_client=mocker.MagicMock())
+    flashcard_generator.generate_flashcards_async = mocker.AsyncMock(
+        return_value=ProcessingResult(flashcards=[], source_files=[], processing_time=0.0, errors=[], warnings=[])
+    )
+
+    # Initialize app state manually since TestClient does not run the lifespan handler.
+    app.state.document_processor = DocumentProcessor()
+    app.state.flashcard_generator = flashcard_generator
+    app.state.session_manager = SessionManager()
+
+    yield TestClient(app)
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture

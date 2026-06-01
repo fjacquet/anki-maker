@@ -526,6 +526,95 @@ def demonstrate_presentation_detection():
 demonstrate_presentation_detection()
 ```
 
+### Web API Testing Examples
+
+```python
+import pytest
+from pathlib import Path
+
+def test_web_api_upload(web_client):
+    """Example of testing web API endpoints using the web_client fixture."""
+    
+    # Create test file
+    test_content = "Sample educational content for testing."
+    test_file = Path("test_upload.txt")
+    test_file.write_text(test_content)
+    
+    try:
+        # Test file upload endpoint
+        with open(test_file, "rb") as f:
+            response = web_client.post(
+                "/api/upload",
+                files={"files": ("test.txt", f, "text/plain")}
+            )
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Verify response structure
+        assert "session_id" in data
+        assert "status" in data
+        assert data["status"] in ["processing", "completed"]
+        
+        session_id = data["session_id"]
+        
+        # Test status endpoint
+        status_response = web_client.get(f"/api/status/{session_id}")
+        assert status_response.status_code == 200
+        
+        # Test flashcards endpoint (if processing completed)
+        flashcards_response = web_client.get(f"/api/flashcards/{session_id}")
+        assert flashcards_response.status_code == 200
+        
+        print("✅ Web API test completed successfully")
+        
+    finally:
+        # Cleanup
+        if test_file.exists():
+            test_file.unlink()
+
+def test_web_api_configuration(web_client):
+    """Example of testing configuration endpoints."""
+    
+    # Test model configuration endpoint
+    response = web_client.get("/api/config/model")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert "current_model" in data
+    assert "is_valid" in data
+    assert "supported_models" in data
+    
+    # Test language configuration endpoint
+    response = web_client.get("/api/config/language")
+    
+    # Should return 200 for valid config or 400 for invalid config
+    assert response.status_code in [200, 400]
+    
+    if response.status_code == 200:
+        data = response.json()
+        assert "current_language" in data
+        assert "supported_languages" in data
+    
+    print("✅ Configuration API test completed successfully")
+
+def test_web_api_health_check(web_client):
+    """Example of testing health check endpoint."""
+    
+    response = web_client.get("/api/health")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "active_sessions" in data
+    assert "supported_formats" in data
+    
+    print("✅ Health check test completed successfully")
+
+# Note: The web_client fixture is defined in tests/conftest.py and provides
+# a properly initialized FastAPI test client with all app dependencies
+```
+
 ### Error Handling and Validation
 
 ```python
