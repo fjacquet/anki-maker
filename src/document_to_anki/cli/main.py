@@ -218,7 +218,7 @@ def main(ctx: click.Context, verbose: bool, version: bool) -> None:
     Example: export CARDLANG=french && document-to-anki input.pdf
     """
     if version:
-        click.echo("Document to Anki CLI v0.1.0")
+        click.echo("Document to Anki CLI v0.1.1")
         return
 
     # Create CLI context - this will validate model configuration
