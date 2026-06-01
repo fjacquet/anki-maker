@@ -23,7 +23,7 @@
 #
 # Each target will fail immediately on error with proper exit codes for CI integration.
 
-.PHONY: help install install-dev test test-cov test-fast lint format type-check security audit quality clean build run-cli run-web setup validate ci-setup ci-test ci-quality ci-install ci-validate ci-build check-uv check-env debug-env
+.PHONY: help install install-dev test test-cov test-fast lint format type-check security audit quality clean build run-cli run-web setup validate ci-setup ci-test ci-quality ci-install ci-validate ci-build check-uv check-env debug-env docs docs-build docs-serve
 
 # Default target
 help: ## Show this help message
@@ -193,8 +193,13 @@ clean: ## Clean build artifacts and cache
 	find . -type f -name "*.pyc" -delete
 
 # Documentation
-docs: ## Generate documentation (placeholder)
-	@echo "Documentation generation not yet implemented"
+docs: docs-build ## Build the documentation site (alias for docs-build)
+
+docs-build: check-uv ## Build the MkDocs site into ./site
+	uv run --extra docs mkdocs build --strict
+
+docs-serve: check-uv ## Serve the docs locally with live reload (http://127.0.0.1:8000)
+	uv run --extra docs mkdocs serve
 
 # Docker (placeholder for future)
 docker-build: ## Build Docker image (placeholder)
