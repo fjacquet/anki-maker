@@ -230,3 +230,6 @@ examples/Excel++.pdf
 examples/
 # Serena MCP local project cache
 .serena/
+
+# MkDocs build output
+/site/

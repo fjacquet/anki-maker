@@ -88,6 +88,9 @@ dev = [
     "watchdog>=6.0.0",
     "psutil>=7.0.0",
 ]
+docs = [
+    "mkdocs-material>=9.5.0",
+]
 
 
 [tool.ruff]
