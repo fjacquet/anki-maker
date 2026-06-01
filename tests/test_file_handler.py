@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from src.document_to_anki.config import settings
 from src.document_to_anki.utils.file_handler import FileHandler, FileHandlingError
 
 
@@ -21,7 +22,8 @@ class TestFileHandler:
         handler = FileHandler()
         assert handler.processed_files == []
         assert handler.SUPPORTED_EXTENSIONS == {".pdf", ".docx", ".pptx", ".txt", ".md"}
-        assert handler.MAX_FILE_SIZE == 500 * 1024 * 1024  # Current config value
+        # Read from configuration so the test is independent of the local .env / CI env.
+        assert handler.MAX_FILE_SIZE == settings.max_file_size_bytes
         assert handler.MAX_FILES_COUNT == 100
 
     def test_validate_file_type_supported_extensions(self):
