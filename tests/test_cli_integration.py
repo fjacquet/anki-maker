@@ -163,7 +163,7 @@ class TestCLIIntegration:
         result = runner.invoke(main, ["--version"])
 
         assert result.exit_code == 0
-        assert "Document to Anki CLI v0.1.0" in result.output
+        assert "Document to Anki CLI v0.1.1" in result.output
 
     def test_convert_command_help(self, runner):
         """Test convert command help."""
