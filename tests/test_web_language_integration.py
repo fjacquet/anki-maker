@@ -46,7 +46,8 @@ class TestWebLanguageIntegration:
 
     def test_home_page_displays_language_info(self, client, mocker):
         """Test that home page displays current language configuration."""
-        mock_settings = mocker.patch("src.document_to_anki.web.app.settings")
+        # The home page is served by routes_upload, which reads its own `settings`.
+        mock_settings = mocker.patch("src.document_to_anki.web.routes_upload.settings")
 
         # Mock language info
         mock_language_info = mocker.MagicMock()
