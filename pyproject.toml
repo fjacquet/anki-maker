@@ -83,6 +83,9 @@ dev = [
     "safety>=3.2.4",
     "pip-audit>=2.9.0",
 
+    # SBOM generation (fjacquet/ci `make sbom` -> cyclonedx-py)
+    "cyclonedx-bom>=4.0.0",
+
     # Development utilities
     "pre-commit>=3.0.0",
     "watchdog>=6.0.0",
