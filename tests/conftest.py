@@ -13,6 +13,22 @@ from src.document_to_anki.models.flashcard import Flashcard, ProcessingResult
 from src.document_to_anki.web.session_manager import SessionManager
 
 
+@pytest.fixture(autouse=True)
+def deterministic_model_env(monkeypatch):
+    """Provide a hermetic model configuration for the whole suite.
+
+    The CLI validates the active model's API key at startup (``CLIContext`` ->
+    ``ModelConfig.validate_and_get_model``), so any test that invokes the CLI
+    needs ``GEMINI_API_KEY`` set. CI runs ``make test`` without secrets (the
+    fjacquet/ci standard never passes secrets to the test job), so we inject a
+    deterministic dummy key here instead of relying on a real one. Tests that
+    exercise the *missing-key* error path use ``patch.dict(..., clear=True)``,
+    which overrides these values, so the negative cases still hold.
+    """
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("MODEL", "gemini/gemini-2.5-flash")
+
+
 @pytest.fixture
 def temp_directory():
     """Create a temporary directory for test files."""
