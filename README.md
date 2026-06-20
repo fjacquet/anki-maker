@@ -1,5 +1,9 @@
 # Document to Anki CLI
 
+[![CI](https://github.com/fjacquet/anki-maker/actions/workflows/ci.yml/badge.svg)](https://github.com/fjacquet/anki-maker/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/fjacquet/anki-maker?sort=semver)](https://github.com/fjacquet/anki-maker/releases/latest)
+[![License](https://img.shields.io/github/license/fjacquet/anki-maker)](https://github.com/fjacquet/anki-maker/blob/HEAD/LICENSE)
+
 Convert documents to Anki flashcards using AI-powered content analysis.
 
 
