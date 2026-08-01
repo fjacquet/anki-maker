@@ -57,11 +57,11 @@ The application supports configurable LLM models through environment variables, 
 ```python
 class ModelConfig:
     """Handles LLM model configuration and validation."""
-    
+
     SUPPORTED_MODELS = {
         "gemini/gemini-2.5-flash": "GEMINI_API_KEY",
         "gemini/gemini-2.5-pro": "GEMINI_API_KEY",
-        "openai/gpt-4": "OPENAI_API_KEY", 
+        "openai/gpt-4": "OPENAI_API_KEY",
         "openai/gpt-3.5-turbo": "OPENAI_API_KEY",
         "openai/gpt-4.1": "OPENAI_API_KEY",
         "openai/gpt-4.1-mini": "OPENAI_API_KEY",
@@ -69,25 +69,25 @@ class ModelConfig:
         "openai/gpt-5": "OPENAI_API_KEY",
         "openai/gpt-5-mini": "OPENAI_API_KEY",
         "openai/gpt-5-nano": "OPENAI_API_KEY",
-        "openai/gpt-4o": "OPENAI_API_KEY"
+        "openai/gpt-4o": "OPENAI_API_KEY",
     }
-    
+
     DEFAULT_MODEL = "gemini/gemini-2.5-flash"
-    
+
     @classmethod
     def get_model_from_env(cls) -> str:
         """Get model from MODEL environment variable or return default."""
         return os.getenv("MODEL", cls.DEFAULT_MODEL)
-    
+
     @classmethod
     def validate_model_config(cls, model: str) -> bool:
         """Validate that model is supported and API key is available."""
         if model not in cls.SUPPORTED_MODELS:
             return False
-        
+
         required_key = cls.SUPPORTED_MODELS[model]
         return os.getenv(required_key) is not None
-    
+
     @classmethod
     def get_supported_models(cls) -> List[str]:
         """Return list of supported model identifiers."""
@@ -173,16 +173,17 @@ class LLMClient:
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Literal, Optional
 
+
 class Flashcard(BaseModel):
     """Represents a single flashcard with question, answer, and metadata."""
-    
+
     id: str
     question: str
     answer: str
     card_type: Literal["qa", "cloze"]  # "qa" for question-answer, "cloze" for cloze deletion
     source_file: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
-    
+
     @field_validator("question", "answer")
     @classmethod
     def validate_content_not_empty(cls, v: str) -> str:
@@ -190,7 +191,7 @@ class Flashcard(BaseModel):
         if not v or not v.strip():
             raise ValueError("Question and answer cannot be empty")
         return v.strip()
-    
+
     @model_validator(mode="after")
     def validate_cloze_format(self) -> "Flashcard":
         """Validate cloze deletion format for cloze cards."""
@@ -198,11 +199,11 @@ class Flashcard(BaseModel):
             if "{{c1::" not in self.question and "{{c1::" not in self.answer:
                 raise ValueError("Cloze cards must contain cloze deletion format {{c1::...}}")
         return self
-    
+
     def to_csv_row(self) -> List[str]:
         """Convert flashcard to Anki-compatible CSV format"""
         return [self.question.strip(), self.answer.strip(), self.card_type, self.source_file or ""]
-    
+
     def validate(self) -> bool:
         """Validate flashcard content"""
         try:
@@ -272,26 +273,37 @@ class ProcessingResult(BaseModel):
 ```python
 class DocumentToAnkiError(Exception):
     """Base exception for the application"""
+
     pass
+
 
 class FileProcessingError(DocumentToAnkiError):
     """Errors related to file processing"""
+
     pass
+
 
 class LLMError(DocumentToAnkiError):
     """Errors related to LLM communication"""
+
     pass
+
 
 class ConfigurationError(DocumentToAnkiError):
     """Errors related to model configuration and API keys"""
+
     pass
+
 
 class ValidationError(DocumentToAnkiError):
     """Errors related to data validation"""
+
     pass
+
 
 class LanguageError(DocumentToAnkiError):
     """Errors related to French language processing and validation"""
+
     pass
 ```
 
@@ -391,26 +403,24 @@ The system implements validation to ensure French output quality:
 ```python
 class FrenchLanguageValidator:
     """Validates that LLM output is in French and meets quality standards."""
-    
+
     def validate_french_content(self, text: str) -> bool:
         """Validate that text is in French using linguistic patterns."""
         # Check for French linguistic markers
         french_indicators = [
-            r'\b(le|la|les|un|une|des)\b',  # Articles
-            r'\b(est|sont|était|étaient)\b',  # Common verbs
-            r'\b(que|qui|dont|où)\b',  # Relative pronouns
-            r'\b(avec|dans|pour|sur|sous)\b'  # Prepositions
+            r"\b(le|la|les|un|une|des)\b",  # Articles
+            r"\b(est|sont|était|étaient)\b",  # Common verbs
+            r"\b(que|qui|dont|où)\b",  # Relative pronouns
+            r"\b(avec|dans|pour|sur|sous)\b",  # Prepositions
         ]
-        
-        score = sum(1 for pattern in french_indicators 
-                   if re.search(pattern, text.lower()))
+
+        score = sum(1 for pattern in french_indicators if re.search(pattern, text.lower()))
         return score >= 2  # Minimum threshold for French detection
-    
+
     def validate_flashcard_french(self, flashcard: Dict[str, str]) -> bool:
         """Validate that both question and answer are in French."""
-        return (self.validate_french_content(flashcard['question']) and 
-                self.validate_french_content(flashcard['answer']))
-    
+        return self.validate_french_content(flashcard["question"]) and self.validate_french_content(flashcard["answer"])
+
     def request_regeneration_if_needed(self, flashcards: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """Request regeneration for non-French flashcards."""
         validated_flashcards = []

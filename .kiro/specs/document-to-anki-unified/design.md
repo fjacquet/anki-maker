@@ -90,11 +90,11 @@ class Settings(BaseSettings):
 ```python
 class ModelConfig:
     """Handles LLM model configuration and validation."""
-    
+
     SUPPORTED_MODELS = {
         "gemini/gemini-2.5-flash": "GEMINI_API_KEY",
         "gemini/gemini-2.5-pro": "GEMINI_API_KEY",
-        "openai/gpt-4": "OPENAI_API_KEY", 
+        "openai/gpt-4": "OPENAI_API_KEY",
         "openai/gpt-3.5-turbo": "OPENAI_API_KEY",
         "openai/gpt-4.1": "OPENAI_API_KEY",
         "openai/gpt-4.1-mini": "OPENAI_API_KEY",
@@ -102,17 +102,17 @@ class ModelConfig:
         "openai/gpt-5": "OPENAI_API_KEY",
         "openai/gpt-5-mini": "OPENAI_API_KEY",
         "openai/gpt-5-nano": "OPENAI_API_KEY",
-        "openai/gpt-4o": "OPENAI_API_KEY"
+        "openai/gpt-4o": "OPENAI_API_KEY",
     }
-    
+
     DEFAULT_MODEL = "gemini/gemini-2.5-flash"
-    
+
     @classmethod
     def validate_model_config(cls, model: str) -> bool:
         """Validate that model is supported and API key is available."""
         if model not in cls.SUPPORTED_MODELS:
             return False
-        
+
         required_key = cls.SUPPORTED_MODELS[model]
         return os.getenv(required_key) is not None
 ```
@@ -165,25 +165,25 @@ The application supports multiple document formats through a unified text extrac
 ```python
 class TextExtractor:
     """Unified text extraction for multiple document formats."""
-    
+
     SUPPORTED_FORMATS = {
-        '.pdf': 'extract_text_from_pdf',
-        '.docx': 'extract_text_from_docx', 
-        '.pptx': 'extract_text_from_pptx',
-        '.txt': 'extract_text_from_txt',
-        '.md': 'extract_text_from_md'
+        ".pdf": "extract_text_from_pdf",
+        ".docx": "extract_text_from_docx",
+        ".pptx": "extract_text_from_pptx",
+        ".txt": "extract_text_from_txt",
+        ".md": "extract_text_from_md",
     }
-    
+
     def extract_text_from_pptx(self, file_path: str) -> str:
         """Extract text from PowerPoint presentations."""
         from pptx import Presentation
-        
+
         presentation = Presentation(file_path)
         extracted_text = []
-        
+
         for slide_num, slide in enumerate(presentation.slides, 1):
             slide_content = [f"=== Slide {slide_num} ==="]
-            
+
             # Extract text from all shapes in the slide
             for shape in slide.shapes:
                 if hasattr(shape, "text") and shape.text.strip():
@@ -191,18 +191,18 @@ class TextExtractor:
                     text = self._clean_slide_text(shape.text)
                     if text:
                         slide_content.append(text)
-            
+
             if len(slide_content) > 1:  # More than just the slide header
                 extracted_text.extend(slide_content)
                 extracted_text.append("")  # Add spacing between slides
-        
+
         return "\n".join(extracted_text)
-    
+
     def _clean_slide_text(self, text: str) -> str:
         """Clean and format slide text while preserving structure."""
         # Remove excessive whitespace while preserving line breaks
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        return '\n'.join(lines)
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
+        return "\n".join(lines)
 ```
 
 #### PowerPoint Processing Design
@@ -220,18 +220,18 @@ class TextExtractor:
 ```python
 class LLMClient:
     """Multi-language, multi-model LLM client."""
-    
+
     def __init__(self, model: str | None = None, language: str = "english", max_tokens: int = 4000):
         """Initialize LLM client with model and language configuration."""
         self.settings = Settings()
         self.model = model or self.settings.model
         self.language = LanguageConfig.normalize_language(language or self.settings.cardlang)
         self.max_tokens = max_tokens
-        
+
         # Validate configuration
         if not ModelConfig.validate_model_config(self.model):
             raise ConfigurationError(f"Invalid model configuration: {self.model}")
-    
+
     def _get_prompt_template(self, language: str, content_type: str = "general") -> str:
         """Get language-specific prompt template."""
         templates = {
@@ -241,39 +241,36 @@ class LLMClient:
             "de": self._get_german_prompt_template(content_type),
         }
         return templates.get(language, templates["en"])
-    
+
     async def generate_flashcards_from_text(
-        self, 
-        text: str, 
-        language: str | None = None, 
-        content_type: str = "general"
+        self, text: str, language: str | None = None, content_type: str = "general"
     ) -> list[dict[str, str]]:
         """Generate flashcards with configurable language support."""
         target_language = language or self.language
-        
+
         # Adapt prompt based on content type (presentation slides need special handling)
         prompt = self._create_flashcard_prompt(text, target_language, content_type)
-        
+
         # Generate flashcards using litellm
         response = await self._call_llm(prompt)
         flashcards = self._parse_response(response)
-        
+
         # Validate language output
         validated_flashcards = self._validate_language_output(flashcards, target_language)
-        
+
         return validated_flashcards
-    
+
     def _create_flashcard_prompt(self, text: str, language: str, content_type: str) -> str:
         """Create language and content-type specific prompts."""
         base_template = self._get_prompt_template(language, content_type)
-        
+
         # Add content-type specific instructions
         if content_type == "presentation":
             additional_instructions = self._get_presentation_instructions(language)
             base_template += "\n\n" + additional_instructions
-        
+
         return base_template.format(text=text)
-    
+
     def _get_presentation_instructions(self, language: str) -> str:
         """Get presentation-specific instructions for flashcard generation."""
         instructions = {
@@ -294,7 +291,7 @@ class LLMClient:
             # Add other languages as needed
         }
         return instructions.get(language, instructions["en"])
-    
+
     def _validate_language_output(self, flashcards: list[dict], target_language: str) -> list[dict]:
         """Validate that flashcards are in the correct language."""
         # Language-specific validation logic
@@ -310,65 +307,68 @@ def _get_english_prompt_template(self, content_type: str) -> str:
     return """
     You are an expert at creating flashcards for learning.
     Analyze the provided text and create high-quality flashcards in English.
-    
+
     Instructions:
     1. All questions and answers MUST be in English
     2. Use proper English grammar and appropriate vocabulary
     3. Create clear, concise questions with accurate answers
     4. Generate a mix of question-answer and cloze deletion cards
     5. Focus on the most important information in the text
-    
+
     Text to analyze:
     {text}
     """
+
 
 def _get_french_prompt_template(self, content_type: str) -> str:
     """French flashcard generation prompt."""
     return """
     Vous êtes un expert en création de cartes mémoire (flashcards) pour l'apprentissage.
     Analysez le texte fourni et créez des cartes mémoire en français de haute qualité.
-    
+
     Instructions importantes:
     1. Toutes les questions et réponses DOIVENT être en français
     2. Utilisez une grammaire française correcte et un vocabulaire approprié
     3. Créez des questions claires et concises avec des réponses précises
     4. Générez un mélange de cartes question-réponse et de cartes à trous (cloze deletion)
     5. Concentrez-vous sur les informations les plus importantes du texte
-    
+
     Texte à analyser:
     {text}
     """
+
 
 def _get_italian_prompt_template(self, content_type: str) -> str:
     """Italian flashcard generation prompt."""
     return """
     Sei un esperto nella creazione di flashcard per l'apprendimento.
     Analizza il testo fornito e crea flashcard di alta qualità in italiano.
-    
+
     Istruzioni importanti:
     1. Tutte le domande e risposte DEVONO essere in italiano
     2. Usa una grammatica italiana corretta e un vocabolario appropriato
     3. Crea domande chiare e concise con risposte accurate
     4. Genera un mix di carte domanda-risposta e carte cloze deletion
     5. Concentrati sulle informazioni più importanti del testo
-    
+
     Testo da analizzare:
     {text}
     """
+
 
 def _get_german_prompt_template(self, content_type: str) -> str:
     """German flashcard generation prompt."""
     return """
     Sie sind ein Experte für die Erstellung von Lernkarten (Flashcards).
     Analysieren Sie den bereitgestellten Text und erstellen Sie hochwertige Lernkarten auf Deutsch.
-    
+
     Wichtige Anweisungen:
     1. Alle Fragen und Antworten MÜSSEN auf Deutsch sein
     2. Verwenden Sie korrekte deutsche Grammatik und angemessenes Vokabular
     3. Erstellen Sie klare, prägnante Fragen mit genauen Antworten
     4. Generieren Sie eine Mischung aus Frage-Antwort- und Lückentext-Karten
     5. Konzentrieren Sie sich auf die wichtigsten Informationen im Text
-    
+
     Zu analysierender Text:
     {text}
     """
@@ -384,40 +384,32 @@ class TestLLMClientLanguage:
     def test_language_specific_prompts(self, mocker):
         """Test generation of language-specific prompts using pytest-mock."""
         # Mock litellm response
-        mock_response = mocker.patch('litellm.acompletion')
-        mock_response.return_value = AsyncMock(
-            choices=[Mock(message=Mock(content='{"flashcards": [...]}'))]
-        )
-        
+        mock_response = mocker.patch("litellm.acompletion")
+        mock_response.return_value = AsyncMock(choices=[Mock(message=Mock(content='{"flashcards": [...]}'))])
+
         client = LLMClient(language="french")
         # Test implementation
-    
+
     def test_model_configuration_validation(self, mocker):
         """Test model configuration validation using pytest-mock."""
         # Mock environment variables
-        mocker.patch.dict(os.environ, {
-            'MODEL': 'gemini/gemini-2.5-pro',
-            'GEMINI_API_KEY': 'test-key'
-        })
-        
+        mocker.patch.dict(os.environ, {"MODEL": "gemini/gemini-2.5-pro", "GEMINI_API_KEY": "test-key"})
+
         # Test model validation
         client = LLMClient()
-        assert client.model == 'gemini/gemini-2.5-pro'
-    
+        assert client.model == "gemini/gemini-2.5-pro"
+
     def test_language_validation_retry(self, mocker):
         """Test language validation and retry logic using pytest-mock."""
         # Mock LLM responses - first invalid, then valid
         mock_responses = [
             '{"flashcards": [{"question": "What is...?", "answer": "It is..."}]}',  # English
-            '{"flashcards": [{"question": "Qu\'est-ce que...?", "answer": "C\'est..."}]}'  # French
+            '{"flashcards": [{"question": "Qu\'est-ce que...?", "answer": "C\'est..."}]}',  # French
         ]
-        
-        mock_completion = mocker.patch('litellm.acompletion')
-        mock_completion.side_effect = [
-            AsyncMock(choices=[Mock(message=Mock(content=resp))]) 
-            for resp in mock_responses
-        ]
-        
+
+        mock_completion = mocker.patch("litellm.acompletion")
+        mock_completion.side_effect = [AsyncMock(choices=[Mock(message=Mock(content=resp))]) for resp in mock_responses]
+
         client = LLMClient(language="french")
         # Test retry logic
 ```
@@ -437,26 +429,37 @@ class TestLLMClientLanguage:
 ```python
 class DocumentToAnkiError(Exception):
     """Base exception for the application"""
+
     pass
+
 
 class FileProcessingError(DocumentToAnkiError):
     """Errors related to file processing"""
+
     pass
+
 
 class LLMError(DocumentToAnkiError):
     """Errors related to LLM communication"""
+
     pass
+
 
 class ConfigurationError(DocumentToAnkiError):
     """Errors related to model and language configuration"""
+
     pass
+
 
 class ValidationError(DocumentToAnkiError):
     """Errors related to data validation"""
+
     pass
+
 
 class LanguageValidationError(DocumentToAnkiError):
     """Errors related to language processing and validation"""
+
     pass
 ```
 
@@ -467,7 +470,7 @@ class LanguageValidationError(DocumentToAnkiError):
 ```python
 class LanguageValidator:
     """Validates LLM output for correct language usage."""
-    
+
     def __init__(self):
         self.validators = {
             "en": self._validate_english,
@@ -475,39 +478,36 @@ class LanguageValidator:
             "it": self._validate_italian,
             "de": self._validate_german,
         }
-    
+
     def validate_flashcard_language(self, flashcard: dict, target_language: str) -> bool:
         """Validate that flashcard is in the correct language."""
         validator = self.validators.get(target_language, self._validate_english)
-        return (validator(flashcard['question']) and 
-                validator(flashcard['answer']))
-    
+        return validator(flashcard["question"]) and validator(flashcard["answer"])
+
     def _validate_french(self, text: str) -> bool:
         """Validate French text using linguistic patterns."""
         french_indicators = [
-            r'\b(le|la|les|un|une|des)\b',  # Articles
-            r'\b(est|sont|était|étaient)\b',  # Common verbs
-            r'\b(que|qui|dont|où)\b',  # Relative pronouns
-            r'\b(avec|dans|pour|sur|sous)\b'  # Prepositions
+            r"\b(le|la|les|un|une|des)\b",  # Articles
+            r"\b(est|sont|était|étaient)\b",  # Common verbs
+            r"\b(que|qui|dont|où)\b",  # Relative pronouns
+            r"\b(avec|dans|pour|sur|sous)\b",  # Prepositions
         ]
-        
-        score = sum(1 for pattern in french_indicators 
-                   if re.search(pattern, text.lower()))
+
+        score = sum(1 for pattern in french_indicators if re.search(pattern, text.lower()))
         return score >= 2
-    
+
     def _validate_english(self, text: str) -> bool:
         """Validate English text using linguistic patterns."""
         english_indicators = [
-            r'\b(the|a|an)\b',  # Articles
-            r'\b(is|are|was|were)\b',  # Common verbs
-            r'\b(that|which|who|where)\b',  # Relative pronouns
-            r'\b(with|in|for|on|under)\b'  # Prepositions
+            r"\b(the|a|an)\b",  # Articles
+            r"\b(is|are|was|were)\b",  # Common verbs
+            r"\b(that|which|who|where)\b",  # Relative pronouns
+            r"\b(with|in|for|on|under)\b",  # Prepositions
         ]
-        
-        score = sum(1 for pattern in english_indicators 
-                   if re.search(pattern, text.lower()))
+
+        score = sum(1 for pattern in english_indicators if re.search(pattern, text.lower()))
         return score >= 2
-    
+
     # Similar methods for Italian and German...
 ```
 
@@ -574,7 +574,7 @@ class LanguageValidator:
 ```python
 class Flashcard(BaseModel):
     """Enhanced flashcard model with source context."""
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     question: str = Field(..., min_length=1, max_length=500)
     answer: str = Field(..., min_length=1, max_length=1000)
@@ -583,7 +583,7 @@ class Flashcard(BaseModel):
     source_context: str | None = Field(None)  # For slide numbers, page numbers, etc.
     language: str = Field(default="en")
     created_at: datetime = Field(default_factory=datetime.now)
-    
+
     @field_validator("question", "answer")
     @classmethod
     def validate_content(cls, v: str) -> str:
@@ -591,7 +591,7 @@ class Flashcard(BaseModel):
         if not v.strip():
             raise ValueError("Content cannot be empty")
         return v.strip()
-    
+
     def to_csv_row(self) -> dict[str, str]:
         """Convert to Anki-compatible CSV format."""
         return {
@@ -599,7 +599,7 @@ class Flashcard(BaseModel):
             "Back": self.answer,
             "Type": self.card_type,
             "Source": f"{self.source_file}:{self.source_context}" if self.source_context else self.source_file,
-            "Language": self.language
+            "Language": self.language,
         }
 ```
 
@@ -615,19 +615,19 @@ class TestPowerPointProcessing:
         mock_presentation = mocker.Mock()
         mock_slide = mocker.Mock()
         mock_shape = mocker.Mock()
-        
+
         mock_shape.text = "Sample slide content"
         mock_slide.shapes = [mock_shape]
         mock_presentation.slides = [mock_slide]
-        
-        mocker.patch('pptx.Presentation', return_value=mock_presentation)
-        
+
+        mocker.patch("pptx.Presentation", return_value=mock_presentation)
+
         extractor = TextExtractor()
         result = extractor.extract_text_from_pptx("test.pptx")
-        
+
         assert "=== Slide 1 ===" in result
         assert "Sample slide content" in result
-    
+
     def test_presentation_flashcard_generation(self, mocker):
         """Test flashcard generation from presentation content."""
         mock_llm_response = {
@@ -635,21 +635,21 @@ class TestPowerPointProcessing:
                 {
                     "question": "What is the main topic of Slide 1?",
                     "answer": "Sample slide content overview",
-                    "type": "qa"
+                    "type": "qa",
                 }
             ]
         }
-        
-        mocker.patch('litellm.acompletion', return_value=AsyncMock(
-            choices=[Mock(message=Mock(content=json.dumps(mock_llm_response)))]
-        ))
-        
+
+        mocker.patch(
+            "litellm.acompletion",
+            return_value=AsyncMock(choices=[Mock(message=Mock(content=json.dumps(mock_llm_response)))]),
+        )
+
         client = LLMClient()
         result = await client.generate_flashcards_from_text(
-            "=== Slide 1 ===\nSample content", 
-            content_type="presentation"
+            "=== Slide 1 ===\nSample content", content_type="presentation"
         )
-        
+
         assert len(result) == 1
         assert "Slide 1" in result[0]["question"]
 ```

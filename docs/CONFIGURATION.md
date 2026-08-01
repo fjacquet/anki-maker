@@ -795,10 +795,11 @@ import os
 import sys
 from pathlib import Path
 
+
 def validate_required_config():
     """Validate required configuration."""
     from document_to_anki.config import ModelConfig, ConfigurationError
-    
+
     try:
         # This validates both model support and API key availability
         model = ModelConfig.validate_and_get_model()
@@ -808,23 +809,24 @@ def validate_required_config():
         print(f"❌ Configuration error: {e}")
         return False
 
+
 def validate_optional_config():
     """Validate optional configuration."""
     from document_to_anki.config import ModelConfig
-    
+
     config_checks = {
-        'LOG_LEVEL': ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-        'WEB_PORT': lambda x: x.isdigit() and 1 <= int(x) <= 65535,
+        "LOG_LEVEL": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        "WEB_PORT": lambda x: x.isdigit() and 1 <= int(x) <= 65535,
     }
-    
+
     # Check MODEL separately using ModelConfig
-    model = os.getenv('MODEL', ModelConfig.DEFAULT_MODEL)
+    model = os.getenv("MODEL", ModelConfig.DEFAULT_MODEL)
     if model not in ModelConfig.get_supported_models():
         print(f"⚠️ Unsupported model: {model}")
         print(f"   Supported models: {', '.join(ModelConfig.get_supported_models())}")
     else:
         print(f"✅ Model is supported: {model}")
-    
+
     for var, valid_values in config_checks.items():
         value = os.getenv(var)
         if value:
@@ -834,50 +836,53 @@ def validate_optional_config():
             elif callable(valid_values) and not valid_values(value):
                 print(f"⚠️ Invalid value for {var}: {value}")
 
+
 def test_api_connection():
     """Test API connection."""
     try:
         from document_to_anki.core.llm_client import LLMClient
         from document_to_anki.config import ModelConfig
-        
+
         # Get the configured model
         model = ModelConfig.validate_and_get_model()
         print(f"Testing API connection with model: {model}")
-        
+
         client = LLMClient()
         result = client.generate_flashcards_from_text_sync("Test content for API validation.")
-        
+
         if result:
             print(f"✅ API connection successful - generated {len(result)} test flashcards")
             return True
         else:
             print("❌ API connection failed - no response")
             return False
-            
+
     except Exception as e:
         print(f"❌ API connection error: {e}")
         return False
 
+
 if __name__ == "__main__":
     print("🔧 Configuration Validation")
     print("=" * 30)
-    
+
     # Load .env file if it exists
     env_file = Path(".env")
     if env_file.exists():
         from dotenv import load_dotenv
+
         load_dotenv()
         print("✅ Loaded .env file")
     else:
         print("ℹ️ No .env file found")
-    
+
     # Validate configuration
     valid = validate_required_config()
     validate_optional_config()
-    
+
     if valid:
         test_api_connection()
-    
+
     print("\n🎉 Validation complete!")
 ```
 

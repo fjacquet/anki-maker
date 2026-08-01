@@ -185,10 +185,7 @@ Warning: Presentation patterns not detected in slide content
 
 2. **Manually specify content type** in Python API:
    ```python
-   flashcards = client.generate_flashcards_from_text_sync(
-       text, 
-       content_type="presentation"
-   )
+   flashcards = client.generate_flashcards_from_text_sync(text, content_type="presentation")
    ```
 
 3. **Enable verbose logging** to see detection details:
@@ -1003,7 +1000,8 @@ ERROR: Web API tests failing with missing app state
    def test_endpoint():
        client = TestClient(app)
        response = client.get("/api/health")
-   
+
+
    # ✅ Do this instead - use the fixture
    def test_endpoint(web_client):
        response = web_client.get("/api/health")

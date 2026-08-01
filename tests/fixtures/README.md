@@ -116,9 +116,11 @@ def test_example(self, temp_dir):
     file_path = temp_dir / "test.txt"
     file_path.write_text(content)
 
+
 # New approach (external)
 def test_example(self, temp_dir):
     from tests.fixtures.test_data_loader import test_data_loader
+
     file_path = test_data_loader.create_temp_document(temp_dir, "python_basics.txt")
 ```
 
@@ -130,15 +132,15 @@ Instead of defining mock responses in each test:
 # Old approach (hardcoded)
 @pytest.fixture
 def mock_responses(self, mocker):
-    responses = [
-        {"question": "What is Python?", "answer": "...", "card_type": "qa"}
-    ]
+    responses = [{"question": "What is Python?", "answer": "...", "card_type": "qa"}]
     mocker.patch("...", return_value=responses)
+
 
 # New approach (external)
 @pytest.fixture
 def mock_responses(self, mocker):
     from tests.fixtures.test_data_loader import test_data_loader
+
     mock_function = test_data_loader.create_mock_llm_function()
     mocker.patch("...", side_effect=mock_function)
 ```
@@ -153,9 +155,11 @@ def test_performance(self):
     max_time = 5.0  # Hardcoded
     assert processing_time < max_time
 
+
 # New approach (external)
 def test_performance(self):
     from tests.fixtures.test_data_loader import test_data_loader
+
     perf_config = test_data_loader.get_performance_expectations("document_processing")
     max_time = perf_config.get("max_time_seconds", 5.0)
     assert processing_time < max_time

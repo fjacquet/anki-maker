@@ -294,10 +294,7 @@ flashcard_gen = FlashcardGenerator()
 result = doc_processor.process_upload("path/to/document.pdf")
 
 # Generate flashcards
-flashcards_result = flashcard_gen.generate_flashcards(
-    [result.text_content], 
-    result.source_files
-)
+flashcards_result = flashcard_gen.generate_flashcards([result.text_content], result.source_files)
 
 # Export to CSV
 success, summary = flashcard_gen.export_to_csv("output.csv")
@@ -312,9 +309,9 @@ from document_to_anki.models.flashcard import Flashcard
 
 # Custom LLM configuration with language support
 llm_client = LLMClient(
-    model="gemini/gemini-2.5-flash", 
+    model="gemini/gemini-2.5-flash",
     timeout=300,
-    language="french"  # Generate flashcards in French
+    language="french",  # Generate flashcards in French
 )
 
 # Generate flashcards directly from text
@@ -325,10 +322,7 @@ flashcard_data = llm_client.generate_flashcards_from_text_sync(text)
 flashcards = []
 for data in flashcard_data:
     flashcard = Flashcard.create(
-        question=data["question"],
-        answer=data["answer"],
-        card_type=data["card_type"],
-        source_file="manual_input"
+        question=data["question"], answer=data["answer"], card_type=data["card_type"], source_file="manual_input"
     )
     flashcards.append(flashcard)
 
@@ -350,20 +344,17 @@ document_path = "scientific-paper.pdf"
 for lang in languages:
     # Create settings with specific language
     settings = Settings(cardlang=lang)
-    
+
     # Initialize components with language-specific settings
     doc_processor = DocumentProcessor()
     flashcard_gen = FlashcardGenerator(language=lang)
-    
+
     # Process document
     result = doc_processor.process_upload(document_path)
-    
+
     # Generate flashcards in the specified language
-    flashcards_result = flashcard_gen.generate_flashcards(
-        [result.text_content], 
-        result.source_files
-    )
-    
+    flashcards_result = flashcard_gen.generate_flashcards([result.text_content], result.source_files)
+
     # Export with language-specific filename
     output_file = f"flashcards_{lang}.csv"
     success, summary = flashcard_gen.export_to_csv(output_file)

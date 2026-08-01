@@ -124,10 +124,7 @@ Generate flashcards from text content using LLM.
 
 **Example:**
 ```python
-result = generator.generate_flashcards(
-    ["Educational content here..."],
-    ["textbook.pdf"]
-)
+result = generator.generate_flashcards(["Educational content here..."], ["textbook.pdf"])
 print(f"Generated {result.flashcard_count} flashcards")
 ```
 
@@ -142,6 +139,7 @@ Display rich-formatted preview of flashcards for CLI.
 **Example:**
 ```python
 from rich.console import Console
+
 console = Console()
 generator.preview_flashcards(console=console)
 ```
@@ -161,9 +159,7 @@ Edit an existing flashcard.
 **Example:**
 ```python
 success, message = generator.edit_flashcard(
-    "abc123",
-    "What is the capital of France?",
-    "Paris, the largest city in France"
+    "abc123", "What is the capital of France?", "Paris, the largest city in France"
 )
 ```
 
@@ -196,7 +192,7 @@ flashcard, message = generator.add_flashcard(
     "What is photosynthesis?",
     "The process by which plants convert light energy to chemical energy",
     "qa",
-    "biology.txt"
+    "biology.txt",
 )
 ```
 
@@ -214,6 +210,7 @@ Export flashcards to Anki-compatible CSV format.
 **Example:**
 ```python
 from pathlib import Path
+
 success, summary = generator.export_to_csv(Path("flashcards.csv"))
 if success:
     print(f"Exported {summary['exported_flashcards']} flashcards")
@@ -266,9 +263,11 @@ Generate flashcards from text content (async).
 ```python
 import asyncio
 
+
 async def generate():
     flashcards = await client.generate_flashcards_from_text("Educational content...")
     return flashcards
+
 
 flashcards = asyncio.run(generate())
 ```
@@ -356,10 +355,7 @@ presentation_text = """
 flashcards = client.generate_flashcards_from_text_sync(presentation_text)
 
 # Alternatively, explicitly specify content type
-flashcards = client.generate_flashcards_from_text_sync(
-    presentation_text, 
-    content_type="presentation"
-)
+flashcards = client.generate_flashcards_from_text_sync(presentation_text, content_type="presentation")
 ```
 
 #### TextExtractor
@@ -423,10 +419,7 @@ from document_to_anki.models.flashcard import Flashcard
 
 # Create a new flashcard
 flashcard = Flashcard.create(
-    question="What is the capital of France?",
-    answer="Paris",
-    card_type="qa",
-    source_file="geography.txt"
+    question="What is the capital of France?", answer="Paris", card_type="qa", source_file="geography.txt"
 )
 ```
 
@@ -449,7 +442,7 @@ from document_to_anki.config import settings
 
 # Get file size limit in bytes
 max_size_bytes = settings.max_file_size_bytes  # Automatically converts MB to bytes
-max_size_mb = settings.max_file_size_mb       # Original MB setting
+max_size_mb = settings.max_file_size_mb  # Original MB setting
 
 print(f"File size limit: {max_size_mb} MB ({max_size_bytes:,} bytes)")
 ```
@@ -1192,7 +1185,8 @@ def test_api_endpoint(web_client):
     """Test API endpoint with properly initialized app."""
     response = web_client.get("/api/health")
     assert response.status_code == 200
-    
+
+
 def test_file_upload(web_client):
     """Test file upload with initialized session manager."""
     with open("test.txt", "rb") as f:
@@ -1236,57 +1230,56 @@ from pathlib import Path
 from document_to_anki.core.document_processor import DocumentProcessor
 from document_to_anki.core.flashcard_generator import FlashcardGenerator
 
+
 def process_document_to_flashcards(input_file: str, output_file: str):
     """Complete workflow example."""
-    
+
     # Initialize components
     processor = DocumentProcessor()
     generator = FlashcardGenerator()
-    
+
     try:
         # Step 1: Process document
         print(f"Processing document: {input_file}")
         doc_result = processor.process_upload(input_file)
-        
+
         if not doc_result.success:
             print("Document processing failed:")
             for error in doc_result.errors:
                 print(f"  - {error}")
             return False
-        
+
         print(f"Extracted {doc_result.total_characters:,} characters")
-        
+
         # Step 2: Generate flashcards
         print("Generating flashcards...")
-        flashcard_result = generator.generate_flashcards(
-            [doc_result.text_content],
-            doc_result.source_files
-        )
-        
+        flashcard_result = generator.generate_flashcards([doc_result.text_content], doc_result.source_files)
+
         if not flashcard_result.success:
             print("Flashcard generation failed:")
             for error in flashcard_result.errors:
                 print(f"  - {error}")
             return False
-        
+
         print(f"Generated {flashcard_result.flashcard_count} flashcards")
-        
+
         # Step 3: Export to CSV
         print(f"Exporting to: {output_file}")
         success, summary = generator.export_to_csv(Path(output_file))
-        
+
         if success:
             print(f"Successfully exported {summary['exported_flashcards']} flashcards")
             return True
         else:
             print("Export failed:")
-            for error in summary.get('errors', []):
+            for error in summary.get("errors", []):
                 print(f"  - {error}")
             return False
-            
+
     except Exception as e:
         print(f"Unexpected error: {e}")
         return False
+
 
 # Usage
 if __name__ == "__main__":
@@ -1304,91 +1297,93 @@ import requests
 import time
 from pathlib import Path
 
+
 class DocumentToAnkiClient:
     """REST API client example."""
-    
+
     def __init__(self, base_url: str = "http://localhost:8000/api"):
         self.base_url = base_url
         self.session_id = None
-    
+
     def upload_file(self, file_path: str) -> bool:
         """Upload file and start processing."""
         url = f"{self.base_url}/upload"
-        
-        with open(file_path, 'rb') as f:
-            files = {'files': f}
+
+        with open(file_path, "rb") as f:
+            files = {"files": f}
             response = requests.post(url, files=files)
-        
+
         if response.status_code == 200:
             data = response.json()
-            self.session_id = data['session_id']
+            self.session_id = data["session_id"]
             print(f"Upload successful. Session ID: {self.session_id}")
             return True
         else:
             print(f"Upload failed: {response.text}")
             return False
-    
+
     def wait_for_completion(self, timeout: int = 300) -> bool:
         """Wait for processing to complete."""
         if not self.session_id:
             return False
-        
+
         url = f"{self.base_url}/status/{self.session_id}"
         start_time = time.time()
-        
+
         while time.time() - start_time < timeout:
             response = requests.get(url)
             if response.status_code == 200:
                 data = response.json()
-                status = data['status']
-                progress = data['progress']
-                
+                status = data["status"]
+                progress = data["progress"]
+
                 print(f"Status: {status}, Progress: {progress}%")
-                
-                if status == 'completed':
+
+                if status == "completed":
                     print(f"Processing completed! Generated {data['flashcard_count']} flashcards")
                     return True
-                elif status == 'error':
+                elif status == "error":
                     print(f"Processing failed: {data['message']}")
                     return False
-            
+
             time.sleep(5)  # Check every 5 seconds
-        
+
         print("Timeout waiting for completion")
         return False
-    
+
     def get_flashcards(self) -> list:
         """Get all flashcards."""
         if not self.session_id:
             return []
-        
+
         url = f"{self.base_url}/flashcards/{self.session_id}"
         response = requests.get(url)
-        
+
         if response.status_code == 200:
             return response.json()
         else:
             print(f"Failed to get flashcards: {response.text}")
             return []
-    
+
     def export_csv(self, filename: str = "flashcards.csv") -> bool:
         """Export flashcards to CSV."""
         if not self.session_id:
             return False
-        
+
         url = f"{self.base_url}/export/{self.session_id}"
-        data = {'filename': filename}
-        
+        data = {"filename": filename}
+
         response = requests.post(url, json=data)
-        
+
         if response.status_code == 200:
-            with open(filename, 'wb') as f:
+            with open(filename, "wb") as f:
                 f.write(response.content)
             print(f"Exported to {filename}")
             return True
         else:
             print(f"Export failed: {response.text}")
             return False
+
 
 # Usage example
 client = DocumentToAnkiClient()
@@ -1397,7 +1392,7 @@ if client.upload_file("document.pdf"):
     if client.wait_for_completion():
         flashcards = client.get_flashcards()
         print(f"Retrieved {len(flashcards)} flashcards")
-        
+
         client.export_csv("my-flashcards.csv")
 ```
 

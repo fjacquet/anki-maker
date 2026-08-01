@@ -101,7 +101,8 @@ class LLMClient:
 ```python
 def _get_prompt_template(self, language: str, content_type: str = "general") -> str:
     """Get language-specific prompt template."""
-    
+
+
 def _create_flashcard_prompt(self, text: str, language: str, content_type: str = "general") -> str:
     """Create prompt with specified language instructions."""
 ```
@@ -109,10 +110,7 @@ def _create_flashcard_prompt(self, text: str, language: str, content_type: str =
 **Updated Generation Method**:
 ```python
 async def generate_flashcards_from_text(
-    self, 
-    text: str, 
-    language: str | None = None, 
-    content_type: str = "general"
+    self, text: str, language: str | None = None, content_type: str = "general"
 ) -> list[dict[str, str]]:
     """Generate flashcards with configurable language support."""
 ```
@@ -148,12 +146,15 @@ async def generate_flashcards_from_text(
 @dataclass
 class LanguageInfo:
     """Language information structure."""
-    code: str          # ISO 639-1 code (e.g., "en", "fr")
-    name: str          # Display name (e.g., "English", "French")
-    prompt_key: str    # Internal key for prompt templates
+
+    code: str  # ISO 639-1 code (e.g., "en", "fr")
+    name: str  # Display name (e.g., "English", "French")
+    prompt_key: str  # Internal key for prompt templates
+
 
 class LanguageValidationError(Exception):
     """Exception for language validation errors."""
+
     pass
 ```
 
@@ -162,27 +163,25 @@ class LanguageValidationError(Exception):
 ```python
 class Settings(BaseSettings):
     # ... existing fields ...
-    
+
     # Language Configuration
     cardlang: str = Field("english", alias="CARDLANG")
-    
+
     @field_validator("cardlang")
     @classmethod
     def validate_cardlang(cls, v: str) -> str:
         """Validate and normalize language configuration."""
         if not v:
             return "english"  # Default fallback
-            
+
         normalized = v.lower().strip()
-        
+
         if not LanguageConfig.validate_language(normalized):
             supported = ", ".join(LanguageConfig.get_supported_languages_list())
-            raise ValueError(
-                f"Unsupported language '{v}'. Supported languages: {supported}"
-            )
-        
+            raise ValueError(f"Unsupported language '{v}'. Supported languages: {supported}")
+
         return LanguageConfig.normalize_language(normalized)
-    
+
     def get_language_info(self) -> LanguageInfo:
         """Get structured language information."""
         return LanguageConfig.get_language_info(self.cardlang)
@@ -196,14 +195,11 @@ class Settings(BaseSettings):
 ```python
 class LanguageValidationError(Exception):
     """Raised when language configuration is invalid."""
-    
+
     def __init__(self, language: str, supported_languages: list[str]):
         self.language = language
         self.supported_languages = supported_languages
-        super().__init__(
-            f"Unsupported language '{language}'. "
-            f"Supported languages: {', '.join(supported_languages)}"
-        )
+        super().__init__(f"Unsupported language '{language}'. Supported languages: {', '.join(supported_languages)}")
 ```
 
 **Configuration Loading Errors**:
