@@ -298,10 +298,7 @@ result = doc_processor.process_upload("textbook.pdf")
 print(f"Extracted {result.total_characters} characters from {result.file_count} files")
 
 # Generate flashcards
-flashcards_result = flashcard_gen.generate_flashcards(
-    [result.text_content], 
-    result.source_files
-)
+flashcards_result = flashcard_gen.generate_flashcards([result.text_content], result.source_files)
 
 print(f"Generated {flashcards_result.flashcard_count} flashcards")
 print(f"Processing took {flashcards_result.processing_time:.2f} seconds")
@@ -324,17 +321,11 @@ gen = FlashcardGenerator()
 
 # Add flashcards manually
 flashcard1, msg1 = gen.add_flashcard(
-    question="What is the capital of France?",
-    answer="Paris",
-    card_type="qa",
-    source_file="geography.txt"
+    question="What is the capital of France?", answer="Paris", card_type="qa", source_file="geography.txt"
 )
 
 flashcard2, msg2 = gen.add_flashcard(
-    question="The capital of France is {{c1::Paris}}",
-    answer="Paris",
-    card_type="cloze",
-    source_file="geography.txt"
+    question="The capital of France is {{c1::Paris}}", answer="Paris", card_type="cloze", source_file="geography.txt"
 )
 
 print(f"Added flashcard 1: {msg1}")
@@ -342,9 +333,7 @@ print(f"Added flashcard 2: {msg2}")
 
 # Edit a flashcard
 success, msg = gen.edit_flashcard(
-    flashcard1.id,
-    "What is the capital city of France?",
-    "Paris, the largest city in France"
+    flashcard1.id, "What is the capital city of France?", "Paris, the largest city in France"
 )
 print(f"Edit result: {msg}")
 
@@ -369,7 +358,7 @@ from document_to_anki.core.flashcard_generator import FlashcardGenerator
 # Custom LLM client with specific settings
 llm_client = LLMClient(
     model="gemini/gemini-2.5-flash",  # or "openai/gpt-4o" for OpenAI
-    max_tokens=6000  # Larger chunks for complex documents
+    max_tokens=6000,  # Larger chunks for complex documents
 )
 
 # Use custom client with flashcard generator
@@ -389,10 +378,7 @@ flashcard_data = llm_client.generate_flashcards_from_text_sync(text)
 flashcards = []
 for data in flashcard_data:
     flashcard = Flashcard.create(
-        question=data["question"],
-        answer=data["answer"],
-        card_type=data["card_type"],
-        source_file="biology_notes.txt"
+        question=data["question"], answer=data["answer"], card_type=data["card_type"], source_file="biology_notes.txt"
     )
     flashcards.append(flashcard)
 
@@ -406,35 +392,33 @@ from document_to_anki.core.llm_client import LLMClient
 from document_to_anki.core.document_processor import DocumentProcessor
 from document_to_anki.core.flashcard_generator import FlashcardGenerator
 
+
 def process_presentation_with_detection(presentation_path: str, language: str = "english"):
     """Example of processing PowerPoint presentations with automatic content detection."""
-    
+
     # Initialize components with language support
     doc_processor = DocumentProcessor()
     llm_client = LLMClient(
         model="gemini/gemini-2.5-pro",  # Better for presentation content
-        language=language
+        language=language,
     )
     flashcard_gen = FlashcardGenerator(llm_client=llm_client)
-    
+
     print(f"Processing presentation: {presentation_path}")
     print(f"Target language: {language}")
-    
+
     # Process the presentation
     doc_result = doc_processor.process_upload(presentation_path)
-    
+
     if not doc_result.success:
         print("❌ Failed to process presentation")
         return
-    
+
     print(f"✅ Extracted content from {doc_result.slide_count} slides")
-    
+
     # Generate flashcards (automatic presentation detection)
-    flashcard_result = flashcard_gen.generate_flashcards(
-        [doc_result.text_content],
-        doc_result.source_files
-    )
-    
+    flashcard_result = flashcard_gen.generate_flashcards([doc_result.text_content], doc_result.source_files)
+
     if flashcard_result.success:
         print(f"✅ Generated {flashcard_result.flashcard_count} flashcards")
         print("📊 Presentation-specific processing applied:")
@@ -442,16 +426,17 @@ def process_presentation_with_detection(presentation_path: str, language: str = 
         print("   • Bullet points converted to individual cards")
         print("   • Slide context maintained in questions")
         print(f"   • {language} presentation instructions used")
-        
+
         # Export results
         output_file = f"presentation_{language}_flashcards.csv"
         success, summary = flashcard_gen.export_to_csv(output_file)
-        
+
         if success:
             print(f"📁 Exported to: {output_file}")
             print(f"📈 Export summary: {summary['exported_flashcards']} cards")
     else:
         print("❌ Failed to generate flashcards")
+
 
 # Example usage
 process_presentation_with_detection("business-training.pptx", "english")
@@ -464,9 +449,10 @@ process_presentation_with_detection("schulung-unternehmen.pptx", "german")
 ```python
 from document_to_anki.core.llm_client import LLMClient
 
+
 def demonstrate_presentation_detection():
     """Demonstrate automatic presentation content detection."""
-    
+
     # Sample presentation content
     presentation_text = """
 === Slide 1: Introduction to Machine Learning ===
@@ -491,29 +477,26 @@ def demonstrate_presentation_detection():
 3. Neural Networks
 4. Support Vector Machines
 """
-    
+
     # Create LLM client with different languages
     languages = ["english", "french", "italian", "german"]
-    
+
     for language in languages:
         print(f"\n🌍 Processing in {language.upper()}:")
         print("-" * 40)
-        
-        client = LLMClient(
-            model="gemini/gemini-2.5-pro",
-            language=language
-        )
-        
+
+        client = LLMClient(model="gemini/gemini-2.5-pro", language=language)
+
         # Generate flashcards (automatic presentation detection)
         flashcards = client.generate_flashcards_from_text_sync(presentation_text)
-        
+
         print(f"✅ Generated {len(flashcards)} flashcards")
         print("🎯 Presentation features detected:")
         print("   • Slide markers (=== Slide X ===)")
         print("   • Bullet points and numbered lists")
         print("   • Hierarchical structure")
         print(f"   • Applied {language} presentation instructions")
-        
+
         # Show first flashcard as example
         if flashcards:
             first_card = flashcards[0]
@@ -521,6 +504,7 @@ def demonstrate_presentation_detection():
             print(f"   Q: {first_card['question']}")
             print(f"   A: {first_card['answer'][:100]}...")
             print(f"   Type: {first_card['card_type']}")
+
 
 # Run the demonstration
 demonstrate_presentation_detection()
@@ -532,84 +516,85 @@ demonstrate_presentation_detection()
 import pytest
 from pathlib import Path
 
+
 def test_web_api_upload(web_client):
     """Example of testing web API endpoints using the web_client fixture."""
-    
+
     # Create test file
     test_content = "Sample educational content for testing."
     test_file = Path("test_upload.txt")
     test_file.write_text(test_content)
-    
+
     try:
         # Test file upload endpoint
         with open(test_file, "rb") as f:
-            response = web_client.post(
-                "/api/upload",
-                files={"files": ("test.txt", f, "text/plain")}
-            )
-        
+            response = web_client.post("/api/upload", files={"files": ("test.txt", f, "text/plain")})
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify response structure
         assert "session_id" in data
         assert "status" in data
         assert data["status"] in ["processing", "completed"]
-        
+
         session_id = data["session_id"]
-        
+
         # Test status endpoint
         status_response = web_client.get(f"/api/status/{session_id}")
         assert status_response.status_code == 200
-        
+
         # Test flashcards endpoint (if processing completed)
         flashcards_response = web_client.get(f"/api/flashcards/{session_id}")
         assert flashcards_response.status_code == 200
-        
+
         print("✅ Web API test completed successfully")
-        
+
     finally:
         # Cleanup
         if test_file.exists():
             test_file.unlink()
 
+
 def test_web_api_configuration(web_client):
     """Example of testing configuration endpoints."""
-    
+
     # Test model configuration endpoint
     response = web_client.get("/api/config/model")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert "current_model" in data
     assert "is_valid" in data
     assert "supported_models" in data
-    
+
     # Test language configuration endpoint
     response = web_client.get("/api/config/language")
-    
+
     # Should return 200 for valid config or 400 for invalid config
     assert response.status_code in [200, 400]
-    
+
     if response.status_code == 200:
         data = response.json()
         assert "current_language" in data
         assert "supported_languages" in data
-    
+
     print("✅ Configuration API test completed successfully")
+
 
 def test_web_api_health_check(web_client):
     """Example of testing health check endpoint."""
-    
+
     response = web_client.get("/api/health")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["status"] == "healthy"
     assert "active_sessions" in data
     assert "supported_formats" in data
-    
+
     print("✅ Health check test completed successfully")
+
 
 # Note: The web_client fixture is defined in tests/conftest.py and provides
 # a properly initialized FastAPI test client with all app dependencies
@@ -623,36 +608,37 @@ from document_to_anki.core.flashcard_generator import FlashcardGenerationError
 from document_to_anki.models.flashcard import Flashcard
 from pathlib import Path
 
+
 def safe_document_processing(file_path: str):
     """Example of robust document processing with error handling."""
-    
+
     try:
         # Initialize processor
         doc_processor = DocumentProcessor()
-        
+
         # Validate file first
         path = Path(file_path)
         if not doc_processor.validate_upload_path(path):
             print(f"❌ Invalid file: {file_path}")
             return None
-            
+
         # Process document
         result = doc_processor.process_upload(path)
-        
+
         if not result.success:
             print("❌ Document processing failed:")
             for error in result.errors:
                 print(f"  • {error}")
             return None
-            
+
         if result.warnings:
             print("⚠️ Warnings:")
             for warning in result.warnings:
                 print(f"  • {warning}")
-        
+
         print(f"✅ Successfully processed {result.file_count} files")
         return result
-        
+
     except DocumentProcessingError as e:
         print(f"❌ Document processing error: {e}")
         return None
@@ -660,30 +646,31 @@ def safe_document_processing(file_path: str):
         print(f"❌ Unexpected error: {e}")
         return None
 
+
 def safe_flashcard_generation(text_content: list[str], source_files: list[str]):
     """Example of robust flashcard generation with error handling."""
-    
+
     try:
         # Initialize generator
         flashcard_gen = FlashcardGenerator()
-        
+
         # Generate flashcards
         result = flashcard_gen.generate_flashcards(text_content, source_files)
-        
+
         if not result.success:
             print("❌ Flashcard generation failed:")
             for error in result.errors:
                 print(f"  • {error}")
             return None
-            
+
         if result.warnings:
             print("⚠️ Warnings:")
             for warning in result.warnings:
                 print(f"  • {warning}")
-        
+
         print(f"✅ Generated {result.flashcard_count} flashcards")
         return result
-        
+
     except FlashcardGenerationError as e:
         print(f"❌ Flashcard generation error: {e}")
         return None
@@ -691,18 +678,16 @@ def safe_flashcard_generation(text_content: list[str], source_files: list[str]):
         print(f"❌ Unexpected error: {e}")
         return None
 
+
 # Usage example
 if __name__ == "__main__":
     # Process document safely
     doc_result = safe_document_processing("study-material.pdf")
-    
+
     if doc_result:
         # Generate flashcards safely
-        flashcard_result = safe_flashcard_generation(
-            [doc_result.text_content],
-            doc_result.source_files
-        )
-        
+        flashcard_result = safe_flashcard_generation([doc_result.text_content], doc_result.source_files)
+
         if flashcard_result:
             print("🎉 Processing completed successfully!")
 ```
@@ -742,82 +727,81 @@ from pathlib import Path
 from document_to_anki.core.document_processor import DocumentProcessor
 from document_to_anki.core.flashcard_generator import FlashcardGenerator
 
+
 def batch_process_directory(input_dir: Path, output_dir: Path):
     """Process all supported files in a directory."""
-    
+
     # Initialize components
     doc_processor = DocumentProcessor()
     flashcard_gen = FlashcardGenerator()
-    
+
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Find all supported files
     supported_extensions = doc_processor.get_supported_formats()
     files_to_process = []
-    
+
     for ext in supported_extensions:
         files_to_process.extend(input_dir.glob(f"**/*{ext}"))
-    
+
     print(f"Found {len(files_to_process)} files to process")
-    
+
     successful = 0
     failed = 0
-    
+
     for file_path in files_to_process:
         try:
             print(f"\nProcessing: {file_path.name}")
-            
+
             # Process document
             doc_result = doc_processor.process_upload(file_path)
-            
+
             if not doc_result.success:
                 print(f"❌ Failed to process {file_path.name}")
                 failed += 1
                 continue
-            
+
             # Generate flashcards
-            flashcard_result = flashcard_gen.generate_flashcards(
-                [doc_result.text_content],
-                doc_result.source_files
-            )
-            
+            flashcard_result = flashcard_gen.generate_flashcards([doc_result.text_content], doc_result.source_files)
+
             if not flashcard_result.success:
                 print(f"❌ Failed to generate flashcards for {file_path.name}")
                 failed += 1
                 continue
-            
+
             # Export to CSV
             output_file = output_dir / f"{file_path.stem}_flashcards.csv"
             success, summary = flashcard_gen.export_to_csv(output_file)
-            
+
             if success:
                 print(f"✅ Generated {summary['exported_flashcards']} flashcards")
                 successful += 1
             else:
                 print(f"❌ Failed to export flashcards for {file_path.name}")
                 failed += 1
-                
+
         except Exception as e:
             print(f"❌ Error processing {file_path.name}: {e}")
             failed += 1
-    
+
     print(f"\n🎉 Batch processing complete!")
     print(f"✅ Successful: {successful}")
     print(f"❌ Failed: {failed}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python batch_process.py <input_directory> <output_directory>")
         sys.exit(1)
-    
+
     input_dir = Path(sys.argv[1])
     output_dir = Path(sys.argv[2])
-    
+
     if not input_dir.exists():
         print(f"❌ Input directory does not exist: {input_dir}")
         sys.exit(1)
-    
+
     batch_process_directory(input_dir, output_dir)
 ```
 
@@ -901,54 +885,48 @@ from document_to_anki.core.document_processor import DocumentProcessor
 from document_to_anki.core.flashcard_generator import FlashcardGenerator
 from document_to_anki.core.llm_client import LLMClient
 
+
 # Process the same content in multiple languages
 def generate_multilingual_flashcards(document_path: str):
     """Generate flashcards in multiple languages from the same document."""
-    
+
     # Process document once
     doc_processor = DocumentProcessor()
     result = doc_processor.process_upload(document_path)
-    
+
     if not result.success:
         print(f"❌ Failed to process document: {document_path}")
         return
-    
-    languages = {
-        "english": "en",
-        "french": "fr", 
-        "italian": "it",
-        "german": "de"
-    }
-    
+
+    languages = {"english": "en", "french": "fr", "italian": "it", "german": "de"}
+
     for lang_name, lang_code in languages.items():
         print(f"\n🌍 Generating {lang_name} flashcards...")
-        
+
         # Create language-specific LLM client
         llm_client = LLMClient(
             model="gemini/gemini-2.5-pro",  # Better for non-English
-            language=lang_name
+            language=lang_name,
         )
-        
+
         # Create flashcard generator with language-specific client
         flashcard_gen = FlashcardGenerator(llm_client=llm_client)
-        
+
         # Generate flashcards
-        flashcard_result = flashcard_gen.generate_flashcards(
-            [result.text_content],
-            result.source_files
-        )
-        
+        flashcard_result = flashcard_gen.generate_flashcards([result.text_content], result.source_files)
+
         if flashcard_result.success:
             # Export with language-specific filename
             output_file = f"flashcards_{lang_code}.csv"
             success, summary = flashcard_gen.export_to_csv(output_file)
-            
+
             if success:
                 print(f"✅ Generated {summary['exported_flashcards']} {lang_name} flashcards")
             else:
                 print(f"❌ Failed to export {lang_name} flashcards")
         else:
             print(f"❌ Failed to generate {lang_name} flashcards")
+
 
 # Usage
 generate_multilingual_flashcards("biology-textbook.pdf")
@@ -966,9 +944,10 @@ import os
 from pathlib import Path
 from document_to_anki.core.llm_client import LLMClient
 
+
 def compare_language_quality():
     """Generate sample flashcards in different languages for quality comparison."""
-    
+
     # Sample educational content
     sample_text = """
     Photosynthesis is the process by which plants and other organisms convert light energy 
@@ -977,39 +956,37 @@ def compare_language_quality():
     synthesized from carbon dioxide and water. In most cases, oxygen is also released 
     as a waste product. Most plants, most algae, and cyanobacteria perform photosynthesis.
     """
-    
+
     languages = ["english", "french", "italian", "german"]
-    
+
     print("🔬 Language Quality Comparison")
     print("=" * 50)
-    
+
     for language in languages:
         print(f"\n🌍 {language.upper()} FLASHCARDS:")
         print("-" * 30)
-        
+
         try:
             # Create language-specific client
-            client = LLMClient(
-                model="gemini/gemini-2.5-pro",
-                language=language
-            )
-            
+            client = LLMClient(model="gemini/gemini-2.5-pro", language=language)
+
             # Generate flashcards
             flashcards = client.generate_flashcards_from_text_sync(sample_text)
-            
+
             # Display first few flashcards
             for i, card in enumerate(flashcards[:2], 1):
                 print(f"\nCard {i}:")
                 print(f"Q: {card['question']}")
                 print(f"A: {card['answer']}")
                 print(f"Type: {card['card_type']}")
-                
+
         except Exception as e:
             print(f"❌ Error generating {language} flashcards: {e}")
-    
+
     print("\n" + "=" * 50)
     print("💡 Compare the grammar, vocabulary, and cultural appropriateness")
     print("   of flashcards across different languages.")
+
 
 if __name__ == "__main__":
     compare_language_quality()
@@ -1078,87 +1055,78 @@ from pathlib import Path
 from document_to_anki.core.llm_client import LLMClient
 from document_to_anki.core.flashcard_generator import FlashcardGenerator
 
+
 class MultiLanguageProcessor:
     """Advanced multi-language flashcard processor."""
-    
+
     def __init__(self):
         self.language_configs = {
             "english": {
                 "model": "gemini/gemini-2.5-flash",  # Fast for English
                 "temperature": 0.3,
-                "max_tokens": 20000
+                "max_tokens": 20000,
             },
             "french": {
-                "model": "gemini/gemini-2.5-pro",   # Better for French grammar
+                "model": "gemini/gemini-2.5-pro",  # Better for French grammar
                 "temperature": 0.2,  # More consistent for grammar
-                "max_tokens": 25000  # French can be more verbose
+                "max_tokens": 25000,  # French can be more verbose
             },
-            "italian": {
-                "model": "gemini/gemini-2.5-pro",
-                "temperature": 0.2,
-                "max_tokens": 25000
-            },
+            "italian": {"model": "gemini/gemini-2.5-pro", "temperature": 0.2, "max_tokens": 25000},
             "german": {
-                "model": "gemini/gemini-2.5-pro",   # Better for compound words
+                "model": "gemini/gemini-2.5-pro",  # Better for compound words
                 "temperature": 0.1,  # Very consistent for technical terms
-                "max_tokens": 30000  # German compound words can be long
-            }
+                "max_tokens": 30000,  # German compound words can be long
+            },
         }
-    
+
     def process_document_multilingual(self, document_path: str, languages: list[str], output_dir: Path):
         """Process a document in multiple languages with optimized settings."""
-        
+
         from document_to_anki.core.document_processor import DocumentProcessor
-        
+
         # Process document once
         doc_processor = DocumentProcessor()
         result = doc_processor.process_upload(document_path)
-        
+
         if not result.success:
             print(f"❌ Failed to process document: {document_path}")
             return {}
-        
+
         results = {}
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         for language in languages:
             if language not in self.language_configs:
                 print(f"⚠️ Unsupported language: {language}")
                 continue
-                
+
             print(f"\n🌍 Processing in {language}...")
-            
+
             # Get language-specific configuration
             config = self.language_configs[language]
-            
+
             # Create optimized LLM client
-            llm_client = LLMClient(
-                model=config["model"],
-                language=language
-            )
-            
+            llm_client = LLMClient(model=config["model"], language=language)
+
             # Set language-specific parameters
-            os.environ['GEMINI_TEMPERATURE'] = str(config["temperature"])
-            os.environ['GEMINI_MAX_TOKENS'] = str(config["max_tokens"])
-            
+            os.environ["GEMINI_TEMPERATURE"] = str(config["temperature"])
+            os.environ["GEMINI_MAX_TOKENS"] = str(config["max_tokens"])
+
             # Generate flashcards
             flashcard_gen = FlashcardGenerator(llm_client=llm_client)
-            flashcard_result = flashcard_gen.generate_flashcards(
-                [result.text_content],
-                result.source_files
-            )
-            
+            flashcard_result = flashcard_gen.generate_flashcards([result.text_content], result.source_files)
+
             if flashcard_result.success:
                 # Export with language-specific filename
                 output_file = output_dir / f"flashcards_{language}.csv"
                 success, summary = flashcard_gen.export_to_csv(output_file)
-                
+
                 if success:
                     results[language] = {
                         "success": True,
-                        "flashcard_count": summary['exported_flashcards'],
+                        "flashcard_count": summary["exported_flashcards"],
                         "file_path": output_file,
-                        "processing_time": flashcard_result.processing_time
+                        "processing_time": flashcard_result.processing_time,
                     }
                     print(f"✅ Generated {summary['exported_flashcards']} flashcards")
                 else:
@@ -1167,45 +1135,44 @@ class MultiLanguageProcessor:
             else:
                 results[language] = {"success": False, "error": "Generation failed"}
                 print(f"❌ Failed to generate flashcards")
-        
+
         return results
-    
+
     def generate_quality_report(self, results: dict):
         """Generate a quality report for multi-language processing."""
-        
+
         print("\n📊 MULTI-LANGUAGE PROCESSING REPORT")
         print("=" * 50)
-        
+
         total_languages = len(results)
         successful_languages = sum(1 for r in results.values() if r.get("success", False))
-        
+
         print(f"Languages processed: {total_languages}")
         print(f"Successful: {successful_languages}")
         print(f"Failed: {total_languages - successful_languages}")
-        
+
         if successful_languages > 0:
             print("\nSuccessful Languages:")
             for lang, result in results.items():
                 if result.get("success", False):
-                    print(f"  • {lang}: {result['flashcard_count']} cards "
-                          f"({result['processing_time']:.1f}s)")
-        
-        failed_languages = [lang for lang, result in results.items() 
-                          if not result.get("success", False)]
+                    print(f"  • {lang}: {result['flashcard_count']} cards ({result['processing_time']:.1f}s)")
+
+        failed_languages = [lang for lang, result in results.items() if not result.get("success", False)]
         if failed_languages:
             print(f"\nFailed Languages: {', '.join(failed_languages)}")
+
 
 # Usage example
 if __name__ == "__main__":
     processor = MultiLanguageProcessor()
-    
+
     # Process document in multiple languages
     results = processor.process_document_multilingual(
         document_path="sample-document.pdf",
         languages=["english", "french", "italian", "german"],
-        output_dir=Path("multilingual_output")
+        output_dir=Path("multilingual_output"),
     )
-    
+
     # Generate quality report
     processor.generate_quality_report(results)
 ```
@@ -1287,39 +1254,40 @@ Configuration management script.
 import os
 from pathlib import Path
 
+
 def setup_environment():
     """Set up environment variables for the application."""
-    
+
     # Check if .env file exists
     env_file = Path(".env")
-    
+
     if not env_file.exists():
         print("Creating .env file...")
-        
+
         # Get API keys from user
         print("Choose your preferred AI model provider:")
         print("1. Gemini (Google) - Default, fast and efficient")
         print("2. OpenAI - GPT models")
         print("3. Both - Configure both for flexibility")
-        
+
         choice = input("Enter choice (1-3): ").strip()
-        
+
         gemini_key = ""
         openai_key = ""
         model = "gemini/gemini-2.5-flash"
-        
+
         if choice in ["1", "3"]:
             gemini_key = input("Enter your Gemini API key: ").strip()
-        
+
         if choice in ["2", "3"]:
             openai_key = input("Enter your OpenAI API key: ").strip()
             if choice == "2":
                 model = "openai/gpt-4o"
-        
+
         if not gemini_key and not openai_key:
             print("❌ At least one API key is required!")
             return False
-        
+
         # Create .env file
         env_content = f"""# Document to Anki CLI Configuration
 
@@ -1341,47 +1309,50 @@ LITELLM_TIMEOUT=300
 WEB_HOST=127.0.0.1
 WEB_PORT=8000
 """
-        
+
         env_file.write_text(env_content)
         print("✅ .env file created successfully!")
-        
+
     else:
         print("✅ .env file already exists")
-    
+
     # Validate configuration
     return validate_configuration()
 
+
 def validate_configuration():
     """Validate the current configuration."""
-    
+
     # Load environment variables
     from dotenv import load_dotenv
+
     load_dotenv()
-    
+
     try:
         from document_to_anki.config import ModelConfig
-        
+
         # Validate model configuration (checks both model support and API key)
         model = ModelConfig.validate_and_get_model()
         print(f"✅ Configuration validation passed - using model: {model}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Configuration validation failed: {e}")
         return False
 
+
 def test_api_connection():
     """Test connection to the API."""
-    
+
     try:
         from document_to_anki.core.llm_client import LLMClient
-        
+
         print("Testing API connection...")
         client = LLMClient()
-        
+
         # Test with minimal text
         result = client.generate_flashcards_from_text_sync("Test content for API validation.")
-        
+
         if result:
             print("✅ API connection successful!")
             print(f"Generated {len(result)} test flashcards")
@@ -1389,20 +1360,21 @@ def test_api_connection():
         else:
             print("❌ API connection failed - no response")
             return False
-            
+
     except Exception as e:
         print(f"❌ API connection failed: {e}")
         return False
 
+
 if __name__ == "__main__":
     print("🔧 Document to Anki CLI Configuration Setup")
     print("=" * 50)
-    
+
     # Setup environment
     if setup_environment():
         # Test API connection
         test_api_connection()
-    
+
     print("\n🎉 Setup complete!")
     print("You can now use: document-to-anki your-file.pdf")
     print("Or run comprehensive tests with:")
@@ -1539,7 +1511,7 @@ from document_to_anki.core.document_processor import DocumentProcessor
 from document_to_anki.core.flashcard_generator import FlashcardGenerator
 
 # Set up API keys (use environment variables in production)
-os.environ['GEMINI_API_KEY'] = 'your-gemini-api-key-here'
+os.environ["GEMINI_API_KEY"] = "your-gemini-api-key-here"
 # os.environ['OPENAI_API_KEY'] = 'your-openai-api-key-here'  # If using OpenAI models
 # os.environ['MODEL'] = 'gemini/gemini-2.5-flash'  # or 'openai/gpt-4o'
 
@@ -1555,19 +1527,16 @@ print(f"📄 Processed: {result.file_count} files")
 print(f"📝 Extracted: {result.total_characters:,} characters")
 
 # Generate flashcards
-flashcard_result = flashcard_gen.generate_flashcards(
-    [result.text_content],
-    result.source_files
-)
+flashcard_result = flashcard_gen.generate_flashcards([result.text_content], result.source_files)
 
 print(f"🎯 Generated: {flashcard_result.flashcard_count} flashcards")
 print(f"⏱️ Time: {flashcard_result.processing_time:.2f} seconds")
 
 # Preview flashcards in notebook
 preview_text = flashcard_gen.get_flashcard_preview_text()
-print("\n" + "="*50)
+print("\n" + "=" * 50)
 print("FLASHCARD PREVIEW")
-print("="*50)
+print("=" * 50)
 print(preview_text[:2000] + "..." if len(preview_text) > 2000 else preview_text)
 
 # Export to CSV
@@ -1576,7 +1545,7 @@ success, summary = flashcard_gen.export_to_csv(output_path)
 
 if success:
     print(f"\n✅ Exported {summary['exported_flashcards']} flashcards to {output_path}")
-    
+
     # Display export statistics
     print(f"📊 Q&A cards: {summary['qa_cards']}")
     print(f"📊 Cloze cards: {summary['cloze_cards']}")
