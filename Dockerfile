@@ -1,5 +1,5 @@
 # Document to Anki CLI - Docker Image
-FROM python:3.12-slim
+FROM docker.io/library/python:3.12-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
