@@ -48,6 +48,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
+from .. import __version__
 from ..config import ConfigurationError, LanguageConfig, LanguageValidationError, ModelConfig
 from ..core.document_processor import DocumentProcessingError, DocumentProcessor
 from ..core.flashcard_generator import FlashcardGenerationError, FlashcardGenerator
@@ -218,7 +219,7 @@ def main(ctx: click.Context, verbose: bool, version: bool) -> None:
     Example: export CARDLANG=french && document-to-anki input.pdf
     """
     if version:
-        click.echo("Document to Anki CLI v0.1.3")
+        click.echo(f"Document to Anki CLI v{__version__}")
         return
 
     # Create CLI context - this will validate model configuration

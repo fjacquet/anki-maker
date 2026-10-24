@@ -9,6 +9,7 @@ Tests the complete CLI workflow from document processing to CSV export.
 import pytest
 from click.testing import CliRunner
 
+from src.document_to_anki import __version__
 from src.document_to_anki.cli.main import main
 from src.document_to_anki.core.document_processor import DocumentProcessingResult
 from src.document_to_anki.models.flashcard import Flashcard, ProcessingResult
@@ -163,7 +164,7 @@ class TestCLIIntegration:
         result = runner.invoke(main, ["--version"])
 
         assert result.exit_code == 0
-        assert "Document to Anki CLI v0.1.3" in result.output
+        assert f"Document to Anki CLI v{__version__}" in result.output
 
     def test_convert_command_help(self, runner):
         """Test convert command help."""
