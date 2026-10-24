@@ -10,15 +10,24 @@ section rather than letting it accumulate indefinitely.
 
 ## [Unreleased]
 
-### Changed
-
-- Refreshed `uv.lock` (2026-10-02 dependency sweep).
-- The Security workflow now also runs on a weekly schedule and can be triggered manually.
+## [0.1.4] - 2026-10-24
 
 ### Security
 
-- `nltk` advisory [GHSA-8mgp-746c-j5xp](https://github.com/advisories/GHSA-8mgp-746c-j5xp)
-  has no upstream fix yet; the locked version is the latest available and the alert remains open.
+- `pillow` 12.3.0 → 13.0.0 for 41 advisories (5 critical, e.g. GHSA-w889-685w-c8fh and
+  GHSA-v9pv-5gc8-w2m6: heap overflows and DoS in the TIFF, JPEG, FPX, PDF and GIF decoders).
+- `filelock` → 4.2.4 for GHSA-v4x8-3wr5-3wq8 (High), GHSA-9vhv-jxww-xfm5 and GHSA-567q-5qvw-pf92,
+  through a uv `override-dependencies` entry `filelock>=4.2.1,<5`: litellm caps `filelock<4`.
+  Dependents use only `FileLock`, `SoftFileLock`, `BaseFileLock` and `Timeout`. Drop the override
+  once litellm allows filelock 4.2.1.
+- `pypdf` (11 advisories), `aiohttp` (8), `virtualenv` (12), `certifi` → 2026.10.23 for GHSA-6q48-6c7w-9gw2, `opentelemetry-api` → 1.45.1 for GHSA-xcq7-p3pf-p88h.
+- `nltk` → 3.10.4 closes GHSA-8mgp-746c-j5xp (affected ≤ 3.10.3).
+
+### Changed
+
+- Full `uv lock --upgrade` refresh, replacing the 2026-10-02 lock.
+- The Security workflow now also runs on a weekly schedule and can be triggered manually.
+- `document-to-anki --version` reads `__version__` instead of a hard-coded string.
 
 ## [0.1.3] - 2026-09-13
 
@@ -63,7 +72,8 @@ First tagged release. The project itself dates from August 2025; by this tag it 
 - Updated README and docs (API, configuration, examples, troubleshooting).
 - A fix resolving web components uniformly through `app.state` dependency providers, and tests decoupled from a local `.env`.
 
-[Unreleased]: https://github.com/fjacquet/anki-maker/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/fjacquet/anki-maker/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/fjacquet/anki-maker/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/fjacquet/anki-maker/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/fjacquet/anki-maker/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/fjacquet/anki-maker/compare/v0.1.0...v0.1.1
