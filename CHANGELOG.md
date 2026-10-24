@@ -10,12 +10,20 @@ section rather than letting it accumulate indefinitely.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-24
+
 ### Changed
 
 - Refreshed `uv.lock` (2026-10-02 dependency sweep).
 - The Security workflow now also runs on a weekly schedule and can be triggered manually.
 
 ### Security
+
+- Full `uv lock --upgrade` refresh. `pillow` 12.3.0 → 13.0.0 closes 41 advisories (critical/high
+  heap overflows and DoS in the TIFF, JPEG, FPX, PDF and GIF decoders); `pypdf`, `aiohttp`,
+  `virtualenv`, `certifi` and `opentelemetry-api` move to their patched releases.
+- `filelock` stays on 3.32.7: `litellm` caps it below 4.0 and the fix (GHSA-v4x8-3wr5-3wq8 and
+  two Windows-only LOW advisories) is 4.2.1. Remains open until litellm lifts the cap.
 
 - `nltk` advisory [GHSA-8mgp-746c-j5xp](https://github.com/advisories/GHSA-8mgp-746c-j5xp)
   has no upstream fix yet; the locked version is the latest available and the alert remains open.
