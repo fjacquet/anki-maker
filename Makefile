@@ -45,7 +45,7 @@ build:  ## Build the wheel/sdist
 	uv build
 
 vuln:  ## OSV vulnerability scan against uv.lock
-	uvx osv-scanner scan --lockfile=uv.lock || true
+	osv-scanner scan source --recursive .
 
 sbom:  ## Generate a CycloneDX SBOM to dist/sbom.cdx.json
 	mkdir -p $(DIST)
