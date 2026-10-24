@@ -187,6 +187,9 @@ exclude_dirs = ["tests", "venv", ".venv"]
 skips = ["B101", "B601"]
 
 [tool.uv]
+override-dependencies = [
+    "filelock>=4.2.1",  # litellm caps filelock<4; GHSA-v4x8-3wr5-3wq8 fixed in 4.2.1, dependents use only FileLock/SoftFileLock/Timeout
+]
 package = true
 
 

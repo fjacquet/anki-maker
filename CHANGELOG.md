@@ -22,8 +22,10 @@ section rather than letting it accumulate indefinitely.
 - Full `uv lock --upgrade` refresh. `pillow` 12.3.0 → 13.0.0 closes 41 advisories (critical/high
   heap overflows and DoS in the TIFF, JPEG, FPX, PDF and GIF decoders); `pypdf`, `aiohttp`,
   `virtualenv`, `certifi` and `opentelemetry-api` move to their patched releases.
-- `filelock` stays on 3.32.7: `litellm` caps it below 4.0 and the fix (GHSA-v4x8-3wr5-3wq8 and
-  two Windows-only LOW advisories) is 4.2.1. Remains open until litellm lifts the cap.
+- `filelock` 3.32.7 → 4.2.4 via a uv `override-dependencies` entry, for GHSA-v4x8-3wr5-3wq8 (High)
+  and two Windows-only LOW advisories, all fixed in 4.2.1. litellm caps `filelock<4`, but its
+  dependents here use only `FileLock`, `SoftFileLock`, `Timeout` and `BaseFileLock`; filelock 4.0
+  changed only `SoftReadWriteLock`.
 
 - `nltk` advisory [GHSA-8mgp-746c-j5xp](https://github.com/advisories/GHSA-8mgp-746c-j5xp)
   has no upstream fix yet; the locked version is the latest available and the alert remains open.
