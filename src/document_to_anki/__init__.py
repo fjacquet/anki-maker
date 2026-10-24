@@ -52,7 +52,7 @@ Configuration:
     Set GEMINI_API_KEY environment variable or create .env file
 """
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__ = "Document to Anki CLI Team"
 __email__ = "support@document-to-anki.com"
 __license__ = "MIT"

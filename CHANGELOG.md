@@ -10,6 +10,16 @@ section rather than letting it accumulate indefinitely.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-24
+
+### Security
+
+- **`make vuln` and the Security workflow now actually scan.** `uvx osv-scanner` never resolved
+  (osv-scanner is a Go binary, not on PyPI) and `|| true` hid the failure, so no CI run had ever
+  scanned `uv.lock`. `make vuln` now runs `osv-scanner scan source --recursive .` and fails on
+  findings; fjacquet/ci v1.6.0 installs a pinned, checksum-verified binary in CI.
+- Full `uv lock --upgrade` refresh (`litellm` 1.106.3 among others); no open advisory.
+
 ## [0.1.4] - 2026-10-24
 
 ### Security
@@ -72,7 +82,8 @@ First tagged release. The project itself dates from August 2025; by this tag it 
 - Updated README and docs (API, configuration, examples, troubleshooting).
 - A fix resolving web components uniformly through `app.state` dependency providers, and tests decoupled from a local `.env`.
 
-[Unreleased]: https://github.com/fjacquet/anki-maker/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/fjacquet/anki-maker/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/fjacquet/anki-maker/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/fjacquet/anki-maker/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/fjacquet/anki-maker/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/fjacquet/anki-maker/compare/v0.1.1...v0.1.2
